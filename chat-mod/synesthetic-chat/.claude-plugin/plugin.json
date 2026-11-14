@@ -1,0 +1,34 @@
+{
+  "name": "synesthetic-chat",
+  "version": "0.1.0",
+  "description": "Colors, highlights and weight for numbers, dates, IDs, links, warnings and more in Claude's replies, from the same lens as the Synesthetic Layer tool.",
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Style",
+      "description": "a = colored text, b = highlight chips, c = combined",
+      "default": "c",
+      "options": ["a", "b", "c"]
+    },
+    "theme": {
+      "type": "string",
+      "title": "Theme",
+      "description": "Which palette to draw for: dark or light backgrounds",
+      "default": "dark",
+      "options": ["dark", "light"]
+    },
+    "palette": {
+      "type": "string",
+      "title": "Palette",
+      "description": "default, or cb for the color-blind-safe palette",
+      "default": "default",
+      "options": ["default", "cb"]
+    },
+    "off": {
+      "type": "string",
+      "title": "Categories to turn off",
+      "description": "Comma-separated category names to skip, for example: number,name",
+      "default": "name"
+    }
+  }
+}

@@ -1,0 +1,271 @@
+# Default lens: content-type categories.
+# Each category: priority (lower wins an overlap), regex patterns, colors for
+# dark/light themes and a color-blind-safe (Okabe-Ito based) variant, plus
+# non-color cues (font, weight, underline) so color is never the only signal.
+# If a pattern has a capture group 1, only that group is styled.
+# Edit freely: colors, patterns and cues are all data.
+
+[[category]]
+name = "quote"
+label = "Quoted text"
+example = "\"as written\""
+priority = 1
+patterns = [
+  '(?<![\w"])"(?=[^\s"])[^"\n]{1,200}?(?<=[^\s"])"(?![\w"])',
+  '“(?=\S)[^”\n]{1,200}?(?<=\S)”',
+]
+dark = "#ff9f5a"
+light = "#b24a00"
+cb_dark = "#E69F00"
+cb_light = "#9a6400"
+font = "italic"
+underline = "none"
+
+[[category]]
+name = "link"
+label = "Links, contacts, file paths"
+example = "https://…, name@site.com, 555-123-4567, C:\\folder\\file"
+priority = 2
+patterns = [
+  '(?<![\w.])(?:\+?1[ .-])?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}(?![\w])',
+  '''\bhttps?://[^\s<>"')\]]+[^\s<>"')\].,;:!?]''',
+  '''\bwww\.[^\s<>"')\]]+[^\s<>"')\].,;:!?]''',
+  '\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b',
+  '\b[A-Za-z]:\\(?:[^\s\\/:*?"<>|]+\\)*[^\s\\/:*?"<>|]*',
+  '(?<![\w/])(?:\.{1,2})?/(?=[\w.\-/]*[A-Za-z])(?:[\w.\-]+/)+[\w.\-]+',
+  '(?<![\w/.])(?=[\w.\-/]*[A-Za-z])(?:[\w.\-]+/)+[\w\-]+\.[A-Za-z0-9]{2,5}\b',
+]
+dark = "#5fd38d"
+light = "#17703a"
+cb_dark = "#2fc79a"
+cb_light = "#007a5a"
+underline = "solid"
+
+[[category]]
+name = "date"
+label = "Dates and times"
+example = "Aug 2026, 2026-08-14, 3:45 PM"
+priority = 3
+patterns = [
+  '\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(?:\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{4})\b',
+  '\b\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?,?\s+\d{4}\b',
+  '\b\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?Z?)?\b',
+  '\b\d{1,2}/\d{1,2}/(?:\d{4}|\d{2})\b',
+  '\b\d{1,2}:\d{2}(?::\d{2})?(?:\s?(?:[AaPp][Mm]\b|[ap]\.m\.|[AP]\.M\.))?',
+]
+dark = "#f2c14e"
+light = "#7a5c00"
+cb_dark = "#F0E442"
+cb_light = "#7a6f00"
+font = "tabular"
+underline = "dotted"
+
+[[category]]
+name = "id"
+label = "IDs and codes"
+example = "INV-20481, A1234, #4521"
+priority = 4
+patterns = [
+  '\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b',
+  '\b[A-Z]{2,8}[-_]\d+[A-Z0-9\-]*\b',
+  '\b[A-Z]{1,6}\d{3,}[A-Z0-9]*\b',
+  '(?<![\w&])#\d{2,}\b',
+]
+dark = "#3dd6d0"
+light = "#00716f"
+cb_dark = "#56B4E9"
+cb_light = "#0b6fa8"
+font = "mono"
+underline = "none"
+
+[[category]]
+name = "reference"
+label = "Cross-references"
+example = "page 5, Section 3, Figure 2"
+priority = 5
+flags = "i"
+patterns = [
+  '\b(?:see\s+)?(?:pages?|pp?\.|sections?|sec\.|chapters?|ch\.|figures?|fig\.|tables?|appendix|steps?|items?|exhibit)\s*#?\s*[A-Za-z]?\d+(?:[.\-–]\d+)*[A-Za-z]?(?:\s*(?:-|–|to|and)\s*[A-Za-z]?\d+)?',
+  '§\s*\d+(?:\.\d+)*',
+]
+dark = "#b394ff"
+light = "#5b34b8"
+cb_dark = "#CC79A7"
+cb_light = "#a64d80"
+underline = "dashed"
+
+[[category]]
+name = "warning"
+label = "Warnings and requirements"
+example = "warning, do not, required, error"
+priority = 6
+flags = "i"
+patterns = [
+  '\b(?:warning|caution|danger|critical|important|deprecated|do not|must not|never|error|fail(?:s|ed|ure)?|required|mandatory|prohibited|risk)\b',
+  '''\bdon[’']t\b''',
+  '\bcannot\b',
+]
+dark = "#ff6b6b"
+light = "#b3261e"
+cb_dark = "#ff7a2e"
+cb_light = "#b84f00"
+weight = 700
+underline = "wavy"
+
+[[category]]
+name = "term"
+label = "Labels and definitions"
+example = "Label: …   or   Term means …"
+priority = 7
+patterns = [
+  '^[A-Za-z][^\n:]{1,39}(?=:(?:\s|$))',
+  '^[A-Z][\w\- ]{1,40}?(?=\s(?:means|is defined as|refers to)\b)',
+]
+dark = "#e8eaed"
+light = "#111111"
+cb_dark = "#e8eaed"
+cb_light = "#111111"
+weight = 700
+underline = "double"
+
+[[category]]
+name = "number"
+label = "Numbers, money, percentages"
+example = "1,250  $4.50  12%"
+priority = 8
+patterns = [
+  '[$€£¥]\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:[KMBkmb]\b|million\b|billion\b|thousand\b))?',
+  '(?<![\w.])[-−]?\d[\d,]*(?:\.\d+)?\s?%',
+  '(?<![\w.\-])[-−]\d[\d,]*(?:\.\d+)?(?![\w])',
+  '(?<![\w.])\d[\d,]*\.\d+(?![\w])',
+  '(?<![\w.])\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\w])',
+  '(?<![\w.])\d{2,}(?![\w])',
+]
+dark = "#6cb4ff"
+light = "#1a5fb4"
+cb_dark = "#4aa3df"
+cb_light = "#00508a"
+font = "tabular"
+underline = "none"
+
+[[category]]
+name = "name"
+label = "Names and proper nouns"
+example = "met Jane Smith at Acme Corp"
+priority = 9
+default_off = true  # very frequent in documentation full of product/screen names; turn on in the legend
+patterns = ['(?<=[a-z,;]\s)[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b']
+dark = "#ff8fd0"
+light = "#a3166f"
+cb_dark = "#9aa5b1"
+cb_light = "#55606b"
+underline = "none"
+
+# ---------------------------------------------------------------------------
+# Grammar layer (opt-in: --grammar). Muted text tints so they never read as
+# content-type colors. Applied only to words not already styled by content.
+# ---------------------------------------------------------------------------
+
+[[category]]
+name = "noun"
+label = "Nouns"
+layer = "grammar"
+pos = ["NOUN", "PROPN"]
+example = "dog, Chicago"
+dark = "#9db7d5"
+light = "#3f648f"
+cb_dark = "#9db7d5"
+cb_light = "#3f648f"
+
+[[category]]
+name = "verb"
+label = "Verbs"
+layer = "grammar"
+pos = ["VERB", "AUX"]
+example = "run, must"
+dark = "#e0a0a0"
+light = "#9a3f3f"
+cb_dark = "#e0a97a"
+cb_light = "#9a5a1f"
+
+[[category]]
+name = "adjective"
+label = "Adjectives"
+layer = "grammar"
+pos = ["ADJ"]
+example = "quick, brown"
+dark = "#a9c9a0"
+light = "#3f7a37"
+cb_dark = "#a9c9a0"
+cb_light = "#3f7a37"
+
+[[category]]
+name = "adverb"
+label = "Adverbs"
+layer = "grammar"
+pos = ["ADV"]
+example = "quickly, very"
+dark = "#d8c48f"
+light = "#8a6a1a"
+cb_dark = "#d8c48f"
+cb_light = "#8a6a1a"
+
+# ---------------------------------------------------------------------------
+# Meaning layer (opt-in: --ai). A language model marks these phrases; each is
+# drawn as a marker highlight in every display mode. Sends text to Claude.
+# ---------------------------------------------------------------------------
+
+[[category]]
+name = "keyterm"
+label = "Key terms"
+layer = "meaning"
+description = "the central concept or term being introduced or discussed"
+example = "the main idea"
+dark = "#ffd24a"
+light = "#c79a00"
+cb_dark = "#F0E442"
+cb_light = "#c9b900"
+
+[[category]]
+name = "definition"
+label = "Definitions"
+layer = "meaning"
+description = "the phrase that explains or defines a term"
+example = "means …"
+dark = "#6fd3a0"
+light = "#2f9a67"
+cb_dark = "#56B4E9"
+cb_light = "#3a8fc7"
+
+[[category]]
+name = "action"
+label = "Actions to take"
+layer = "meaning"
+description = "an instruction, step or thing the reader is meant to do"
+example = "click Save"
+dark = "#6cb4ff"
+light = "#2f7fd6"
+cb_dark = "#009E73"
+cb_light = "#2f9a73"
+
+[[category]]
+name = "caution"
+label = "Cautions"
+layer = "meaning"
+description = "a risk, warning, limit or condition the reader must watch for"
+example = "may delete data"
+dark = "#ff7d7d"
+light = "#d94a4a"
+cb_dark = "#D55E00"
+cb_light = "#e07a2e"
+
+[[category]]
+name = "example"
+label = "Examples"
+layer = "meaning"
+description = "a concrete example, case or illustration"
+example = "for instance …"
+dark = "#c58cff"
+light = "#9a5ae0"
+cb_dark = "#CC79A7"
+cb_light = "#cf88b3"

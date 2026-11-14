@@ -1,0 +1,120 @@
+import re
+
+from synesthetic.annotate import load_lens
+from synesthetic.cli import main
+from synesthetic.extract import UnsupportedFile, extract
+from synesthetic.render import render_document
+
+import pytest
+
+LENS = load_lens()
+
+
+def kinds(doc):
+    return [b.kind for b in doc.blocks]
+
+
+def test_md_structure(fixtures):
+    doc = extract(fixtures / "sample.md")
+    assert doc.title == "Project Plan"
+    ks = kinds(doc)
+    assert ks.count("heading") == 2
+    assert "table" in ks and "code" in ks and "quote" in ks
+    items = [b for b in doc.blocks if b.kind == "item"]
+    assert [i.marker for i in items][:2] == ["•", "•"]
+    assert items[2].marker == "1."
+    tbl = next(b for b in doc.blocks if b.kind == "table")
+    assert tbl.header_rows == 1 and tbl.rows[1][1].text == "$4.50"
+    strong = [b for b in doc.blocks if b.kind == "para" and b.emph]
+    assert strong and strong[0].emph[0][2] == "b"
+
+
+def test_txt_structure(fixtures):
+    doc = extract(fixtures / "sample.txt")
+    assert doc.blocks[0].kind == "heading" and doc.blocks[0].level == 1
+    assert sum(1 for b in doc.blocks if b.kind == "item") == 2
+    # the hard-wrapped paragraph is rejoined
+    para = next(b for b in doc.blocks if b.kind == "para" and "Meeting held" in b.text)
+    assert "\n" not in para.text and "$1,250.50 and the review" in para.text
+
+
+def test_docx_structure(fixtures):
+    doc = extract(fixtures / "sample.docx")
+    ks = kinds(doc)
+    assert ks[0] == "heading" and doc.blocks[0].level == 1
+    assert "item" in ks and "table" in ks
+    tbl = next(b for b in doc.blocks if b.kind == "table")
+    assert tbl.rows[0][0].text == "Region" and tbl.rows[1][1].text == "$1,200"
+
+
+def test_docx_hand_formatted_headings(fixtures):
+    doc = extract(fixtures / "sample.docx")
+    heads = {b.text: b.level for b in doc.blocks if b.kind == "heading"}
+    assert heads["HAND FORMATTED TITLE"] == 1  # 18 pt bold
+    assert heads["Bold Section Line"] == 3  # whole paragraph bold, Normal style
+    assert not any("Only part" in t for t in heads)  # partly bold stays a paragraph
+    assert any("Only part" in b.text for b in doc.blocks if b.kind == "para")
+
+
+def test_xlsx_typed_cells(fixtures):
+    doc = extract(fixtures / "sample.xlsx")
+    tbl = next(b for b in doc.blocks if b.kind == "table")
+    assert tbl.rows[0][0].text == "Item"
+    assert tbl.rows[1][1].ctype == "number" and tbl.rows[1][2].ctype == "date"
+    assert tbl.rows[2][1].text == "-3.5"
+
+
+def test_pdf_headings_and_text(fixtures):
+    doc = extract(fixtures / "sample.pdf")
+    heads = [(b.text, b.level) for b in doc.blocks if b.kind == "heading"]
+    assert ("Annual Overview", 1) in heads
+    assert any(t == "Section One" and lvl == 2 for t, lvl in heads)
+    assert any("Aug 14, 2026" in b.text for b in doc.blocks if b.kind == "para")
+    assert sum(1 for b in doc.blocks if b.kind == "rule") == 2
+
+
+def test_render_has_categories_and_modes(fixtures):
+    html = render_document(extract(fixtures / "sample.md"), LENS)
+    for cat in ("number", "date", "id", "link", "reference", "warning", "quote"):
+        assert f'data-cat="{cat}"' in html, cat
+    assert 'data-v="a"' in html and 'data-v="b"' in html and 'data-v="c"' in html
+    assert ".m-b .c{" in html and ".m-c .c{" in html
+    assert "<script>" in html
+
+
+def test_copy_text_preserved(fixtures):
+    """Stripping tags from the rendered body must give back the source text."""
+    doc = extract(fixtures / "sample.md")
+    html = render_document(doc, LENS)
+    body = html.split("<main>", 1)[1].split("</main>", 1)[0]
+    plain = re.sub(r"<[^>]+>", "", body)
+    import html as h
+
+    plain = h.unescape(plain)
+    for b in doc.blocks:
+        if b.kind in ("para", "item", "quote", "heading"):
+            assert b.text in plain, b.text
+
+
+def test_escape_html(tmp_path):
+    f = tmp_path / "x.txt"
+    f.write_text("<script>alert(1)</script> & done", encoding="utf-8")
+    html = render_document(extract(f), LENS)
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;alert(" in html and "&lt;/script&gt;" in html
+
+
+def test_cli_folder(fixtures, tmp_path):
+    out = tmp_path / "out"
+    rc = main([str(fixtures), "-o", str(out)])
+    assert rc == 0
+    assert (out / "index.html").exists()
+    for name in ("sample.md", "sample.txt", "sample.pdf", "sample.docx", "sample.xlsx"):
+        assert (out / f"{name}.html").exists(), name
+
+
+def test_unsupported(tmp_path):
+    f = tmp_path / "a.xyz"
+    f.write_text("x")
+    with pytest.raises(UnsupportedFile):
+        extract(f)
