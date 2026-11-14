@@ -138,6 +138,39 @@ def test_template_placeholder_in_document_text_survives(tmp_path):
     assert html.count('"palette":') == 1  # the options JSON appears once, in the script
 
 
+def test_user_style_reaches_the_page(tmp_path):
+    f = tmp_path / "s.md"
+    f.write_text("Pay $5 today.\n", encoding="utf-8")
+    style = {"colors": {"number": {"dark": "#ABCDEF", "light": "#123456"}}, "body": "lexend",
+             "heading": "georgia", "size": 120, "mode": "b", "theme": "light"}
+    html = render_document(extract(f), LENS, style=style)
+    assert ':root:not([data-theme="light"]):not([data-pal="cb"]){--c-number:#abcdef' in html
+    assert ':root[data-theme="light"]:not([data-pal="cb"]){--c-number:#123456' in html
+    assert "family=Lexend" in html and "body{font-family:Lexend" in html
+    assert "font-size:20.4px" in html and '"mode": "b"' in html and '"theme": "light"' in html
+
+
+def test_bad_style_values_are_dropped(tmp_path):
+    f = tmp_path / "s.md"
+    f.write_text("Pay $5 today.\n", encoding="utf-8")
+    plain = render_document(extract(f), LENS)
+    evil = {"colors": {"number": {"dark": "red;}</style><script>x()</script>"}, "nope": {"dark": "#ffffff"}},
+            "body": "x;}body{display:none", "size": 9999, "mode": "z", "theme": 3}
+    assert render_document(extract(f), LENS, style=evil) == plain
+    assert render_document(extract(f), LENS, style="not a dict") == plain
+
+
+def test_cli_style_file(tmp_path):
+    import json
+
+    src = tmp_path / "n.md"
+    src.write_text("Pay $5.\n", encoding="utf-8")
+    style = tmp_path / "synesthetic-style.json"
+    style.write_text(json.dumps({"version": 1, "colors": {"number": {"dark": "#00ff00"}}}), encoding="utf-8")
+    assert main([str(src), "-o", str(tmp_path / "out"), "--style", str(style)]) == 0
+    assert "--c-number:#00ff00" in (tmp_path / "out" / "n.md.html").read_text(encoding="utf-8")
+
+
 def test_unsupported(tmp_path):
     f = tmp_path / "a.xyz"
     f.write_text("x")

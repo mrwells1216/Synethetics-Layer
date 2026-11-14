@@ -8,3 +8,4 @@ synesthetic-out
 .synesthetic-cache
 .pytest_cache
 **/__pycache__
+docs

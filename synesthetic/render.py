@@ -24,6 +24,79 @@ FONTS = {
 }
 
 
+# Fonts a user may pick for body text and headings: key -> (label, CSS stack, Google Fonts family or None).
+# Only these keys are accepted from a style, so no CSS from outside ever reaches the page.
+FONT_CHOICES = {
+    "atkinson": ("Atkinson Hyperlegible", "'Atkinson Hyperlegible',system-ui,sans-serif",
+                 "Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700"),
+    "lexend": ("Lexend", "Lexend,system-ui,sans-serif", "Lexend:wght@300..700"),
+    "plex": ("IBM Plex Sans", "'IBM Plex Sans',system-ui,sans-serif", "IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400"),
+    "space": ("Space Grotesk", "'Space Grotesk',system-ui,sans-serif", "Space+Grotesk:wght@400..700"),
+    "system": ("System sans", "system-ui,-apple-system,'Segoe UI',Roboto,sans-serif", None),
+    "verdana": ("Verdana", "Verdana,Tahoma,sans-serif", None),
+    "fraunces": ("Fraunces", "Fraunces,Georgia,serif", "Fraunces:opsz,wght@9..144,400..700"),
+    "young": ("Young Serif", "'Young Serif',Georgia,serif", "Young+Serif"),
+    "literata": ("Literata", "Literata,Georgia,serif", "Literata:ital,wght@0,400;0,700;1,400"),
+    "source-serif": ("Source Serif", "'Source Serif 4',Georgia,serif", "Source+Serif+4:ital,wght@0,400;0,700;1,400"),
+    "georgia": ("Georgia", "Georgia,'Iowan Old Style','Times New Roman',serif", None),
+}
+STYLE_DEFAULTS = {"body": "atkinson", "heading": "fraunces", "size": 100, "mode": "c", "theme": "dark"}
+_HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def clean_style(style, lens: Lens) -> dict:
+    """Keep only well-formed values from a user style (colors per category and theme, fonts from
+    FONT_CHOICES, size 80-150 %, mode, theme). Anything else is dropped."""
+    out: dict = {"dark": {}, "light": {}}
+    if not isinstance(style, dict):
+        return out
+    colors = style.get("colors")
+    if isinstance(colors, dict):
+        for name, pair in colors.items():
+            if lens.get(name) and isinstance(pair, dict):
+                for t in ("dark", "light"):
+                    c = pair.get(t)
+                    if isinstance(c, str) and _HEX.match(c):
+                        out[t][name] = c.lower()
+    for k in ("body", "heading"):
+        if style.get(k) in FONT_CHOICES:
+            out[k] = style[k]
+    size = style.get("size")
+    if isinstance(size, (int, float)) and not isinstance(size, bool) and 80 <= size <= 150:
+        out["size"] = round(size)
+    if style.get("mode") in ("a", "b", "c", "d"):
+        out["mode"] = style["mode"]
+    if style.get("theme") in ("auto", "dark", "light"):
+        out["theme"] = style["theme"]
+    return out
+
+
+def _custom_css(st: dict) -> tuple[str, str]:
+    """CSS and <head> font links for a cleaned style. Custom colors apply to the standard palette;
+    the color-blind palette stays as designed."""
+    css = []
+    for theme, sel in (("dark", ':root:not([data-theme="light"]):not([data-pal="cb"])'),
+                       ("light", ':root[data-theme="light"]:not([data-pal="cb"])')):
+        if st[theme]:
+            decl = ";".join(f"--c-{n}:{c};--on-{n}:{_on(c)}" for n, c in sorted(st[theme].items()))
+            css.append(f"{sel}{{{decl}}}")
+    if "body" in st:
+        css.append(f"body{{font-family:{FONT_CHOICES[st['body']][1]}}}")
+    if "heading" in st:
+        css.append(f"h1,h2,h3,h4,h5,h6{{font-family:{FONT_CHOICES[st['heading']][1]}}}")
+    if "size" in st:
+        k = st["size"] / 100
+        css.append(f"body{{font-size:{17 * k:.1f}px}}@media (max-width:560px){{body{{font-size:{16 * k:.1f}px}}}}")
+    families = sorted({FONT_CHOICES[st[k]][2] for k in ("body", "heading") if k in st} - {None})
+    links = ""
+    if families:
+        q = "&".join(f"family={f}" for f in families)
+        links = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
+                 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+                 f'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?{q}&display=swap">')
+    return "\n".join(css), links
+
+
 def _esc(s: str) -> str:
     return html.escape(s, quote=True)
 
@@ -234,7 +307,10 @@ def _legend(lens: Lens, counts: Counter) -> str:
 
 
 def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palette="default",
-                    grammar=False, ai=None, log=print) -> str:
+                    grammar=False, ai=None, log=print, style=None) -> str:
+    st = clean_style(style, lens)
+    mode, theme = st.get("mode", mode), st.get("theme", theme)
+    custom_css, font_links = _custom_css(st)
     counts: Counter = Counter()
     ann = make_annotator(_doc_texts(doc), lens, grammar=grammar, ai=ai, log=log)
     body = "\n".join(_block(b, lens, counts, ann) for b in doc.blocks)
@@ -245,6 +321,8 @@ def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palett
         "TITLE": _esc(title),
         "CSS_VARS": _css_vars(lens),
         "CAT_CSS": _cat_css(lens),
+        "CUSTOM_CSS": custom_css,
+        "FONT_LINKS": font_links,
         "LEGEND": legend or '<span class="n">Nothing detected.</span>',
         "NOTES": notes,
         "SOURCE": _esc(Path(doc.source).name),

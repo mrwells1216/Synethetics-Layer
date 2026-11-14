@@ -29,7 +29,9 @@ The same upload page runs in two places:
 - **On Vercel:** `api/index.py` plus `vercel.json`. Every push to `main` deploys. Pick a file or paste text, get the styled page, then save or open it. Uploads are capped at 4.4 MB (Vercel's request limit). Files are converted on the server and not stored. The AI layer is not offered there.
 - **On this machine:** `.venv\Scripts\python.exe -m synesthetic serve` (add `--tailscale` to reach it from your phone over your Tailscale network). Up to 60 MB, nothing leaves the machine.
 
-The page lives in `synesthetic/templates/app.html`. Runtime dependencies are in `requirements.txt`.
+**Customize** sets each category's color (dark and light theme), body and heading fonts, text size, highlight style and theme, with a live preview. The defaults come from the lens; Reset puts them back. Settings are saved in the browser and baked into every page you convert. Export saves them as a file, which you can import on another device or pass to the command line with `--style synesthetic-style.json`.
+
+The page lives in `synesthetic/templates/app.html`; its look is described in `docs/design-system.md`. Runtime dependencies are in `requirements.txt`.
 
 ## Claude chat replies
 

@@ -19,7 +19,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from .annotate import load_lens
 from .extract import SUPPORTED, UnsupportedFile, extract
-from .render import render_document
+from .render import FONT_CHOICES, STYLE_DEFAULTS, render_document
 
 MAX_BYTES = 60 * 1024 * 1024
 APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
@@ -30,15 +30,24 @@ def grammar_installed() -> bool:
     return all(importlib.util.find_spec(m) is not None for m in ("spacy", "en_core_web_sm"))
 
 
-def app_page(max_bytes: int, hosted: bool) -> str:
-    cfg = {"exts": sorted(SUPPORTED), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted}
+def app_page(lens, max_bytes: int, hosted: bool) -> str:
+    cfg = {
+        "exts": sorted(SUPPORTED), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted,
+        "categories": [
+            {"name": c.name, "label": c.label, "layer": c.layer, "example": c.example,
+             "dark": c.colors["dark"], "light": c.colors["light"], "off": c.default_off}
+            for c in lens.categories
+        ],
+        "fonts": [{"key": k, "label": v[0], "stack": v[1], "google": v[2]} for k, v in FONT_CHOICES.items()],
+        "defaults": STYLE_DEFAULTS,
+    }
     return APP_PAGE.read_text(encoding="utf-8").replace("{{CONFIG}}", json.dumps(cfg).replace("</", "<\\/"))
 
 
 def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
     """One page (any GET) and one action (any POST converts the body), so it works the same
     behind Vercel's rewrites as on this machine."""
-    page = app_page(max_bytes, hosted)
+    page = app_page(lens, max_bytes, hosted)
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "Synesthetic"
@@ -100,7 +109,11 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                 src = tmp / name
                 src.write_bytes(body)
                 doc = extract(src, find_tables=(q.get("fast") or ["0"])[0] != "1")
-                html = render_document(doc, lens, grammar=(q.get("grammar") or ["0"])[0] == "1")
+                try:  # the page's saved colors and fonts; render_document keeps only valid values
+                    style = json.loads(unquote(self.headers.get("X-Style", "")) or "null")
+                except ValueError:
+                    style = None
+                html = render_document(doc, lens, grammar=(q.get("grammar") or ["0"])[0] == "1", style=style)
                 self._send(200, html)
             except UnsupportedFile as e:
                 self._send(400, str(e), "text/plain; charset=utf-8")

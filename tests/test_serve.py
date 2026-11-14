@@ -69,6 +69,20 @@ def test_name_from_header_and_any_post_path(server):
     assert "my notes.md" in html and 'data-cat="number"' in html
 
 
+def test_style_header_is_applied(server):
+    import json
+    from urllib.parse import quote
+
+    style = quote(json.dumps({"colors": {"date": {"dark": "#010203"}}, "heading": "young"}))
+    req = urllib.request.Request(f"{server}/api/convert", data=b"Due Aug 14, 2026.\n", method="POST",
+                                 headers={"X-File-Name": "a.md", "X-Style": style})
+    html = urllib.request.urlopen(req, timeout=10).read().decode()
+    assert "--c-date:#010203" in html and "family=Young+Serif" in html
+    bad = urllib.request.Request(f"{server}/api/convert", data=b"x\n", method="POST",
+                                 headers={"X-File-Name": "a.md", "X-Style": "%7Bnot json"})
+    assert urllib.request.urlopen(bad, timeout=10).status == 200
+
+
 def test_size_limit_is_per_server():
     srv = make_server("127.0.0.1", 0)
     srv.RequestHandlerClass = make_handler(load_lens(), max_bytes=10)

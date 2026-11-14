@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -16,7 +17,7 @@ def _convert(src: Path, dest: Path, lens, args, find_tables: bool) -> str:
     ai = {"model": args.ai_model, "max_calls": args.ai_max_calls} if args.ai else None
     dest.write_text(
         render_document(doc, lens, mode=args.mode, theme=args.theme, palette=args.palette,
-                        grammar=args.grammar, ai=ai),
+                        grammar=args.grammar, ai=ai, style=args.style_data),
         encoding="utf-8",
     )
     return "ok" if not doc.notes else "ok (" + "; ".join(doc.notes) + ")"
@@ -42,7 +43,15 @@ def main(argv=None) -> int:
     ap.add_argument("--ai-max-calls", type=int, default=30, help="Cap on model calls per file (default: 30)")
     ap.add_argument("--fast", action="store_true", help="Skip PDF table detection (about 30x faster on big PDFs)")
     ap.add_argument("--tables", action="store_true", help="Force PDF table detection (default: on for one file, off for folders)")
+    ap.add_argument("--style", help="Colors and fonts exported from the web app's Customize screen (.json)")
     args = ap.parse_args(argv)
+    args.style_data = None
+    if args.style:
+        try:
+            args.style_data = json.loads(Path(args.style).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(f"Could not read style {args.style}: {e}", file=sys.stderr)
+            return 2
     find_tables = False if args.fast else True if args.tables else Path(args.path).is_file()
 
     src = Path(args.path).resolve()
