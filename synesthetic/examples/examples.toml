@@ -1,38 +1,39 @@
 # Sample documents shown under "Try an example" in the web app.
-# Every name, number and address in them is made up.
+# Every name, number and address in them is made up. Each blurb names a few real items from its
+# document, so the blurb itself shows the colors when the app colors its own text.
 
 [[example]]
 file = "study-notes.md"
 title = "Study notes"
-blurb = "Terms, definitions and page references stand out for review. Grammar layer on."
+blurb = "Definitions, Figure 4.7, page 112 and the exam on Oct 14. Grammar layer on."
 grammar = true
 
 [[example]]
 file = "lease.md"
 title = "Lease or contract"
-blurb = "Deadlines, fees, section references and the must-do lines jump out."
+blurb = "Rent of $1,450 due Sep 1, Section 12 and what's required or prohibited."
 
 [[example]]
 file = "aftercare.md"
 title = "Care instructions"
-blurb = "Doses, times and warnings you shouldn't miss."
+blurb = "Doses like 400 mg, times like 2:30 PM, and the do not lines."
 
 [[example]]
 file = "meeting-notes.md"
 title = "Work email"
-blurb = "Ticket numbers, due dates, links and contacts at a glance."
+blurb = "Ticket WEB-2291, due Nov 18, links and design@example.com."
 
 [[example]]
 file = "recipe.md"
 title = "Recipe"
-blurb = "Amounts, temperatures and timings in their own colors."
+blurb = "Amounts like 1.5 lb, 400 °F, 25 minutes, and a caution about doneness."
 
 [[example]]
 file = "budget.md"
 title = "Monthly budget"
-blurb = "A table of bills: money, percentages, due dates and account codes."
+blurb = "A table of bills with $96.40, 43.8%, due Nov 20, account ACCT-55190."
 
 [[example]]
 file = "trip.md"
 title = "Trip itinerary"
-blurb = "Flight codes, times, addresses and phone numbers."
+blurb = "Flight UA1528 at 7:05 AM on Dec 18, hotel 555-310-7788."

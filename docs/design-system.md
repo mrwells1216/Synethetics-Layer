@@ -8,6 +8,7 @@ The app's look is made from the reader's own category colors, so customizing the
 - **Spectrum strip:** one bar per category under the header; tapping it opens Customize.
 - **Paper preview:** the drop zone shows a sheet whose lines are already colored, so it explains what the tool does.
 - **Spectrum button:** Convert is a gradient of the same colors; its text color is whichever of near-black or white has the better worst-case contrast across the gradient.
+- **Self-colored text:** the app's own instructions, labels and messages run through the lens's content patterns in the browser (a port of `annotate.py`), in the chosen highlight style. Copy names real examples ("dates like Aug 14") so it shows. A switch turns it off (`synapp.uitext`).
 - **Aura:** two faint radial glows (quote and number colors at about 11 %) behind everything.
 
 ## Tokens

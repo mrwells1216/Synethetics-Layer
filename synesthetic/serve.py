@@ -53,7 +53,12 @@ def app_page(lens, max_bytes: int, hosted: bool) -> str:
         "examples": load_examples(lens),
         "categories": [
             {"name": c.name, "label": c.label, "layer": c.layer, "example": c.example,
-             "dark": c.colors["dark"], "light": c.colors["light"], "off": c.default_off}
+             "dark": c.colors["dark"], "light": c.colors["light"], "off": c.default_off,
+             # content patterns, so the page can color its own text the same way (JS regex syntax
+             # matches; tools/parity.py checks the same patterns for the chat mod)
+             "priority": c.priority, "patterns": [p.pattern for p in c.patterns] if c.layer == "content" else [],
+             "flags": "".join(f for f, bit in (("i", re.I), ("m", re.M), ("s", re.S))
+                              if c.patterns and c.patterns[0].flags & bit)}
             for c in lens.categories
         ],
         "fonts": [{"key": k, "label": v[0], "stack": v[1], "google": v[2]} for k, v in FONT_CHOICES.items()],

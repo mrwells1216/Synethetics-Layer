@@ -91,6 +91,8 @@ textarea:focus{outline:2px solid var(--fg);outline-offset:1px}
 .ex span.b{color:var(--muted);font-size:13.5px;line-height:1.4}
 #exmsg{margin-top:10px;min-height:1.2em;font-size:15px}
 #exmsg.err{color:var(--c-warning)}
+.ui-sw{margin:-8px 0 18px}
+#studio .ui-sw{margin:16px 0 0}
 .foot{margin-top:30px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 .foot p{margin:.35em 0}
 
@@ -153,7 +155,8 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   <button class="spectrum" id="spectrum" aria-label="Customize colors"></button>
 
   <section id="home">
-    <p class="lede">Your documents, re-lettered in color. Numbers, dates, warnings and more each get their own.</p>
+    <p class="lede">Your documents, re-lettered in color. Numbers like 1,250 and 15%, dates like Aug 14, "quotes", page 5 references and do not warnings each get their own.</p>
+    <label class="sw-row ui-sw"><input class="uitext" type="checkbox" role="switch"><span>Color this app's text<small>Your colors on these instructions and labels too.</small></span></label>
     <div class="tabs" role="tablist">
       <button role="tab" id="t-file" aria-selected="true" aria-controls="p-file">File</button>
       <button role="tab" id="t-text" aria-selected="false" aria-controls="p-text">Paste text</button>
@@ -200,6 +203,7 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
       <div class="seg" data-k="mode"><button data-v="c">Combined</button><button data-v="b">Highlights</button><button data-v="a">Colored text</button><button data-v="d">Underline</button></div></div>
     <div class="field"><span class="flabel">Theme</span>
       <div class="seg" data-k="theme"><button data-v="dark">Dark</button><button data-v="light">Light</button><button data-v="auto">Auto</button></div></div>
+    <label class="sw-row ui-sw"><input class="uitext" type="checkbox" role="switch"><span>Color this app's text<small>Uses your colors and highlight style on the app's own instructions and labels, not just converted pages.</small></span></label>
 
     <h3 class="sec">Fonts</h3>
     <label class="field"><span class="flabel">Body text</span><select id="f-body"></select></label>
@@ -207,7 +211,7 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     <label class="field"><span class="flabel">Text size <output id="sz-o"></output></span><input type="range" id="f-size" min="80" max="150" step="5"></label>
 
     <h3 class="sec">Colors</h3>
-    <p class="hint">Each category has a color for the dark theme and one for the light theme.</p>
+    <p class="hint">Each category has a color for the dark theme and one for the light theme. A color under 3:1 contrast gets a note, but it's still allowed.</p>
     <div class="card" id="c-content"></div>
     <details class="more"><summary>Grammar layer colors</summary><div class="card" id="c-grammar"></div></details>
     <details class="more"><summary>AI meaning colors (command line only)</summary><div class="card" id="c-meaning"></div></details>
@@ -309,8 +313,74 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     var letters = $('mark').querySelectorAll('.ch');
     for (var i = 0; i < letters.length; i++) letters[i].style.color = spec[i % spec.length];
     $('spectrum').querySelectorAll('i').forEach(function(seg, i){ seg.style.background = spec[i]; });
+    wrap.className = 'wrap m-' + st.mode;  // the app's own colored text follows the highlight style
     syncStudio();
   }
+  var wrap = document.querySelector('.wrap');
+
+  // ---- the app's own text, colored with the same lens (port of annotate.py) ----
+  var UI_SKIP = 'script,style,textarea,input,select,option,#pv,#mark,#spectrum,.cex,.ex-dots,.c,[data-plain]';
+  var RX = CATS.filter(function(c){ return c.layer === 'content' && !c.off && c.patterns && c.patterns.length; }).map(function(c){
+    var res = [];
+    c.patterns.forEach(function(p){
+      try { res.push(new RegExp(p, 'gd' + c.flags)); }      // d: the group's real position
+      catch (e) { try { res.push(new RegExp(p, 'g' + c.flags)); } catch (e2) {} }
+    });
+    return {c: c, res: res};
+  });
+  function spans(text){
+    var cands = [];
+    RX.forEach(function(x){
+      x.res.forEach(function(re){
+        re.lastIndex = 0; var m;
+        while ((m = re.exec(text)) !== null){
+          if (!m[0].length){ re.lastIndex++; continue; }
+          var s = m.index, e = s + m[0].length, g = m.indices && m.indices[1];
+          if (g && g[1] > g[0]){ s = g[0]; e = g[1]; }
+          cands.push([x.c.priority, s, -(e - s), e, x.c.name]);
+        }
+      });
+    });
+    cands.sort(function(a, b){ return a[0] - b[0] || a[1] - b[1] || a[2] - b[2]; });
+    var taken = new Uint8Array(text.length), out = [];
+    cands.forEach(function(k){
+      for (var i = k[1]; i < k[3]; i++) if (taken[i]) return;
+      for (i = k[1]; i < k[3]; i++) taken[i] = 1;
+      out.push({start: k[1], end: k[3], cat: k[4]});
+    });
+    return out.sort(function(a, b){ return a.start - b.start; });
+  }
+  var uiOn = lsGet('synapp.uitext') !== '0', obs = null;
+  function paint(el){
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode: function(t){
+      var p = t.parentElement;
+      return t.nodeValue.trim() && p && !p.closest(UI_SKIP) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    }});
+    var list = []; while (w.nextNode()) list.push(w.currentNode);
+    list.forEach(function(t){
+      var text = t.nodeValue, sp = spans(text); if (!sp.length) return;
+      var frag = document.createDocumentFragment(), at = 0;
+      sp.forEach(function(s){
+        if (s.start > at) frag.appendChild(document.createTextNode(text.slice(at, s.start)));
+        var e = document.createElement('span'); e.className = 'c c-' + s.cat; e.setAttribute('data-ui', '');
+        e.textContent = text.slice(s.start, s.end); frag.appendChild(e); at = s.end;
+      });
+      if (at < text.length) frag.appendChild(document.createTextNode(text.slice(at)));
+      t.parentNode.replaceChild(frag, t);
+    });
+    if (obs) obs.takeRecords();  // our own wrapping is not new text
+  }
+  function unpaint(){
+    document.querySelectorAll('span[data-ui]').forEach(function(s){
+      var p = s.parentNode; p.replaceChild(document.createTextNode(s.textContent), s); p.normalize();
+    });
+  }
+  function setUi(on){
+    uiOn = on; lsSet('synapp.uitext', on ? '1' : '0');
+    document.querySelectorAll('.uitext').forEach(function(i){ i.checked = on; });
+    if (on) paint(wrap); else unpaint();
+  }
+  document.querySelectorAll('.uitext').forEach(function(i){ i.onchange = function(){ setUi(this.checked); }; });
 
   // wordmark and spectrum
   $('mark').innerHTML = 'Synesthetic'.split('').map(function(ch){ return '<span class="ch" aria-hidden="true">' + ch + '</span>'; }).join('') + '<span class="lyr" aria-hidden="true">layer</span>';
@@ -412,7 +482,7 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   $('o-grammar').hidden = !cfg.grammar;
   $('fmeta').textContent = 'or drop it here · ' + cfg.exts.filter(function(e){ return ['.markdown','.xlsm'].indexOf(e) < 0; }).join(' ');
   $('foot').innerHTML =
-    '<p>Up to ' + mb(cfg.maxBytes) + ' per file. ' + (cfg.hosted ? 'Files are converted on the server and not stored.' : 'Runs on this computer. Nothing leaves it.') + '</p>' +
+    '<p>Up to ' + mb(cfg.maxBytes) + ' per file. ' + (cfg.hosted ? 'Files are converted on the server and never stored.' : 'Runs on this computer. Nothing leaves it.') + '</p>' +
     '<p>On a converted page, the bar at the top switches style, spacing, theme and palette; the legend turns categories on or off.</p>';
 
   function mb(n){ return (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB'; }
@@ -531,6 +601,17 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   });
 
   apply();
+  // messages, file names and other text set later get colored as they appear
+  if (window.MutationObserver) obs = new MutationObserver(function(recs){
+    if (!uiOn) return;
+    var seen = [];
+    recs.forEach(function(r){
+      var el = r.type === 'characterData' ? r.target.parentElement : r.target;
+      if (el && seen.indexOf(el) < 0){ seen.push(el); paint(el); }
+    });
+  });
+  if (obs) obs.observe(wrap, {childList: true, characterData: true, subtree: true});
+  setUi(uiOn);
 })();
 </script>
 </body>

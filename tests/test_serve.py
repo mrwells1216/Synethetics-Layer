@@ -63,6 +63,10 @@ def test_page_has_config_and_any_get_serves_it(server):
         exs = cfg["examples"]
         assert len(exs) >= 5 and all(e["text"] and e["name"].endswith(".md") for e in exs)
         assert all(len(e["cats"]) >= 4 for e in exs)  # each example shows several colors
+        # the page colors its own text with the content patterns
+        cats = {c["name"]: c for c in cfg["categories"]}
+        assert cats["number"]["patterns"] and cats["warning"]["flags"] == "i"
+        assert cats["noun"]["patterns"] == []
 
 
 def test_name_from_header_and_any_post_path(server):
