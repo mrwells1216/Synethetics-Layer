@@ -41,15 +41,20 @@ def _prompt(passages: list[tuple[int, str]], cats) -> str:
     )
 
 
-def _run_claude(prompt: str, model: str) -> str:
+def _run_claude(prompt: str, model: str, cwd: str | None = None) -> str:
     exe = shutil.which("claude")
     if not exe:
         raise AIUnavailable("The `claude` command was not found on PATH.")
-    cwd = tempfile.mkdtemp(prefix="synesthetic_ai_")  # empty folder: no project context is loaded
     cmd = [exe, "-p", "--model", model, "--tools", "", "--no-session-persistence",
            "--disable-slash-commands", "--output-format", "json"]
-    res = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8",
-                         cwd=cwd, timeout=240)
+    try:
+        # cwd is an empty folder so no project context is loaded
+        res = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8",
+                             cwd=cwd or tempfile.gettempdir(), timeout=240)
+    except subprocess.TimeoutExpired:
+        raise AIUnavailable("claude did not answer within 240 s.") from None
+    except OSError as e:
+        raise AIUnavailable(f"Could not start claude: {e}") from None
     try:
         data = json.loads(res.stdout)
     except json.JSONDecodeError:
@@ -143,9 +148,9 @@ def tag_texts(texts: list[str], lens: Lens, *, model: str = "haiku", max_calls: 
     if batches:
         log(f"AI layer: {sum(len(b) for b in batches)} passages in {len(batches)} call(s) to Claude ({model}).")
 
-    def work(batch: list[str]):
+    def work(batch: list[str], cwd: str):
         passages = list(enumerate(batch))
-        reply = _run_claude(_prompt(passages, cats), model)
+        reply = _run_claude(_prompt(passages, cats), model, cwd)
         by_i: dict[int, list[dict]] = {i: [] for i, _ in passages}
         for d in _parse(reply):
             try:
@@ -155,11 +160,21 @@ def tag_texts(texts: list[str], lens: Lens, *, model: str = "haiku", max_calls: 
         return batch, by_i
 
     if batches:
-        with ThreadPoolExecutor(max_workers=workers) as ex:
-            for batch, by_i in ex.map(work, batches):
+        # one empty folder for the whole run (claude loads no project context from it), removed after
+        with tempfile.TemporaryDirectory(prefix="synesthetic_ai_") as cwd, ThreadPoolExecutor(max_workers=workers) as ex:
+            futures = [ex.submit(work, b, cwd) for b in batches]
+            error: AIUnavailable | None = None
+            for fut in futures:
+                try:
+                    batch, by_i = fut.result()
+                except AIUnavailable as e:
+                    error = error or e
+                    continue
                 for i, t in enumerate(batch):
                     cache[_key(t)] = by_i.get(i, [])
-        _save_cache(cache)
+        _save_cache(cache)  # finished batches are kept even when another one failed
+        if error is not None:
+            raise error
 
     out: dict[str, list[Span]] = {}
     for t in elig:

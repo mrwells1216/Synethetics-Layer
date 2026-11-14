@@ -13,7 +13,7 @@ UNDERLINE = re.compile(r"^\s*([=\-~#*_])\1{2,}\s*$")
 
 def _is_heading_line(line: str, prev_blank: bool, next_blank: bool) -> bool:
     s = line.strip()
-    if not s or len(s) > 90 or not (prev_blank and next_blank):
+    if not s or len(s) > 90 or not (prev_blank and next_blank) or BULLET.match(line):
         return False
     if s.endswith((".", ",", ";")):
         return False
@@ -74,16 +74,18 @@ def extract_text(text: str, path) -> Document:
             continue
         if any(BULLET.match(ln) for ln in g):
             para: list[str] = []
+            cur_item: Block | None = None  # only this group's bullets take continuation lines
             for ln in g:
                 m = BULLET.match(ln)
                 if m:
                     indent = len(ln) - len(ln.lstrip())
                     marker = m.group(1)
                     marker = marker if marker[0].isdigit() or marker[0].isalpha() else "•"
-                    doc.blocks.append(Block("item", m.group(2).strip(), level=min(indent // 2, 4), marker=marker))
+                    cur_item = Block("item", m.group(2).strip(), level=min(indent // 2, 4), marker=marker)
+                    doc.blocks.append(cur_item)
                     para = []
-                elif doc.blocks and doc.blocks[-1].kind == "item":
-                    doc.blocks[-1].text += " " + ln.strip()
+                elif cur_item is not None:
+                    cur_item.text += " " + ln.strip()
                 else:
                     para.append(ln.strip())
                     if len(para) == 1:

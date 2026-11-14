@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
 from .annotate import Lens, Span
+from .colorcheck import contrast
 from .layers import make_annotator
 from .model import Block, Cell, Document
 
@@ -26,22 +28,9 @@ def _esc(s: str) -> str:
     return html.escape(s, quote=True)
 
 
-def _lum(hexcolor: str) -> float:
-    h = hexcolor.lstrip("#")
-    r, g, b = (int(h[i : i + 2], 16) / 255 for i in (0, 2, 4))
-
-    def lin(c):
-        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
-
-    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
-
-
 def _on(hexcolor: str) -> str:
-    """Readable text color for a chip filled with hexcolor."""
-    lum = _lum(hexcolor)
-    dark_contrast = (lum + 0.05) / (_lum("#101216") + 0.05)
-    light_contrast = (1.05) / (lum + 0.05)
-    return "#101216" if dark_contrast >= light_contrast else "#ffffff"
+    """Readable text color for a chip filled with hexcolor (same contrast math as colorcheck)."""
+    return "#101216" if contrast(hexcolor, "#101216") >= contrast(hexcolor, "#ffffff") else "#ffffff"
 
 
 def _css_vars(lens: Lens) -> str:
@@ -252,17 +241,16 @@ def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palett
     legend = _legend(lens, counts)
     notes = "".join(f'<div class="note">{_esc(n)}</div>' for n in doc.notes)
     title = doc.title or Path(doc.source).stem
-    page = TEMPLATE.read_text(encoding="utf-8")
-    for key, val in {
-        "{{TITLE}}": _esc(title),
-        "{{CSS_VARS}}": _css_vars(lens),
-        "{{CAT_CSS}}": _cat_css(lens),
-        "{{LEGEND}}": legend or '<span class="n">Nothing detected.</span>',
-        "{{NOTES}}": notes,
-        "{{SOURCE}}": _esc(Path(doc.source).name),
-        "{{MODE}}": mode,
-        "{{BODY}}": body,
-        "{{DEFAULTS}}": json.dumps(
+    fills = {
+        "TITLE": _esc(title),
+        "CSS_VARS": _css_vars(lens),
+        "CAT_CSS": _cat_css(lens),
+        "LEGEND": legend or '<span class="n">Nothing detected.</span>',
+        "NOTES": notes,
+        "SOURCE": _esc(Path(doc.source).name),
+        "MODE": mode,
+        "BODY": body,
+        "DEFAULTS": json.dumps(
             {
                 "mode": mode,
                 "theme": theme,
@@ -270,9 +258,9 @@ def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palett
                 "off": [c.name for c in lens.categories if c.default_off],
             }
         ),
-    }.items():
-        page = page.replace(key, val)
-    return page
+    }
+    # one pass, so a literal "{{BODY}}" inside the document text is never filled in
+    return re.sub(r"\{\{(\w+)\}\}", lambda m: fills[m.group(1)], TEMPLATE.read_text(encoding="utf-8"))
 
 
 def render_index(entries: list[dict], root_name: str) -> str:

@@ -75,7 +75,7 @@ def extract(path) -> Document:
                 doc.blocks.append(Block("heading", text, level=2, emph=_emph(par)))
             elif style.startswith("heading"):
                 digits = "".join(c for c in style if c.isdigit())
-                lvl = min(int(digits) + (0 if digits == "1" else 0), 6) if digits else 2
+                lvl = min(int(digits), 6) if digits else 2
                 doc.blocks.append(Block("heading", text, level=lvl, emph=_emph(par)))
             elif "quote" in style:
                 doc.blocks.append(Block("quote", text, emph=_emph(par)))

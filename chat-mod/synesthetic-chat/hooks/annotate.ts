@@ -12,7 +12,7 @@ function compile(): Compiled[] {
   if (compiled === null) {
     compiled = LENS.map(cat => ({
       cat,
-      res: cat.patterns.map(p => new RegExp(p, 'g' + cat.flags))
+      res: cat.patterns.map(p => new RegExp(p, 'gd' + cat.flags)) // d: group offsets via m.indices
     }))
   }
   return compiled
@@ -33,10 +33,8 @@ export function annotate(text: string, off: ReadonlySet<string> = new Set()): Sp
         }
         let s = m.index
         let e = s + m[0].length
-        if (m.length > 1 && m[1] !== undefined && m[1].length > 0) {
-          s = m.index + m[0].indexOf(m[1])
-          e = s + m[1].length
-        }
+        const g1 = m.indices?.[1] // the group's real position, as Python's m.span(1)
+        if (g1 && g1[1] > g1[0]) [s, e] = g1
         cands.push([cat.priority, s, -(e - s), cat.name + '\u0000' + e])
       }
     }

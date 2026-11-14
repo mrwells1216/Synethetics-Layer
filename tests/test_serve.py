@@ -39,6 +39,18 @@ def test_rejects_unknown_type_and_empty(server):
         assert e.value.code == code
 
 
+def test_cross_site_post_is_refused(server):
+    req = urllib.request.Request(f"{server}/convert?name=a.md", data=b"# hi\n", method="POST",
+                                 headers={"Sec-Fetch-Site": "cross-site", "Origin": "https://evil.example"})
+    with pytest.raises(urllib.error.HTTPError) as e:
+        urllib.request.urlopen(req, timeout=10)
+    assert e.value.code == 403
+    host = server.split("//", 1)[1]
+    req = urllib.request.Request(f"{server}/convert?name=a.md", data=b"# hi\n", method="POST",
+                                 headers={"Sec-Fetch-Site": "same-origin", "Origin": f"http://{host}"})
+    assert urllib.request.urlopen(req, timeout=10).status == 200
+
+
 def test_path_traversal_name_is_flattened(server):
     r = post(server, "..%2F..%2Fevil.md", b"# hi\n")
     assert r.status == 200

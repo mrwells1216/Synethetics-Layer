@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
@@ -32,8 +33,13 @@ class Document:
 
 def read_text(path) -> str:
     """Read a text file, tolerating common encodings."""
-    raw = open(path, "rb").read()
+    raw = Path(path).read_bytes()
+    # utf-16 only when the file announces it (BOM) or looks like it (NULs between ASCII bytes);
+    # otherwise an even-length cp1252 file "decodes" as utf-16 into CJK garbage
+    looks_utf16 = raw[:2] in (b"\xff\xfe", b"\xfe\xff") or (len(raw) >= 4 and raw.count(b"\x00") > len(raw) // 4)
     for enc in ("utf-8-sig", "utf-16", "cp1252"):
+        if enc == "utf-16" and not looks_utf16:
+            continue
         try:
             return raw.decode(enc)
         except (UnicodeDecodeError, UnicodeError):

@@ -34,19 +34,25 @@ def _convert_doc(path: Path) -> Path:
             "or re-save the file as .docx."
         )
     out = Path(tempfile.mkdtemp(prefix="synesthetic_doc_"))
-    subprocess.run(
-        [soffice, "--headless", "--convert-to", "docx", "--outdir", str(out), str(path)],
-        check=True,
-        capture_output=True,
-        timeout=180,
-    )
+    try:
+        subprocess.run(
+            [soffice, "--headless", "--convert-to", "docx", "--outdir", str(out), str(path)],
+            check=True,
+            capture_output=True,
+            timeout=180,
+        )
+    except subprocess.TimeoutExpired:
+        raise UnsupportedFile("LibreOffice took too long converting this .doc file.") from None
+    except (subprocess.CalledProcessError, OSError) as e:
+        raise UnsupportedFile(f"LibreOffice could not convert this .doc file ({e}).") from None
     produced = out / (path.stem + ".docx")
     if not produced.exists():
         raise UnsupportedFile("LibreOffice could not convert this .doc file.")
     return produced
 
 
-def extract(path) -> Document:
+def extract(path, *, find_tables: bool = True) -> Document:
+    """Read a file into the common Document model. find_tables: run PDF table detection (slow)."""
     path = Path(path)
     ext = path.suffix.lower()
     if ext == ".txt":
@@ -54,7 +60,9 @@ def extract(path) -> Document:
     elif ext in (".md", ".markdown"):
         from . import md as mod
     elif ext == ".pdf":
-        from . import pdf as mod
+        from . import pdf
+
+        return pdf.extract(path, find_tables=find_tables)
     elif ext == ".docx":
         from . import docx as mod
     elif ext in (".xlsx", ".xlsm"):
@@ -64,7 +72,11 @@ def extract(path) -> Document:
         if _find_soffice():
             from . import docx as mod
 
-            doc = mod.extract(_convert_doc(path))
+            produced = _convert_doc(path)
+            try:
+                doc = mod.extract(produced)
+            finally:
+                shutil.rmtree(produced.parent, ignore_errors=True)
             doc.source = str(path)
             return doc
         from . import doc as mod

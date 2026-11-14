@@ -113,6 +113,31 @@ def test_cli_folder(fixtures, tmp_path):
         assert (out / f"{name}.html").exists(), name
 
 
+def test_cp1252_text_is_not_read_as_utf16(tmp_path):
+    f = tmp_path / "legacy.txt"
+    f.write_bytes("It’s done — café “ok”".encode("cp1252"))  # even length, no BOM
+    doc = extract(f)
+    assert doc.blocks[0].text == "It’s done — café “ok”"
+    g = tmp_path / "wide.txt"
+    g.write_bytes("Title\n\nBody here".encode("utf-16"))  # with BOM
+    assert [b.text for b in extract(g).blocks] == ["Title", "Body here"]
+
+
+def test_txt_lead_in_line_is_not_glued_to_previous_bullet(tmp_path):
+    f = tmp_path / "n.txt"
+    f.write_text("- a\n\nNote here\n- b\n  more b\n", encoding="utf-8")
+    blocks = [(b.kind, b.text) for b in extract(f).blocks]
+    assert blocks == [("item", "a"), ("para", "Note here"), ("item", "b more b")]
+
+
+def test_template_placeholder_in_document_text_survives(tmp_path):
+    f = tmp_path / "t.md"
+    f.write_text("Jinja uses {{BODY}} and {{DEFAULTS}} markers.\n", encoding="utf-8")
+    html = render_document(extract(f), LENS)
+    assert "{{BODY}}" in html and "{{DEFAULTS}}" in html
+    assert html.count('"palette":') == 1  # the options JSON appears once, in the script
+
+
 def test_unsupported(tmp_path):
     f = tmp_path / "a.xyz"
     f.write_text("x")

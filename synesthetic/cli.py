@@ -10,8 +10,8 @@ from .extract import SUPPORTED, UnsupportedFile, extract
 from .render import render_document, render_index
 
 
-def _convert(src: Path, dest: Path, lens, args) -> str:
-    doc = extract(src)
+def _convert(src: Path, dest: Path, lens, args, find_tables: bool) -> str:
+    doc = extract(src, find_tables=find_tables)
     dest.parent.mkdir(parents=True, exist_ok=True)
     ai = {"model": args.ai_model, "max_calls": args.ai_max_calls} if args.ai else None
     dest.write_text(
@@ -43,14 +43,7 @@ def main(argv=None) -> int:
     ap.add_argument("--fast", action="store_true", help="Skip PDF table detection (about 30x faster on big PDFs)")
     ap.add_argument("--tables", action="store_true", help="Force PDF table detection (default: on for one file, off for folders)")
     args = ap.parse_args(argv)
-    from .extract import pdf as _pdf
-
-    if args.fast:
-        _pdf.FIND_TABLES = False
-    elif args.tables:
-        _pdf.FIND_TABLES = True
-    else:
-        _pdf.FIND_TABLES = Path(args.path).is_file()
+    find_tables = False if args.fast else True if args.tables else Path(args.path).is_file()
 
     src = Path(args.path).resolve()
     if not src.exists():
@@ -62,7 +55,7 @@ def main(argv=None) -> int:
         out_dir = Path(args.out).resolve() if args.out else src.parent / "synesthetic-out"
         dest = out_dir / (src.name + ".html")
         try:
-            status = _convert(src, dest, lens, args)
+            status = _convert(src, dest, lens, args, find_tables)
         except UnsupportedFile as e:
             print(f"Skipped: {e}", file=sys.stderr)
             return 1
@@ -80,7 +73,7 @@ def main(argv=None) -> int:
         rel = f.relative_to(src)
         dest = out_dir / (str(rel) + ".html")
         try:
-            status = _convert(f, dest, lens, args)
+            status = _convert(f, dest, lens, args, find_tables)
             ok += 1
             entries.append({"href": dest.relative_to(out_dir).as_posix(), "name": rel.as_posix(), "kind": f.suffix.lower(), "status": status})
         except Exception as e:  # keep going on bad files

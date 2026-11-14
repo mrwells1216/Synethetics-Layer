@@ -85,31 +85,44 @@ def make_handler(lens):
             else:
                 self._send(404, "Not found", "text/plain; charset=utf-8")
 
+        def _same_origin(self) -> bool:
+            """Only the upload page itself may post: a web page in the same browser must not be able
+            to feed this converter files (browsers send Sec-Fetch-Site / Origin on cross-site posts)."""
+            site = self.headers.get("Sec-Fetch-Site")
+            if site is not None:
+                return site in ("same-origin", "none")
+            origin = self.headers.get("Origin")
+            if origin is None:
+                return True  # curl, tests and old browsers: no cross-site signal at all
+            host = self.headers.get("Host", "")
+            return origin.lower() in (f"http://{host}".lower(), f"https://{host}".lower())
+
         def do_POST(self):
             url = urlparse(self.path)
             if url.path != "/convert":
                 return self._send(404, "Not found", "text/plain; charset=utf-8")
-            q = parse_qs(url.query)
-            name = Path((q.get("name") or ["upload"])[0]).name
-            name = re.sub(r"[^\w .()\-]", "_", name) or "upload"
-            if Path(name).suffix.lower() not in SUPPORTED:
-                return self._send(400, f"Unsupported file type. Use: {', '.join(sorted(SUPPORTED))}",
-                                  "text/plain; charset=utf-8")
             try:
                 n = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 n = 0
             if n <= 0 or n > MAX_BYTES:
                 return self._send(413, "File is empty or larger than 60 MB.", "text/plain; charset=utf-8")
+            # read the body before any refusal: replying first makes browsers drop the connection
+            # (reset) instead of showing the error message
             body = self.rfile.read(n)
+            if not self._same_origin():
+                return self._send(403, "Cross-site upload refused.", "text/plain; charset=utf-8")
+            q = parse_qs(url.query)
+            name = Path((q.get("name") or ["upload"])[0]).name
+            name = re.sub(r"[^\w .()\-]", "_", name) or "upload"
+            if Path(name).suffix.lower() not in SUPPORTED:
+                return self._send(400, f"Unsupported file type. Use: {', '.join(sorted(SUPPORTED))}",
+                                  "text/plain; charset=utf-8")
             tmp = Path(tempfile.mkdtemp(prefix="synesthetic_up_"))
             try:
                 src = tmp / name
                 src.write_bytes(body)
-                from .extract import pdf as _pdf
-
-                _pdf.FIND_TABLES = (q.get("fast") or ["0"])[0] != "1"
-                doc = extract(src)
+                doc = extract(src, find_tables=(q.get("fast") or ["0"])[0] != "1")
                 html = render_document(doc, lens, grammar=(q.get("grammar") or ["0"])[0] == "1")
                 self._send(200, html)
             except UnsupportedFile as e:

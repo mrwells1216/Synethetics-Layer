@@ -37,7 +37,7 @@ def test_meaning_layer_with_stand_in_model(monkeypatch, tmp_path):
     monkeypatch.setattr(meaning, "CACHE_PATH", tmp_path / "cache.json")
     calls = []
 
-    def fake(prompt, model):
+    def fake(prompt, model, cwd=None):
         calls.append(prompt)
         return json.dumps(
             [
@@ -63,7 +63,7 @@ def test_meaning_layer_with_stand_in_model(monkeypatch, tmp_path):
 def test_ai_failure_keeps_document(monkeypatch, tmp_path):
     monkeypatch.setattr(meaning, "CACHE_PATH", tmp_path / "cache.json")
 
-    def boom(prompt, model):
+    def boom(prompt, model, cwd=None):
         raise meaning.AIUnavailable("Failed to authenticate")
 
     monkeypatch.setattr(meaning, "_run_claude", boom)
@@ -74,12 +74,43 @@ def test_ai_failure_keeps_document(monkeypatch, tmp_path):
     assert "<p>" in html and "data-cat=\"number\"" in html
 
 
+def test_claude_timeout_becomes_ai_unavailable(monkeypatch, tmp_path):
+    import subprocess
+
+    monkeypatch.setattr(meaning.shutil, "which", lambda name: "claude")
+
+    def slow(*a, **k):
+        raise subprocess.TimeoutExpired(a[0], 240)
+
+    monkeypatch.setattr(meaning.subprocess, "run", slow)
+    with pytest.raises(meaning.AIUnavailable, match="240"):
+        meaning._run_claude("hi", "haiku", str(tmp_path))
+
+
+def test_finished_batches_are_cached_when_another_fails(monkeypatch, tmp_path):
+    monkeypatch.setattr(meaning, "CACHE_PATH", tmp_path / "cache.json")
+    monkeypatch.setattr(meaning, "MAX_BATCH_ITEMS", 1)
+    a = "First passage with enough characters to be eligible for the model call."
+    b = "Second passage with enough characters to be eligible for the model call."
+
+    def fake(prompt, model, cwd=None):
+        if a in prompt:
+            return json.dumps([{"i": 0, "phrase": "First passage", "cat": "keyterm"}])
+        raise meaning.AIUnavailable("boom")
+
+    monkeypatch.setattr(meaning, "_run_claude", fake)
+    with pytest.raises(meaning.AIUnavailable):
+        meaning.tag_texts([a, b], LENS, workers=1)
+    out = meaning.tag_texts([a], LENS, workers=1)  # served from cache, no call for a
+    assert [(a[s.start : s.end], s.cat) for s in out[a]] == [("First passage", "keyterm")]
+
+
 def test_render_nests_content_inside_meaning(monkeypatch, tmp_path):
     monkeypatch.setattr(meaning, "CACHE_PATH", tmp_path / "cache.json")
     monkeypatch.setattr(
         meaning,
         "_run_claude",
-        lambda p, m: json.dumps([{"i": 0, "phrase": "released per minute 12 times", "cat": "example"}]),
+        lambda p, m, cwd=None: json.dumps([{"i": 0, "phrase": "released per minute 12 times", "cat": "example"}]),
     )
     doc = Document(source="x.txt", blocks=[Block("para", TEXT)])
     html = render_document(doc, LENS, ai={"model": "haiku", "max_calls": 5})

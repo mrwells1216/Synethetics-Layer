@@ -7,8 +7,6 @@ from pathlib import Path
 
 from ..model import Block, Cell, Document
 
-FIND_TABLES = True  # the CLI's --fast sets this to False
-
 BULLET = re.compile(r"^\s*([•●▪◦■·–\-]|\(?\d{1,3}[.)]|[a-z][.)])\s+(.*)$")
 
 
@@ -72,11 +70,16 @@ def _table_rows(page, table) -> list[list[str]]:
     return out
 
 
-def extract(path) -> Document:
+def extract(path, *, find_tables: bool = True) -> Document:
+    """find_tables: run PyMuPDF table detection (about 0.6 s per ruled page); off for folder runs."""
     import pymupdf
 
     path = Path(path)
-    pdf = pymupdf.open(path)
+    with pymupdf.open(path) as pdf:
+        return _extract(pdf, path, find_tables)
+
+
+def _extract(pdf, path: Path, find_tables: bool) -> Document:
     doc = Document(source=str(path), title=path.stem)
     meta_title = (pdf.metadata or {}).get("title", "").strip()
     if meta_title:
@@ -109,7 +112,7 @@ def extract(path) -> Document:
         tables = []
         try:
             # find_tables is slow (~0.6s/page). Ruled tables need at least one drawing, so skip pages with none.
-            if FIND_TABLES and page.get_drawings():
+            if find_tables and page.get_drawings():
                 for t in page.find_tables().tables:
                     rows = _table_rows(page, t)
                     if rows and len(rows) >= 2 and max(len(r) for r in rows) >= 2:
@@ -167,7 +170,7 @@ def extract(path) -> Document:
                 continue
             is_big = size >= body * 1.18 and len(text) <= 200
             is_boldshort = tb.bold and len(text) <= 90 and not text.endswith((".", ",", ";")) and size >= body * 0.97
-            has_bullets = any(BULLET.match(ln.text) for ln in tb.lines) and len(tb.lines) >= 1
+            has_bullets = any(BULLET.match(ln.text) for ln in tb.lines)
             if (is_big or is_boldshort) and not has_bullets and len(tb.lines) <= 4:
                 provisional.append((Block("heading", _join([ln.text for ln in tb.lines])), size if is_big else None))
             elif has_bullets:

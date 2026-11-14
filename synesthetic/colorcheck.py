@@ -86,9 +86,10 @@ def check(lens: Lens, *, min_text=4.5, min_delta=12.0):
                 if ratio < min_text:
                     fails.append((c.name, theme, pal, round(ratio, 2)))
             for a, b in itertools.combinations(cats, 2):
-                ca, cb = c_a, c_b = a.colors[key], b.colors[key]
-                if delta_e(_rgb(ca), _rgb(cb)) < min_delta:
-                    pairs.append((a.name, b.name, theme, pal, "normal", round(delta_e(_rgb(ca), _rgb(cb)), 1)))
+                ca, cb = a.colors[key], b.colors[key]
+                normal = delta_e(_rgb(ca), _rgb(cb))
+                if normal < min_delta:
+                    pairs.append((a.name, b.name, theme, pal, "normal", round(normal, 1)))
                     continue
                 for vision in ("protan", "deutan", "tritan"):
                     d = delta_e(simulate(ca, vision), simulate(cb, vision))
