@@ -4,7 +4,8 @@ import urllib.request
 
 import pytest
 
-from synesthetic.serve import make_server
+from synesthetic.annotate import load_lens
+from synesthetic.serve import make_handler, make_server
 
 
 @pytest.fixture()
@@ -49,6 +50,48 @@ def test_cross_site_post_is_refused(server):
     req = urllib.request.Request(f"{server}/convert?name=a.md", data=b"# hi\n", method="POST",
                                  headers={"Sec-Fetch-Site": "same-origin", "Origin": f"http://{host}"})
     assert urllib.request.urlopen(req, timeout=10).status == 200
+
+
+def test_page_has_config_and_any_get_serves_it(server):
+    import json
+    import re
+
+    for path in ("/", "/api/index"):
+        html = urllib.request.urlopen(server + path, timeout=10).read().decode()
+        cfg = json.loads(re.search(r'<script id="cfg" type="application/json">(.*?)</script>', html).group(1))
+        assert ".pdf" in cfg["exts"] and cfg["maxBytes"] > 0 and cfg["hosted"] is False
+
+
+def test_name_from_header_and_any_post_path(server):
+    req = urllib.request.Request(f"{server}/api/convert", data=b"# T\n\nPay $5 today.\n", method="POST",
+                                 headers={"X-File-Name": "my%20notes.md"})
+    html = urllib.request.urlopen(req, timeout=10).read().decode()
+    assert "my notes.md" in html and 'data-cat="number"' in html
+
+
+def test_size_limit_is_per_server():
+    srv = make_server("127.0.0.1", 0)
+    srv.RequestHandlerClass = make_handler(load_lens(), max_bytes=10)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    try:
+        with pytest.raises(urllib.error.HTTPError) as e:
+            post(f"http://127.0.0.1:{srv.server_address[1]}", "a.md", b"# more than ten bytes\n")
+        assert e.value.code == 413
+    finally:
+        srv.shutdown()
+
+
+def test_vercel_entry_point_imports():
+    import importlib.util
+    from http.server import BaseHTTPRequestHandler
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parent.parent / "api" / "index.py"
+    spec = importlib.util.spec_from_file_location("vercel_index", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert issubclass(mod.handler, BaseHTTPRequestHandler)
 
 
 def test_path_traversal_name_is_flattened(server):

@@ -1,0 +1,6 @@
+pymupdf==2.1
+python-docx==1.2.0
+openpyxl==3.1.5
+markdown-it-py==4.3.0
+spacy==3.8.18
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl

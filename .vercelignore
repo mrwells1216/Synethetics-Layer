@@ -1,0 +1,10 @@
+.venv
+tests
+research_notes
+reports
+chat-mod
+tools
+synesthetic-out
+.synesthetic-cache
+.pytest_cache
+**/__pycache__

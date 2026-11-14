@@ -6,6 +6,8 @@ Pick a file in the browser, get the styled page back. Binds to localhost unless 
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import json
 import re
 import shutil
 import subprocess
@@ -13,55 +15,31 @@ import sys
 import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .annotate import load_lens
 from .extract import SUPPORTED, UnsupportedFile, extract
 from .render import render_document
 
 MAX_BYTES = 60 * 1024 * 1024
-
-PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>Synesthetic Layer</title>
-<style>
-:root{color-scheme:dark light}
-body{margin:0;font:18px/1.6 system-ui,sans-serif;background:#14161b;color:#e6e8ec;display:grid;min-height:100vh;place-items:center}
-@media (prefers-color-scheme:light){body{background:#fbfbf8;color:#1d2026}}
-main{width:min(520px,92vw);padding:24px 0}
-h1{font-family:Georgia,serif;font-size:1.7em;margin:.2em 0}
-p{opacity:.8;margin:.3em 0 1em}
-label.pick{display:block;border:2px dashed #8896;border-radius:14px;padding:34px 16px;text-align:center;cursor:pointer}
-input[type=file]{display:none}
-.opts{margin:14px 0}.opts label{display:block;margin:6px 0}
-button{all:unset;display:block;text-align:center;background:#6cb4ff;color:#0b1220;font-weight:700;padding:14px;border-radius:12px;cursor:pointer;width:100%;box-sizing:border-box}
-button[disabled]{opacity:.5}
-#msg{margin-top:12px;min-height:1.4em;color:#ff8f8f}
-</style></head><body><main>
-<h1>Synesthetic Layer</h1>
-<p>Choose a file ({exts}) and get it back with color, font and highlight styling.</p>
-<label class="pick" id="pick"><span id="name">Tap to choose a file</span>
-<input id="f" type="file" accept="{accept}"></label>
-<div class="opts">
-<label><input id="grammar" type="checkbox"> Grammar layer (nouns, verbs, ...)</label>
-<label><input id="fast" type="checkbox"> Fast PDF (skip table detection)</label>
-</div>
-<button id="go" disabled>Convert</button><div id="msg"></div>
-</main><script>
-var f=document.getElementById('f'),go=document.getElementById('go'),msg=document.getElementById('msg');
-f.onchange=function(){document.getElementById('name').textContent=f.files[0]?f.files[0].name:'Tap to choose a file';go.disabled=!f.files[0]};
-go.onclick=async function(){
-  var file=f.files[0];if(!file)return;go.disabled=true;msg.style.color='inherit';msg.textContent='Converting...';
-  try{
-    var q='name='+encodeURIComponent(file.name)+'&grammar='+(document.getElementById('grammar').checked?1:0)+'&fast='+(document.getElementById('fast').checked?1:0);
-    var r=await fetch('/convert?'+q,{method:'POST',body:file});var t=await r.text();
-    if(!r.ok){msg.style.color='#ff8f8f';msg.textContent=t;go.disabled=false;return}
-    location.href=URL.createObjectURL(new Blob([t],{type:'text/html'}));
-  }catch(e){msg.style.color='#ff8f8f';msg.textContent='Failed: '+e;go.disabled=false}
-};
-</script></body></html>"""
+APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
 
 
-def make_handler(lens):
+def grammar_installed() -> bool:
+    """Cheap check (no model load) so the page can offer the grammar option."""
+    return all(importlib.util.find_spec(m) is not None for m in ("spacy", "en_core_web_sm"))
+
+
+def app_page(max_bytes: int, hosted: bool) -> str:
+    cfg = {"exts": sorted(SUPPORTED), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted}
+    return APP_PAGE.read_text(encoding="utf-8").replace("{{CONFIG}}", json.dumps(cfg).replace("</", "<\\/"))
+
+
+def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
+    """One page (any GET) and one action (any POST converts the body), so it works the same
+    behind Vercel's rewrites as on this machine."""
+    page = app_page(max_bytes, hosted)
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "Synesthetic"
 
@@ -74,16 +52,14 @@ def make_handler(lens):
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(data)
 
         def do_GET(self):
-            if urlparse(self.path).path in ("/", "/index.html"):
-                exts = ", ".join(sorted(SUPPORTED))
-                page = PAGE.replace("{exts}", exts).replace("{accept}", ",".join(sorted(SUPPORTED)))
-                self._send(200, page)
-            else:
-                self._send(404, "Not found", "text/plain; charset=utf-8")
+            if urlparse(self.path).path.endswith(("/favicon.ico", "/robots.txt")):
+                return self._send(404, "Not found", "text/plain; charset=utf-8")
+            self._send(200, page)
 
         def _same_origin(self) -> bool:
             """Only the upload page itself may post: a web page in the same browser must not be able
@@ -99,21 +75,22 @@ def make_handler(lens):
 
         def do_POST(self):
             url = urlparse(self.path)
-            if url.path != "/convert":
-                return self._send(404, "Not found", "text/plain; charset=utf-8")
             try:
                 n = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 n = 0
-            if n <= 0 or n > MAX_BYTES:
-                return self._send(413, "File is empty or larger than 60 MB.", "text/plain; charset=utf-8")
+            if n <= 0 or n > max_bytes:
+                return self._send(413, f"File is empty or larger than {max_bytes / 1048576:.1f} MB.",
+                                  "text/plain; charset=utf-8")
             # read the body before any refusal: replying first makes browsers drop the connection
             # (reset) instead of showing the error message
             body = self.rfile.read(n)
             if not self._same_origin():
                 return self._send(403, "Cross-site upload refused.", "text/plain; charset=utf-8")
             q = parse_qs(url.query)
-            name = Path((q.get("name") or ["upload"])[0]).name
+            # the page sends the name in a header so it stays out of URLs and request logs
+            name = unquote(self.headers.get("X-File-Name", "")) or (q.get("name") or ["upload"])[0]
+            name = Path(name.replace("\\", "/")).name
             name = re.sub(r"[^\w .()\-]", "_", name) or "upload"
             if Path(name).suffix.lower() not in SUPPORTED:
                 return self._send(400, f"Unsupported file type. Use: {', '.join(sorted(SUPPORTED))}",

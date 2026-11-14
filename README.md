@@ -22,9 +22,14 @@ Read `reports/Color styling for reading and retention.md` first: it says what th
 
 On the page: switch style, spacing (Normal/Roomy), theme and palette live; the legend turns each layer and category on or off. Choices are remembered per browser.
 
-## On your phone
+## Web app
 
-`.venv\Scripts\python.exe -m synesthetic serve --tailscale` starts a small upload page reachable only on your Tailscale network (default is this machine only). Open the address it prints, pick a file, get the styled page.
+The same upload page runs in two places:
+
+- **On Vercel:** `api/index.py` plus `vercel.json`. Every push to `main` deploys. Pick a file or paste text, get the styled page, then save or open it. Uploads are capped at 4.4 MB (Vercel's request limit). Files are converted on the server and not stored. The AI layer is not offered there.
+- **On this machine:** `.venv\Scripts\python.exe -m synesthetic serve` (add `--tailscale` to reach it from your phone over your Tailscale network). Up to 60 MB, nothing leaves the machine.
+
+The page lives in `synesthetic/templates/app.html`. Runtime dependencies are in `requirements.txt`.
 
 ## Claude chat replies
 
