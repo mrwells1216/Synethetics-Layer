@@ -60,6 +60,9 @@ def test_page_has_config_and_any_get_serves_it(server):
         html = urllib.request.urlopen(server + path, timeout=10).read().decode()
         cfg = json.loads(re.search(r'<script id="cfg" type="application/json">(.*?)</script>', html).group(1))
         assert ".pdf" in cfg["exts"] and cfg["maxBytes"] > 0 and cfg["hosted"] is False
+        exs = cfg["examples"]
+        assert len(exs) >= 5 and all(e["text"] and e["name"].endswith(".md") for e in exs)
+        assert all(len(e["cats"]) >= 4 for e in exs)  # each example shows several colors
 
 
 def test_name_from_header_and_any_post_path(server):

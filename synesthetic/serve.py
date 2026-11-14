@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -23,6 +24,7 @@ from .render import FONT_CHOICES, STYLE_DEFAULTS, render_document
 
 MAX_BYTES = 60 * 1024 * 1024
 APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
+EXAMPLES = Path(__file__).resolve().parent / "examples"
 
 
 def grammar_installed() -> bool:
@@ -30,9 +32,25 @@ def grammar_installed() -> bool:
     return all(importlib.util.find_spec(m) is not None for m in ("spacy", "en_core_web_sm"))
 
 
+def load_examples(lens) -> list[dict]:
+    """The sample documents under "Try an example", each with the content colors it shows."""
+    meta = tomllib.loads((EXAMPLES / "examples.toml").read_text(encoding="utf-8"))["example"]
+    shown = [c.name for c in lens.categories if c.layer == "content" and not c.default_off]
+    out = []
+    for ex in meta:
+        path = EXAMPLES / ex["file"]
+        html = render_document(extract(path), lens, log=lambda *a, **k: None)
+        found = set(re.findall(r'data-cat="([\w-]+)"', html.split("<main>", 1)[-1]))
+        out.append({"title": ex["title"], "blurb": ex["blurb"], "grammar": bool(ex.get("grammar")),
+                    "name": ex["title"] + ".md", "text": path.read_text(encoding="utf-8"),
+                    "cats": [c for c in shown if c in found]})
+    return out
+
+
 def app_page(lens, max_bytes: int, hosted: bool) -> str:
     cfg = {
         "exts": sorted(SUPPORTED), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted,
+        "examples": load_examples(lens),
         "categories": [
             {"name": c.name, "label": c.label, "layer": c.layer, "example": c.example,
              "dark": c.colors["dark"], "light": c.colors["light"], "off": c.default_off}

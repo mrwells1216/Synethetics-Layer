@@ -75,6 +75,22 @@ textarea:focus{outline:2px solid var(--fg);outline-offset:1px}
 #msg.err{color:var(--c-warning)}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-2px;margin-right:8px}
 @keyframes r{to{transform:rotate(360deg)}}
+/* Examples */
+.exs{margin-top:34px}
+.exs h2{font-family:var(--font-head);font-size:1.35rem;font-weight:650;margin:0 0 2px}
+.exs .sub{margin-bottom:12px}
+.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ex{all:unset;box-sizing:border-box;cursor:pointer;display:grid;align-content:start;gap:6px;padding:14px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line);transition:border-color .2s,transform .2s var(--ease)}
+.ex:hover{border-color:color-mix(in srgb,var(--fg) 35%,var(--line))}
+.ex:active{transform:scale(.98)}
+.ex:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.ex[aria-busy=true]{border-color:var(--fg)}
+.ex-dots{display:flex;gap:4px;height:8px}
+.ex-dots i{flex:1;max-width:18px;border-radius:4px;background:var(--k)}
+.ex strong{font-family:var(--font-head);font-size:1.08em;font-weight:650;line-height:1.2}
+.ex span.b{color:var(--muted);font-size:13.5px;line-height:1.4}
+#exmsg{margin-top:10px;min-height:1.2em;font-size:15px}
+#exmsg.err{color:var(--c-warning)}
 .foot{margin-top:30px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 .foot p{margin:.35em 0}
 
@@ -164,6 +180,12 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     </div>
     <div class="go" id="go" role="button" tabindex="0" aria-disabled="true">Convert</div>
     <div id="msg" role="status" aria-live="polite"></div>
+    <div class="exs" id="exs" hidden>
+      <h2>Try an example</h2>
+      <p class="sub">Made-up documents for different uses. Tap one to see it in your colors.</p>
+      <div class="ex-grid" id="ex-grid"></div>
+      <div id="exmsg" role="status" aria-live="polite"></div>
+    </div>
     <div class="foot" id="foot"></div>
   </section>
 
@@ -436,16 +458,14 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     var s = load();  // includes any style or theme picked on a converted page
     return {colors: st.colors, body: st.body, heading: st.heading, size: st.size, mode: s.mode, theme: s.theme};
   }
-  async function convert(){
-    if (go.getAttribute('aria-disabled') === 'true') return;
-    var name, body;
-    if (mode === 'file'){ name = file.name; body = file; }
-    else { name = 'Pasted text.md'; body = new Blob([txt.value], {type: 'text/markdown'}); }
-    if (body.size > cfg.maxBytes){ say('Too large: the limit here is ' + mb(cfg.maxBytes) + '.', true); return; }
+  // send one document; `out` is the status line under the button that started it
+  async function send(name, body, grammar, fast, out){
+    function tell(t, err){ out.className = err ? 'err' : ''; out.textContent = t; }
+    if (body.size > cfg.maxBytes){ tell('Too large: the limit here is ' + mb(cfg.maxBytes) + '.', true); return; }
     busy = true; ready();
-    msg.className = ''; msg.innerHTML = '<span class="spin" aria-hidden="true"></span>Coloring it in...';
+    out.className = ''; out.innerHTML = '<span class="spin" aria-hidden="true"></span>Coloring it in...';
     try {
-      var q = 'grammar=' + ($('grammar').checked ? 1 : 0) + '&fast=' + ($('fast').checked ? 1 : 0);
+      var q = 'grammar=' + (grammar ? 1 : 0) + '&fast=' + (fast ? 1 : 0);
       var r = await fetch('/api/convert?' + q, {method: 'POST', body: body, headers: {
         'X-File-Name': encodeURIComponent(name), 'X-Style': encodeURIComponent(JSON.stringify(styleForServer()))}});
       var t = await r.text();
@@ -454,15 +474,41 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
         if (r.status === 413) t = 'Too large for this server. Convert it on your computer instead.';
         else if (r.status === 504) t = 'The server took too long. Try Fast PDF, or a smaller file.';
         else if (!plain) t = 'Conversion failed (error ' + r.status + ').';
-        say(t, true); return;
+        tell(t, true); return;
       }
       show(t, name);
-      say('');
+      tell('');
     } catch (e) {
-      say('Could not reach the server: ' + e.message, true);
+      tell('Could not reach the server: ' + e.message, true);
     } finally { busy = false; ready(); }
   }
+  function convert(){
+    if (go.getAttribute('aria-disabled') === 'true') return;
+    if (mode === 'file') send(file.name, file, $('grammar').checked, $('fast').checked, msg);
+    else send('Pasted text.md', new Blob([txt.value], {type: 'text/markdown'}), $('grammar').checked, false, msg);
+  }
   go.onclick = convert;
+
+  // ---- examples ----
+  var exmsg = $('exmsg');
+  (cfg.examples || []).forEach(function(ex){
+    var b = document.createElement('button');
+    b.className = 'ex'; b.type = 'button';
+    var dots = document.createElement('span');
+    dots.className = 'ex-dots'; dots.setAttribute('aria-hidden', 'true');
+    ex.cats.forEach(function(c){ var i = document.createElement('i'); i.style.setProperty('--k', 'var(--c-' + c + ')'); dots.appendChild(i); });
+    var t = document.createElement('strong'); t.textContent = ex.title;
+    var d = document.createElement('span'); d.className = 'b'; d.textContent = ex.blurb;
+    b.append(dots, t, d);
+    b.onclick = async function(){
+      if (busy) return;
+      b.setAttribute('aria-busy', 'true');
+      await send(ex.name, new Blob([ex.text], {type: 'text/markdown'}), ex.grammar && cfg.grammar, false, exmsg);
+      b.removeAttribute('aria-busy');
+    };
+    $('ex-grid').appendChild(b);
+  });
+  $('exs').hidden = !(cfg.examples || []).length;
   go.onkeydown = function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); convert(); } };
 
   function show(html, name){

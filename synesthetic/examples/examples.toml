@@ -1,0 +1,38 @@
+# Sample documents shown under "Try an example" in the web app.
+# Every name, number and address in them is made up.
+
+[[example]]
+file = "study-notes.md"
+title = "Study notes"
+blurb = "Terms, definitions and page references stand out for review. Grammar layer on."
+grammar = true
+
+[[example]]
+file = "lease.md"
+title = "Lease or contract"
+blurb = "Deadlines, fees, section references and the must-do lines jump out."
+
+[[example]]
+file = "aftercare.md"
+title = "Care instructions"
+blurb = "Doses, times and warnings you shouldn't miss."
+
+[[example]]
+file = "meeting-notes.md"
+title = "Work email"
+blurb = "Ticket numbers, due dates, links and contacts at a glance."
+
+[[example]]
+file = "recipe.md"
+title = "Recipe"
+blurb = "Amounts, temperatures and timings in their own colors."
+
+[[example]]
+file = "budget.md"
+title = "Monthly budget"
+blurb = "A table of bills: money, percentages, due dates and account codes."
+
+[[example]]
+file = "trip.md"
+title = "Trip itinerary"
+blurb = "Flight codes, times, addresses and phone numbers."

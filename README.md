@@ -31,6 +31,8 @@ The same upload page runs in two places:
 
 **Customize** sets each category's color (dark and light theme), body and heading fonts, text size, highlight style and theme, with a live preview. The defaults come from the lens; Reset puts them back. Settings are saved in the browser and baked into every page you convert. Export saves them as a file, which you can import on another device or pass to the command line with `--style synesthetic-style.json`.
 
+**Try an example** on the home page converts a made-up document for a common use (study notes, a lease, care instructions, a work email, a recipe, a budget, a trip itinerary) with your settings. The samples are in `synesthetic/examples/`; add one by dropping a `.md` file there and listing it in `examples.toml`.
+
 The page lives in `synesthetic/templates/app.html`; its look is described in `docs/design-system.md`. Runtime dependencies are in `requirements.txt`.
 
 ## Claude chat replies
