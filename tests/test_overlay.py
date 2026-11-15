@@ -106,3 +106,61 @@ def test_cli_keep_writes_a_colored_copy(fixtures, tmp_path):
     assert main([str(fixtures), "-o", str(tmp_path), "--keep"]) == 0
     names = {p.name for p in tmp_path.iterdir()}
     assert {"sample (colored).pdf", "sample (colored).docx", "sample (colored).xlsx", "sample.md.html"} <= names
+
+
+def test_roller_units_match_what_gets_colored(fixtures, lens):
+    from synesthetic.overlay import layout_units, parse_only
+
+    for name in ("sample.pdf", "sample.docx", "sample.xlsx"):
+        data = (fixtures / name).read_bytes()
+        u = layout_units(name, data)
+        assert u["texts"] and u["kind"] == name.split(".")[1]
+        if name.endswith(".pdf"):
+            page = u["pages"][0]
+            assert page["img"].startswith("data:image/jpeg;base64,") and page["lines"]
+            for line in page["lines"]:  # each line sits at its place in its unit's text
+                assert u["texts"][line["u"]][line["s"]:line["s"] + len(line["t"])] == line["t"]
+        full = overlay(name, data, lens)
+        assert sum(overlay(name, data, lens, only={}).counts.values()) == 0
+        everything = {i: [(0, 10 ** 9)] for i in range(len(u["texts"]))}
+        assert overlay(name, data, lens, only=everything).counts == full.counts
+    assert parse_only("3:0-5,9-12;7") == {3: [(0, 5), (9, 12)], 7: [(0, 10 ** 9)]}
+    assert parse_only("") is None
+
+
+def test_word_bank_and_caps_in_word(lens):
+    import docx
+
+    d = docx.Document()
+    d.add_paragraph().add_run("Please yell, do not pay $40")
+    buf = io.BytesIO()
+    d.save(buf)
+    style = {"wordbank": {"on": True, "words": [{"word": "yell", "caps": True, "bg": "#ffe600", "color": "#d00000",
+                                                 "font": "arial", "size": 1.5, "bold": True}]}}
+    ov = overlay("x.docx", buf.getvalue(), lens, style=style)
+    xml = zipfile.ZipFile(io.BytesIO(ov.data)).read("word/document.xml").decode()
+    import re
+
+    def rpr(word):
+        return re.search(r"<w:rPr>((?:(?!</w:rPr>).)*)</w:rPr><w:t[^>]*>" + re.escape(word) + "<", xml).group(1)
+    yell = rpr("yell")
+    assert 'w:ascii="Arial"' in yell and "<w:b/>" in yell and "<w:caps/>" in yell and 'w:val="33"' in yell
+    assert 'w:fill="FFE600"' in yell and 'w:val="D00000"' in yell
+    assert "<w:caps/>" in rpr("do not")           # warnings are ALL CAPS by default
+    assert 'w:sz w:val="25"' in rpr("$40")         # numbers a little larger
+    assert ov.counts["Word Bank"] == 1
+    off = overlay("x.docx", buf.getvalue(), lens, style={"wordbank": {"on": False, "words": style["wordbank"]["words"]}})
+    assert "Arial" not in zipfile.ZipFile(io.BytesIO(off.data)).read("word/document.xml").decode()
+
+
+def test_word_bank_on_pages(lens):
+    from synesthetic.model import Block, Document
+    from synesthetic.render import render_document
+
+    doc = Document(source="a.md", title="t", blocks=[Block(kind="para", text="Yell about $40 and yell again.")])
+    style = {"wordbank": {"on": True, "words": [{"word": "yell", "caps": True, "color": "#d00000"}]},
+             "look": {"number": {"case": "upper", "scale": 1.5}}}
+    html = render_document(doc, lens, style=style, log=lambda *a, **k: None)
+    assert html.count('class="c c-wb-0 l-bank"') == 2
+    assert "body .c.c-wb-0{color:#d00000" in html and "text-transform:uppercase" in html
+    assert ".c-number{text-transform:uppercase;font-size:1.5em}" in html

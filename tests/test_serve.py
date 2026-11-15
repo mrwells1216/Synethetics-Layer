@@ -60,13 +60,53 @@ def test_page_has_config_and_any_get_serves_it(server):
         html = urllib.request.urlopen(server + path, timeout=10).read().decode()
         cfg = json.loads(re.search(r'<script id="cfg" type="application/json">(.*?)</script>', html).group(1))
         assert ".pdf" in cfg["exts"] and cfg["maxBytes"] > 0 and cfg["hosted"] is False
-        exs = cfg["examples"]
-        assert len(exs) >= 5 and all(e["text"] and e["name"].endswith(".md") for e in exs)
-        assert all(len(e["cats"]) >= 4 for e in exs)  # each example shows several colors
+        assert cfg["showcase"] is True and set(cfg["hlCss"]) == {"sm", "md", "lg"}
         # the page colors its own text with the content patterns
         cats = {c["name"]: c for c in cfg["categories"]}
         assert cats["number"]["patterns"] and cats["warning"]["flags"] == "i"
         assert cats["noun"]["patterns"] == []
+        assert cats["warning"]["case"] == "upper" and cats["number"]["scale"] > 1 and cats["date"]["cbDark"]
+
+
+def test_showcase_examples(server):
+    import json
+
+    d = json.loads(urllib.request.urlopen(server + "/showcase.json", timeout=10).read())["examples"]
+    groups = {e["group"] for e in d}
+    assert groups == {"famous", "everyday"} and len(d) >= 12
+    for e in d:
+        assert "<main>" in e["html"] and 'class="bar"' not in e["html"] and "<script" not in e["html"]
+        assert sum(e["counts"].values()) > 20
+    # the famous writing is pre-rendered with the grammar layer, so it can be switched on in the app
+    assert any(e["counts"].get("noun") for e in d if e["group"] == "famous")
+
+
+def test_thumb_units_and_rolled_parts(server, fixtures):
+    import json
+    from urllib.parse import quote, unquote
+
+    for name in ("sample.pdf", "sample.docx", "sample.xlsx"):
+        data = (fixtures / name).read_bytes()
+        r = urllib.request.urlopen(urllib.request.Request(f"{server}/api/thumb", data=data, method="POST",
+                                                          headers={"X-File-Name": name}), timeout=30)
+        assert r.headers["Content-Type"] == "image/jpeg" and r.read()[:2] == b"\xff\xd8"
+        u = json.loads(urllib.request.urlopen(urllib.request.Request(f"{server}/api/units", data=data, method="POST",
+                                                                     headers={"X-File-Name": name}), timeout=30).read())
+        assert u["texts"]
+
+        def colored(only=None):
+            h = {"X-File-Name": name}
+            if only is not None:
+                h["X-Only"] = quote(only)
+            req = urllib.request.Request(f"{server}/api/convert?keep=1", data=data, method="POST", headers=h)
+            return json.loads(unquote(urllib.request.urlopen(req, timeout=30).headers["X-Overlay"]))["count"]
+        everything = colored()
+        assert everything > 0 and colored("-") == 0
+        assert 0 < colored(";".join(str(i) for i in range(len(u["texts"])))) == everything
+    # behind Vercel the route comes in the query
+    req = urllib.request.Request(f"{server}/api/index?_p=api/thumb", data=(fixtures / "sample.pdf").read_bytes(),
+                                 method="POST", headers={"X-File-Name": "sample.pdf"})
+    assert urllib.request.urlopen(req, timeout=30).headers["Content-Type"] == "image/jpeg"
 
 
 def test_name_from_header_and_any_post_path(server):

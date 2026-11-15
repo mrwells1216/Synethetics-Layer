@@ -13,24 +13,23 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 from .annotate import load_lens
 from .extract import SUPPORTED, UnsupportedFile, extract
-from .overlay import OVERLAY_TYPES, OverlayError, overlay
-from .render import FONT_CHOICES, STYLE_DEFAULTS, render_document
+from .overlay import OVERLAY_TYPES, OverlayError, layout_units, overlay, parse_only
+from .render import FONT_CHOICES, HL_SIZES, STYLE_DEFAULTS, clean_style, render_document
+from .thumb import thumbnail
 
 MAX_BYTES = 60 * 1024 * 1024
 APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
-EXAMPLES = Path(__file__).resolve().parent / "examples"
 STATIC = Path(__file__).resolve().parent / "static"  # icons, drawn by tools/make_icons.py
 ICONS = {"favicon.ico": "favicon-32.png", **{p: p for p in (
     "icon.svg", "favicon.svg", "favicon-32.png", "icon-192.png", "icon-512.png",
-    "icon-maskable-512.png", "apple-touch-icon.png")}}
-CTYPES = {".png": "image/png", ".svg": "image/svg+xml"}
+    "icon-maskable-512.png", "apple-touch-icon.png", "showcase.json")}}
+CTYPES = {".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json"}
 MIME = {".txt": "text/plain", ".md": "text/markdown", ".markdown": "text/markdown", ".pdf": "application/pdf",
         ".doc": "application/msword", **OVERLAY_TYPES,
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
@@ -62,28 +61,14 @@ def grammar_installed() -> bool:
     return all(importlib.util.find_spec(m) is not None for m in ("spacy", "en_core_web_sm"))
 
 
-def load_examples(lens) -> list[dict]:
-    """The sample documents under "Try an example", each with the content colors it shows."""
-    meta = tomllib.loads((EXAMPLES / "examples.toml").read_text(encoding="utf-8"))["example"]
-    shown = [c.name for c in lens.categories if c.layer == "content" and not c.default_off]
-    out = []
-    for ex in meta:
-        path = EXAMPLES / ex["file"]
-        html = render_document(extract(path), lens, log=lambda *a, **k: None)
-        found = set(re.findall(r'data-cat="([\w-]+)"', html.split("<main>", 1)[-1]))
-        out.append({"title": ex["title"], "blurb": ex["blurb"], "grammar": bool(ex.get("grammar")),
-                    "name": ex["title"] + ".md", "text": path.read_text(encoding="utf-8"),
-                    "cats": [c for c in shown if c in found]})
-    return out
-
-
 def app_page(lens, max_bytes: int, hosted: bool) -> str:
     cfg = {
         "exts": sorted(SUPPORTED), "keepExts": sorted(OVERLAY_TYPES), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted,
-        "examples": load_examples(lens),
+        "showcase": (STATIC / "showcase.json").is_file(), "hlCss": HL_SIZES,
         "categories": [
             {"name": c.name, "label": c.label, "layer": c.layer, "example": c.example,
              "dark": c.colors["dark"], "light": c.colors["light"], "off": c.default_off,
+             "cbDark": c.colors["cb_dark"], "cbLight": c.colors["cb_light"], "case": c.case, "scale": c.scale,
              # content patterns, so the page can color its own text the same way (JS regex syntax
              # matches; tools/parity.py checks the same patterns for the chat mod)
              "priority": c.priority, "patterns": [p.pattern for p in c.patterns] if c.layer == "content" else [],
@@ -125,9 +110,10 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
             url = urlparse(self.path)
             # behind Vercel every path is rewritten to /api/index; the original one comes as ?_p=
             leaf = ((parse_qs(url.query).get("_p") or [""])[0] or url.path).rsplit("/", 1)[-1]
-            if leaf in ICONS:
+            if leaf in ICONS and (STATIC / ICONS[leaf]).is_file():
                 f = STATIC / ICONS[leaf]
-                return self._send(200, f.read_bytes(), CTYPES[f.suffix], {"Cache-Control": "public, max-age=86400"})
+                age = 3600 if f.suffix == ".json" else 86400
+                return self._send(200, f.read_bytes(), CTYPES[f.suffix], {"Cache-Control": f"public, max-age={age}"})
             if leaf == "manifest.webmanifest":
                 return self._send(200, manifest_json, "application/manifest+json")
             if leaf == "robots.txt":
@@ -161,6 +147,7 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
             if not self._same_origin():
                 return self._send(403, "Cross-site upload refused.", "text/plain; charset=utf-8")
             q = parse_qs(url.query)
+            route = ((q.get("_p") or [""])[0] or url.path).rstrip("/").rsplit("/", 1)[-1]
             # the page sends the name in a header so it stays out of URLs and request logs
             name = unquote(self.headers.get("X-File-Name", "")) or (q.get("name") or ["upload"])[0]
             name = Path(name.replace("\\", "/")).name
@@ -173,10 +160,29 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
             except ValueError:
                 style = None
             grammar = (q.get("grammar") or ["0"])[0] == "1"
+            palette = clean_style(style, lens).get("palette", "default")
+            if route == "thumb":  # a picture of a colored file, for the Recent and Saved lists
+                try:
+                    pic = thumbnail(name, body, lens, style=style, palette=palette)
+                except OverlayError as e:
+                    return self._send(400, str(e), "text/plain; charset=utf-8")
+                except Exception as e:
+                    return self._send(500, f"Could not draw this file: {e}", "text/plain; charset=utf-8")
+                return self._send(200, pic, "image/jpeg")
+            if route == "units":  # the roller's view of a file: its pages and text, numbered
+                try:
+                    data = json.dumps(layout_units(name, body), separators=(",", ":"))
+                except OverlayError as e:
+                    return self._send(400, str(e), "text/plain; charset=utf-8")
+                except Exception as e:
+                    return self._send(500, f"Could not read this file: {e}", "text/plain; charset=utf-8")
+                return self._send(200, data, "application/json")
             if (q.get("keep") or ["0"])[0] == "1" and Path(name).suffix.lower() in OVERLAY_TYPES:
                 # keep the original look: the same kind of file back, with the colors on top
+                only = parse_only(unquote(self.headers.get("X-Only", "")))
                 try:
-                    ov = overlay(name, body, lens, style=style, grammar=grammar, log=lambda *a, **k: None)
+                    ov = overlay(name, body, lens, style=style, palette=palette, grammar=grammar, only=only,
+                                 log=lambda *a, **k: None)
                 except OverlayError as e:
                     return self._send(400, str(e), "text/plain; charset=utf-8")
                 except Exception as e:
@@ -185,7 +191,7 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                     return self._send(413, "The colored copy is too large to send back here.",
                                       "text/plain; charset=utf-8")
                 info = quote(json.dumps({"name": ov.name, "count": sum(ov.counts.values()), "notes": ov.notes,
-                                         "cats": [c for c, _n in ov.counts.most_common()]}))
+                                         "cats": [c for c, _n in ov.counts.most_common() if lens.get(c)]}))
                 return self._send(200, ov.data, ov.mime, {"X-Overlay": info})
             tmp = Path(tempfile.mkdtemp(prefix="synesthetic_up_"))
             try:

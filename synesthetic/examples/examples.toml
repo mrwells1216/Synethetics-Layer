@@ -1,39 +1,93 @@
-# Sample documents shown under "Try an example" in the web app.
-# Every name, number and address in them is made up. Each blurb names a few real items from its
-# document, so the blurb itself shows the colors when the app colors its own text.
+# Example documents shown in "How it works" (pre-rendered by tools/build_showcase.py).
+# Famous writing is public domain. Everyday samples are made up: every name, number and address in them.
+
+[[example]]
+file = "constitution.md"
+title = "The Constitution"
+blurb = "Preamble and Article I. Section 2, dates like Sep 17, 1787."
+group = "famous"
+grammar = true
+
+[[example]]
+file = "declaration.md"
+title = "Declaration of Independence"
+blurb = "July 4, 1776: the opening two paragraphs."
+group = "famous"
+grammar = true
+
+[[example]]
+file = "gettysburg.md"
+title = "Gettysburg Address"
+blurb = "Lincoln, Nov 19, 1863. Try the grammar layer."
+group = "famous"
+grammar = true
+
+[[example]]
+file = "bill-of-rights.md"
+title = "Bill of Rights"
+blurb = "Amendment I to IV, ratified Dec 15, 1791."
+group = "famous"
+grammar = true
+
+[[example]]
+file = "emancipation.md"
+title = "Emancipation Proclamation"
+blurb = "Jan 1, 1863, with a quoted passage."
+group = "famous"
+grammar = true
+
+[[example]]
+file = "sonnet-18.md"
+title = "Sonnet 18"
+blurb = "Shakespeare, 1609. Grammar colors on poetry."
+group = "famous"
+grammar = true
+
+[[example]]
+file = "pride-and-prejudice.md"
+title = "Pride and Prejudice"
+blurb = "Austen, 1813: the famous opening and \"quoted\" talk."
+group = "famous"
+grammar = true
 
 [[example]]
 file = "study-notes.md"
 title = "Study notes"
 blurb = "Definitions, Figure 4.7, page 112 and the exam on Oct 14. Grammar layer on."
-grammar = true
+group = "everyday"
 
 [[example]]
 file = "lease.md"
 title = "Lease or contract"
 blurb = "Rent of $1,450 due Sep 1, Section 12 and what's required or prohibited."
+group = "everyday"
 
 [[example]]
 file = "aftercare.md"
 title = "Care instructions"
 blurb = "Doses like 400 mg, times like 2:30 PM, and the do not lines."
+group = "everyday"
 
 [[example]]
 file = "meeting-notes.md"
 title = "Work email"
 blurb = "Ticket WEB-2291, due Nov 18, links and design@example.com."
+group = "everyday"
 
 [[example]]
 file = "recipe.md"
 title = "Recipe"
 blurb = "Amounts like 1.5 lb, 400 °F, 25 minutes, and a caution about doneness."
+group = "everyday"
 
 [[example]]
 file = "budget.md"
 title = "Monthly budget"
 blurb = "A table of bills with $96.40, 43.8%, due Nov 20, account ACCT-55190."
+group = "everyday"
 
 [[example]]
 file = "trip.md"
 title = "Trip itinerary"
 blurb = "Flight UA1528 at 7:05 AM on Dec 18, hotel 555-310-7788."
+group = "everyday"

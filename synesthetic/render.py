@@ -39,6 +39,9 @@ FONT_CHOICES = {
     "literata": ("Literata", "Literata,Georgia,serif", "Literata:ital,wght@0,400;0,700;1,400"),
     "source-serif": ("Source Serif", "'Source Serif 4',Georgia,serif", "Source+Serif+4:ital,wght@0,400;0,700;1,400"),
     "georgia": ("Georgia", "Georgia,'Iowan Old Style','Times New Roman',serif", None),
+    "arial": ("Arial", "Arial,Helvetica,sans-serif", None),
+    "times": ("Times New Roman", "'Times New Roman',Times,serif", None),
+    "courier": ("Courier New", "'Courier New',Courier,monospace", None),
 }
 STYLE_DEFAULTS = {"body": "atkinson", "heading": "fraunces", "size": 100, "mode": "c", "theme": "dark"}
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -68,7 +71,120 @@ def clean_style(style, lens: Lens) -> dict:
         out["mode"] = style["mode"]
     if style.get("theme") in ("auto", "dark", "light"):
         out["theme"] = style["theme"]
+    if style.get("palette") in ("default", "cb"):
+        out["palette"] = style["palette"]
+    if style.get("hl") in HL_SIZES:
+        out["hl"] = style["hl"]
+    look = style.get("look")
+    if isinstance(look, dict):  # per category: ALL CAPS and size
+        clean = {}
+        for name, v in look.items():
+            c = lens.get(name)
+            if not c or c.layer != "content" or not isinstance(v, dict):
+                continue
+            item = {}
+            if v.get("case") in ("upper", "normal"):
+                item["case"] = v["case"]
+            if _num(v.get("scale"), 0.8, 2.0):
+                item["scale"] = round(float(v["scale"]), 2)
+            if item:
+                clean[name] = item
+        if clean:
+            out["look"] = clean
+    bank = clean_bank(style.get("wordbank"))
+    if bank:
+        out["wordbank"] = bank
     return out
+
+
+def _num(v, lo, hi) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and lo <= v <= hi
+
+
+def clean_bank(bank) -> list[dict]:
+    """The Word Bank: your own words, each with its own look, used in every document while it is on.
+    Returns the usable entries (an empty list when the bank is off)."""
+    if not isinstance(bank, dict) or not bank.get("on") or not isinstance(bank.get("words"), list):
+        return []
+    out = []
+    for w in bank["words"][:200]:
+        if not isinstance(w, dict) or w.get("off"):
+            continue
+        word = w.get("word")
+        if not isinstance(word, str) or not word.strip() or len(word) > 80:
+            continue
+        e = {"word": word.strip()}
+        for k in ("color", "bg"):
+            if isinstance(w.get(k), str) and _HEX.match(w[k]):
+                e[k] = w[k].lower()
+        if w.get("font") in FONT_CHOICES:
+            e["font"] = w["font"]
+        if _num(w.get("size"), 0.8, 2.5):
+            e["size"] = round(float(w["size"]), 2)
+        for k in ("caps", "bold", "italic", "underline"):
+            if w.get(k) is True:
+                e[k] = True
+        out.append(e)
+    return out
+
+
+def bank_spans(text: str, bank: list[dict]) -> list[Span]:
+    """Whole-word, case-insensitive matches of the Word Bank. Earlier words win an overlap."""
+    taken = bytearray(len(text))
+    out = []
+    for i, e in enumerate(bank):
+        for m in re.finditer(r"(?<!\w)" + re.escape(e["word"]) + r"(?!\w)", text, re.I):
+            a, b = m.span()
+            if b > a and not any(taken[a:b]):
+                taken[a:b] = b"\x01" * (b - a)
+                out.append(Span(a, b, f"wb-{i}", "bank"))
+    return sorted(out, key=lambda sp: sp.start)
+
+
+def with_bank(spans: list[Span], bank_hits: list[Span]) -> list[Span]:
+    """Word Bank spans replace any other span that touches them (meaning spans still wrap them)."""
+    if not bank_hits:
+        return spans
+    keep = [s for s in spans if s.layer == "meaning"
+            or not any(s.start < b.end and b.start < s.end for b in bank_hits)]
+    return sorted(keep + bank_hits, key=lambda sp: sp.start)
+
+
+def bank_css(bank: list[dict]) -> str:
+    rules = []
+    for i, e in enumerate(bank):
+        d = []
+        if "color" in e:
+            d.append(f"color:{e['color']}")
+        if "bg" in e:
+            d.append(f"background:{e['bg']};padding:.04em .3em;box-shadow:none")
+            if "color" not in e:
+                d.append(f"color:{_on(e['bg'])}")
+        else:
+            d.append("background:none;box-shadow:none;padding:0")
+        if e.get("caps"):
+            d.append("text-transform:uppercase")
+        if "font" in e:
+            d.append(f"font-family:{FONT_CHOICES[e['font']][1]}")
+        if "size" in e:
+            d.append(f"font-size:{e['size']}em")
+        if e.get("bold"):
+            d.append("font-weight:700")
+        if e.get("italic"):
+            d.append("font-style:italic")
+        d.append("text-decoration:" + (f"underline 2px {e.get('color', 'currentColor')}" if e.get("underline") else "none"))
+        rules.append(f"body .c.c-wb-{i}{{{';'.join(d)}}}")
+    return "".join(rules)
+
+
+# highlight size: how much room a highlight takes (chip padding, underline thickness)
+HL_SIZES = {
+    "sm": ".m-b .c{padding:0 .2em}.m-c .c{padding:0 .16em;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--c) 70%,transparent)}"
+          ".m-d .c{text-decoration-thickness:2px}",
+    "md": "",
+    "lg": ".m-b .c{padding:.12em .5em}.m-c .c{padding:.1em .42em;box-shadow:inset 0 -3px 0 color-mix(in srgb,var(--c) 75%,transparent)}"
+          ".m-d .c{text-decoration-thickness:4px;text-underline-offset:.26em}",
+}
 
 
 def _custom_css(st: dict) -> tuple[str, str]:
@@ -87,7 +203,20 @@ def _custom_css(st: dict) -> tuple[str, str]:
     if "size" in st:
         k = st["size"] / 100
         css.append(f"body{{font-size:{17 * k:.1f}px}}@media (max-width:560px){{body{{font-size:{16 * k:.1f}px}}}}")
-    families = sorted({FONT_CHOICES[st[k]][2] for k in ("body", "heading") if k in st} - {None})
+    if st.get("hl"):
+        css.append(HL_SIZES[st["hl"]])
+    for name, v in st.get("look", {}).items():
+        d = []
+        if "case" in v:
+            d.append("text-transform:" + ("uppercase" if v["case"] == "upper" else "none"))
+        if "scale" in v:
+            d.append(f"font-size:{v['scale']}em")
+        css.append(f".c-{name}{{{';'.join(d)}}}")
+    bank_fonts = set()
+    if st.get("wordbank"):
+        css.append(bank_css(st["wordbank"]))
+        bank_fonts = {FONT_CHOICES[e["font"]][2] for e in st["wordbank"] if "font" in e}
+    families = sorted(({FONT_CHOICES[st[k]][2] for k in ("body", "heading") if k in st} | bank_fonts) - {None})
     links = ""
     if families:
         q = "&".join(f"family={f}" for f in families)
@@ -126,7 +255,7 @@ def _css_vars(lens: Lens) -> str:
 
 _RESET = (
     "color:inherit;background:none;box-shadow:none;padding:0;text-decoration:none;"
-    "font-weight:inherit;font-style:inherit;font-family:inherit;font-size:inherit"
+    "font-weight:inherit;font-style:inherit;font-family:inherit;font-size:inherit;text-transform:none"
 )
 
 
@@ -147,6 +276,10 @@ def _cat_css(lens: Lens) -> str:
             decl.append(FONTS[c.font])
         if c.weight:
             decl.append(f"font-weight:{c.weight}")
+        if c.case == "upper":
+            decl.append("text-transform:uppercase")
+        if c.scale != 1:
+            decl.append(f"font-size:{c.scale:g}em")
         out.append(f".c-{c.name}{{{';'.join(decl)}}}")
         if c.underline and c.underline != "none":
             out.append(
@@ -185,7 +318,7 @@ def _region(text: str, a: int, b: int, emph) -> str:
 
 def _open(sp, lens: Lens) -> str:
     cat = lens.get(sp.cat)
-    label = _esc(cat.label if cat else sp.cat)
+    label = _esc(cat.label if cat else "Word Bank" if sp.layer == "bank" else sp.cat)
     return f'<span class="c c-{sp.cat} l-{sp.layer}" data-cat="{sp.cat}" title="{label}">'
 
 
@@ -309,10 +442,13 @@ def _legend(lens: Lens, counts: Counter) -> str:
 def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palette="default",
                     grammar=False, ai=None, log=print, style=None) -> str:
     st = clean_style(style, lens)
-    mode, theme = st.get("mode", mode), st.get("theme", theme)
+    mode, theme, palette = st.get("mode", mode), st.get("theme", theme), st.get("palette", palette)
     custom_css, font_links = _custom_css(st)
     counts: Counter = Counter()
     ann = make_annotator(_doc_texts(doc), lens, grammar=grammar, ai=ai, log=log)
+    if st.get("wordbank"):
+        base, bank = ann, st["wordbank"]
+        ann = lambda text: with_bank(base(text), bank_spans(text, bank))  # noqa: E731
     body = "\n".join(_block(b, lens, counts, ann) for b in doc.blocks)
     legend = _legend(lens, counts)
     notes = "".join(f'<div class="note">{_esc(n)}</div>' for n in doc.notes)

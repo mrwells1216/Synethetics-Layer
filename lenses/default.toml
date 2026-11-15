@@ -111,6 +111,7 @@ cb_dark = "#ff7a2e"
 cb_light = "#b84f00"
 weight = 700
 underline = "wavy"
+case = "upper"  # ALL CAPS on converted pages and in Word files
 
 [[category]]
 name = "term"
@@ -147,6 +148,7 @@ cb_dark = "#4aa3df"
 cb_light = "#00508a"
 font = "tabular"
 underline = "none"
+scale = 1.12  # a little larger than the text around it
 
 [[category]]
 name = "name"

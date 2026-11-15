@@ -25,7 +25,7 @@ from pathlib import Path
 from .annotate import Lens
 from .colorcheck import contrast
 from .layers import make_annotator
-from .render import clean_style
+from .render import FONT_CHOICES, bank_spans, clean_style, with_bank
 
 OVERLAY_TYPES = {".pdf": "application/pdf",
                  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -79,13 +79,16 @@ def out_name(name: str) -> str:
 
 
 def overlay(name: str, data: bytes, lens: Lens, *, style=None, palette: str = "default",
-            grammar: bool = False, log=print) -> Overlay:
+            grammar: bool = False, only: dict | None = None, log=print) -> Overlay:
+    """`only`: the roller's choice, {unit number: [(start, end), ...]} as numbered by layout_units();
+    when given, only matches that touch those ranges are colored."""
     ext = Path(name).suffix.lower()
     if ext not in OVERLAY_TYPES:
         raise OverlayError(f"Keeping the original look works for {', '.join(sorted(OVERLAY_TYPES))} files. "
                            "Other types get the styled page.")
-    mode = clean_style(style, lens).get("mode", "c")
-    ctx = _Ctx(lens, _palette(lens, style, palette), mode, grammar, log)
+    st = clean_style(style, lens)
+    ctx = _Ctx(lens, _palette(lens, style, palette), st.get("mode", "c"), grammar, log,
+               bank=st.get("wordbank", []), look=st.get("look", {}), only=only)
     fn = {".pdf": _pdf, ".docx": _docx, ".xlsx": _xlsx, ".xlsm": _xlsx}[ext]
     out = fn(data, ctx, ext)
     if not ctx.counts:
@@ -94,25 +97,51 @@ def overlay(name: str, data: bytes, lens: Lens, *, style=None, palette: str = "d
 
 
 class _Ctx:
-    def __init__(self, lens, colors, mode, grammar, log):
+    def __init__(self, lens, colors, mode, grammar, log, bank=(), look=None, only=None):
         self.lens, self.colors, self.mode, self.grammar, self.log = lens, colors, mode, grammar, log
+        self.bank, self.only = list(bank), only
         self.counts: Counter = Counter()
         self.notes: list[str] = []
         self.ann = None
+        # ALL CAPS and size per category: the lens defaults, then the reader's own choices
+        self.look = {c.name: {"case": c.case, "scale": c.scale} for c in lens.categories if c.layer == "content"}
+        for name, v in (look or {}).items():
+            self.look.setdefault(name, {}).update(v)
 
     def prepare(self, texts):
         self.ann = make_annotator(texts, self.lens, grammar=self.grammar, log=self.log)
 
-    def spans(self, text):
+    def allowed(self, unit) -> bool:
+        return self.only is None or bool(self.only.get(unit))
+
+    def spans(self, text, unit=None):
         out = [s for s in self.ann(text) if s.layer != "meaning"]
+        if self.bank:
+            out = with_bank(out, bank_spans(text, self.bank))
+        if self.only is not None:
+            rs = self.only.get(unit, [])
+            out = [s for s in out if any(s.start < b and s.end > a for a, b in rs)]
         for s in out:
-            self.counts[s.cat] += 1
+            self.counts["Word Bank" if s.layer == "bank" else s.cat] += 1
         return out
+
+    def entry(self, cat):
+        return self.bank[int(cat[3:])] if cat.startswith("wb-") else None
+
+    def color(self, cat) -> str:
+        e = self.entry(cat)
+        if e:
+            return e.get("bg") or e.get("color") or "#ffd400"
+        return self.colors[cat]
+
+    def label(self, cat) -> str:
+        e = self.entry(cat)
+        return f"Word Bank: {e['word']}" if e else self.lens.get(cat).label
 
 
 # ---------------------------------------------------------------- PDF
 
-def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
+def _open_pdf(data: bytes):
     import pymupdf
 
     try:
@@ -121,6 +150,14 @@ def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
         raise OverlayError(f"Could not open this PDF ({e}).") from None
     if doc.needs_pass:
         raise OverlayError("This PDF is password-protected.")
+    return doc
+
+
+def _pdf_units(doc) -> list:
+    """Text units of a PDF, one per text block: (page number, text, [rect or None per char],
+    [line id per char]). Lines are joined with one space."""
+    import pymupdf
+
     flags = pymupdf.TEXTFLAGS_RAWDICT & ~pymupdf.TEXT_PRESERVE_IMAGES
     units = []  # (page number, text, [rect or None per char], [line id per char])
     for pno, page in enumerate(doc):
@@ -139,13 +176,23 @@ def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
                 units.append((pno, text, rects, lines))
     if not units:
         raise OverlayError("This PDF has no text layer (it's probably a scan), so there is nothing to color.")
+    return units
+
+
+def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
+    doc = _open_pdf(data)
+    units = _pdf_units(doc)
     ctx.prepare([u[1] for u in units])
     marks: dict[tuple[int, str, str], list] = {}
-    for pno, text, rects, lines in units:
-        for sp in ctx.spans(text):
+    for ui, (pno, text, rects, lines) in enumerate(units):
+        for sp in ctx.spans(text, ui):
             if sp.layer == "grammar" and ctx.mode == "d":
                 continue  # underline-only mode keeps grammar plain, as on converted pages
-            kind = "underline" if ctx.mode == "d" or sp.layer == "grammar" else "highlight"
+            e = ctx.entry(sp.cat)
+            if e:  # a PDF can't change its letters: a Word Bank word gets its highlight or underline
+                kind = "highlight" if "bg" in e or "underline" not in e else "underline"
+            else:
+                kind = "underline" if ctx.mode == "d" or sp.layer == "grammar" else "highlight"
             per_line: dict = {}
             for i in range(sp.start, sp.end):
                 if rects[i] is None or not text[i].strip():
@@ -159,9 +206,9 @@ def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
         page = doc[pno]
         add = page.add_highlight_annot if kind == "highlight" else page.add_underline_annot
         a = add(quads=[r.quad for r in rects])
-        a.set_colors(stroke=_rgb(ctx.colors[cat]))
+        a.set_colors(stroke=_rgb(ctx.color(cat)))
         a.set_opacity(0.4 if kind == "highlight" else 0.9)
-        a.set_info(title="Synesthetic Layer", content=ctx.lens.get(cat).label)
+        a.set_info(title="Synesthetic Layer", content=ctx.label(cat))
         a.update()
     return doc.tobytes(garbage=3, deflate=True)
 
@@ -203,8 +250,47 @@ def _set_rpr(run, tag: str, attrs: dict):
     rpr.append(el)
 
 
+def _size(run) -> int:
+    """The run's own size in half-points (Word's default 11 pt when it has none)."""
+    rpr = run.find(_q("rPr"))
+    sz = rpr.find(_q("sz")) if rpr is not None else None
+    try:
+        return int(sz.get(_q("val"))) if sz is not None else 22
+    except (TypeError, ValueError):
+        return 22
+
+
+def _paint_bank(run, e: dict):
+    if "font" in e:
+        name = FONT_CHOICES[e["font"]][0]
+        _set_rpr(run, "rFonts", {"ascii": name, "hAnsi": name, "cs": name})
+    if e.get("bold"):
+        _set_rpr(run, "b", {})
+    if e.get("italic"):
+        _set_rpr(run, "i", {})
+    if e.get("caps"):
+        _set_rpr(run, "caps", {})
+    col = _hex(e["color"]).upper() if "color" in e else (_on(e["bg"]) if "bg" in e else None)
+    if col:
+        _set_rpr(run, "color", {"val": col})
+    if "size" in e:
+        _set_rpr(run, "sz", {"val": str(round(_size(run) * e["size"]))})
+    if e.get("underline"):
+        _set_rpr(run, "u", {"val": "single", **({"color": _hex(e["color"]).upper()} if "color" in e else {})})
+    if "bg" in e:
+        _set_rpr(run, "shd", {"val": "clear", "color": "auto", "fill": _hex(e["bg"]).upper()})
+
+
 def _paint_run(run, cat: str, layer: str, ctx: _Ctx):
+    e = ctx.entry(cat)
+    if e:
+        return _paint_bank(run, e)
     col = _hex(ctx.colors[cat]).upper()  # Word writes RGB in upper case
+    look = ctx.look.get(cat, {})
+    if layer == "content" and look.get("case") == "upper":
+        _set_rpr(run, "caps", {})
+    if layer == "content" and look.get("scale", 1) != 1:
+        _set_rpr(run, "sz", {"val": str(round(_size(run) * look["scale"]))})
     if layer == "grammar":
         if ctx.mode != "d":
             _set_rpr(run, "color", {"val": col})
@@ -254,13 +340,18 @@ def _split_run(run, text: str, segs, ctx: _Ctx):
         parent.insert(at + k, nr)
 
 
-def _docx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
+def _open_docx(data: bytes):
     import docx
 
     try:
-        d = docx.Document(io.BytesIO(data))
+        return docx.Document(io.BytesIO(data))
     except Exception as e:
         raise OverlayError(f"Could not open this Word file ({e}).") from None
+
+
+def _docx_paras(d) -> list:
+    """Text units of a Word file: (runs, text) per paragraph with text, body first, then headers
+    and footers."""
     roots, seen = [d.element.body], set()
     for sec in d.sections:
         for part in (sec.header, sec.footer, sec.first_page_header, sec.first_page_footer,
@@ -278,9 +369,15 @@ def _docx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
             text = "".join(t for _r, t, _ok in runs)
             if text.strip():
                 paras.append((runs, text))
+    return paras
+
+
+def _docx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
+    d = _open_docx(data)
+    paras = _docx_paras(d)
     ctx.prepare([t for _r, t in paras])
-    for runs, text in paras:
-        spans = ctx.spans(text)
+    for ui, (runs, text) in enumerate(paras):
+        spans = ctx.spans(text, ui)
         if not spans:
             continue
         pos = 0
@@ -310,50 +407,74 @@ def _docx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
 
 # ---------------------------------------------------------------- Excel
 
-def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
+def _open_xlsx(data: bytes, ext: str):
     import openpyxl
-    from openpyxl.cell.rich_text import CellRichText, TextBlock
-    from openpyxl.cell.text import InlineFont
-    from openpyxl.styles.colors import Color
 
     try:
         names = zipfile.ZipFile(io.BytesIO(data)).namelist()
         wb = openpyxl.load_workbook(io.BytesIO(data), keep_vba=ext == ".xlsm", rich_text=True)
     except Exception as e:
         raise OverlayError(f"Could not open this Excel file ({e}).") from None
+    return wb, names
+
+
+def _xlsx_cells(wb) -> list:
+    """Text units of a workbook: every cell with a value that is not a formula, sheet by sheet."""
+    return [c for ws in wb.worksheets for row in ws.iter_rows() for c in row
+            if c.value is not None and c.data_type != "f"]
+
+
+def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
+    from openpyxl.cell.rich_text import CellRichText, TextBlock
+    from openpyxl.cell.text import InlineFont
+    from openpyxl.styles.colors import Color
+
+    wb, names = _open_xlsx(data, ext)
     if any(n.startswith(("xl/charts/", "xl/drawings/")) for n in names):
         ctx.notes.append("Charts, shapes and pictures in this workbook are not kept in the colored copy.")
-    cells = [c for ws in wb.worksheets for row in ws.iter_rows() for c in row
-             if c.value is not None and c.data_type != "f"]
+    cells = _xlsx_cells(wb)
     ctx.prepare([c.value for c in cells if isinstance(c.value, str)])
 
     def colored(cell, cat):
         f = copy.copy(cell.font)
         f.color = Color(rgb="FF" + _hex(ctx.colors[cat]).upper())
+        scale = ctx.look.get(cat, {}).get("scale", 1)
+        if scale != 1:
+            f.sz = round((f.sz or 11) * scale, 1)
         cell.font = f
 
-    for cell in cells:
+    for ui, cell in enumerate(cells):
         v = cell.value
         if isinstance(v, bool) or isinstance(v, CellRichText):
             continue
         if isinstance(v, (dt.datetime, dt.date, dt.time)):
-            colored(cell, "date"); ctx.counts["date"] += 1
+            if ctx.allowed(ui):
+                colored(cell, "date"); ctx.counts["date"] += 1
         elif isinstance(v, (int, float)):
-            colored(cell, "number"); ctx.counts["number"] += 1
+            if ctx.allowed(ui):
+                colored(cell, "number"); ctx.counts["number"] += 1
         elif isinstance(v, str):
-            spans = [s for s in ctx.spans(v) if not (s.layer == "grammar" and ctx.mode == "d")]
+            spans = [s for s in ctx.spans(v, ui) if not (s.layer == "grammar" and ctx.mode == "d")]
             if not spans:
                 continue
             base = cell.font
-            def font(color):
-                return InlineFont(rFont=base.name, sz=base.sz, b=base.b, i=base.i, u=base.u,
+
+            def font(color, e=None, scale=1):
+                e = e or {}
+                return InlineFont(rFont=FONT_CHOICES[e["font"]][0] if "font" in e else base.name,
+                                  sz=round((base.sz or 11) * e.get("size", scale), 1) if ("size" in e or scale != 1) else base.sz,
+                                  b=True if e.get("bold") else base.b, i=True if e.get("italic") else base.i,
+                                  u="single" if e.get("underline") else base.u,
                                   strike=base.strike, vertAlign=base.vertAlign, color=color)
             plain = font(base.color)
             parts, cur = [], 0
             for s in spans:
                 if s.start > cur:
                     parts.append(TextBlock(plain, v[cur:s.start]))
-                parts.append(TextBlock(font(Color(rgb="FF" + _hex(ctx.colors[s.cat]).upper())), v[s.start:s.end]))
+                e = ctx.entry(s.cat)
+                hexcol = (e.get("color") or e.get("bg") or "#000000") if e else ctx.colors[s.cat]
+                scale = ctx.look.get(s.cat, {}).get("scale", 1) if s.layer == "content" else 1
+                parts.append(TextBlock(font(Color(rgb="FF" + _hex(hexcol).upper()), e, scale), v[s.start:s.end]))
                 cur = s.end
             if cur < len(v):
                 parts.append(TextBlock(plain, v[cur:]))
@@ -361,3 +482,82 @@ def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------- the roller's view of a file
+
+MAX_PAGES = 20
+MAX_CELLS = 3000
+
+
+def layout_units(name: str, data: bytes, *, width: int = 760) -> dict:
+    """What the roller shows: the file's text units, numbered as overlay() numbers them.
+    PDF: page pictures with each line's place on the page. Word: paragraphs. Excel: cells."""
+    import base64
+
+    ext = Path(name).suffix.lower()
+    if ext == ".pdf":
+        import pymupdf
+
+        doc = _open_pdf(data)
+        units = _pdf_units(doc)
+        pages = []
+        for pno in range(min(len(doc), MAX_PAGES)):
+            page = doc[pno]
+            w, h = page.rect.width, page.rect.height
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(width / w, width / w))
+            lines = []
+            for ui, (upno, text, rects, lids) in enumerate(units):
+                if upno != pno:
+                    continue
+                i = 0
+                while i < len(text):
+                    if lids[i] is None:
+                        i += 1
+                        continue
+                    j, box = i, None
+                    while j < len(text) and lids[j] == lids[i]:
+                        if rects[j] is not None and not rects[j].is_empty:
+                            box = rects[j] if box is None else box | rects[j]
+                        j += 1
+                    if box is not None:
+                        lines.append({"u": ui, "s": i, "t": text[i:j],
+                                      "b": [round(box.x0 / w, 5), round(box.y0 / h, 5), round(box.x1 / w, 5), round(box.y1 / h, 5)]})
+                    i = j
+            pages.append({"w": w, "h": h, "lines": lines,
+                          "img": "data:image/jpeg;base64," + base64.b64encode(pix.tobytes("jpg", jpg_quality=62)).decode()})
+        return {"kind": "pdf", "texts": [u[1] for u in units], "pages": pages, "total": len(doc)}
+    if ext == ".docx":
+        return {"kind": "docx", "texts": [t for _r, t in _docx_paras(_open_docx(data))]}
+    if ext in (".xlsx", ".xlsm"):
+        wb, _names = _open_xlsx(data, ext)
+        cells = _xlsx_cells(wb)[:MAX_CELLS]
+        texts, where = [], []
+        for c in cells:
+            v = c.value
+            texts.append(v.isoformat() if isinstance(v, (dt.datetime, dt.date, dt.time)) else str(v))
+            where.append([c.parent.title, c.row, c.column])
+        return {"kind": "xlsx", "texts": texts, "where": where}
+    raise OverlayError("The roller works on PDF, Word and Excel files.")
+
+
+def parse_only(raw: str) -> dict | None:
+    """The roller's choice from the page: "unit:start-end,start-end;unit;..." (a bare unit means all of it)."""
+    if not raw:
+        return None
+    out: dict[int, list[tuple[int, int]]] = {}
+    for part in raw.split(";"):
+        if not part.strip():
+            continue
+        u, _, rs = part.partition(":")
+        try:
+            ui = int(u)
+            if not rs:
+                out.setdefault(ui, []).append((0, 10 ** 9))
+                continue
+            for r in rs.split(","):
+                a, _, b = r.partition("-")
+                out.setdefault(ui, []).append((int(a), int(b)))
+        except ValueError:
+            continue
+    return out

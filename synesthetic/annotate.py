@@ -20,6 +20,8 @@ class Category:
     font: str = "normal"  # normal | mono | serif | italic | tabular
     weight: int = 0  # 0 = inherit
     underline: str = "none"  # none | dotted | dashed | solid | double | wavy
+    case: str = "normal"  # normal | upper (ALL CAPS)
+    scale: float = 1.0  # font size relative to the text around it
     example: str = ""
     default_off: bool = False  # starts unchecked in the page legend
     layer: str = "content"  # content | grammar | meaning
@@ -71,6 +73,8 @@ def load_lens(path: str | Path | None = None) -> Lens:
                 font=raw.get("font", "normal"),
                 weight=int(raw.get("weight", 0)),
                 underline=raw.get("underline", "none"),
+                case="upper" if raw.get("case") == "upper" else "normal",
+                scale=min(max(float(raw.get("scale", 1.0)), 0.8), 2.0),
                 example=raw.get("example", ""),
                 default_off=bool(raw.get("default_off", False)),
                 layer=raw.get("layer", "content"),
