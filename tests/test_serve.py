@@ -118,7 +118,8 @@ def test_app_can_be_installed(server):
     assert {"192x192", "512x512"} <= {i["sizes"] for i in m["icons"]}
     assert any(i["purpose"] == "maskable" for i in m["icons"])
     assert ".pdf" in m["file_handlers"][0]["accept"]["application/pdf"]
-    for i in m["icons"] + [{"src": "/apple-touch-icon.png"}, {"src": "/favicon.ico"}, {"src": "/api/icon-192.png"}]:
+    for i in m["icons"] + [{"src": "/apple-touch-icon.png"}, {"src": "/favicon.ico"}, {"src": "/api/icon-192.png"},
+                             {"src": "/api/index?_p=icon-512.png"}]:
         r = urllib.request.urlopen(server + i["src"], timeout=10)
         body = r.read()
         assert r.headers["Content-Type"].startswith("image/") and (body[:4] == b"\x89PNG" or b"<svg" in body)

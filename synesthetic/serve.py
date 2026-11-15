@@ -122,7 +122,9 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
             self.wfile.write(data)
 
         def do_GET(self):
-            leaf = urlparse(self.path).path.rsplit("/", 1)[-1]
+            url = urlparse(self.path)
+            # behind Vercel every path is rewritten to /api/index; the original one comes as ?_p=
+            leaf = ((parse_qs(url.query).get("_p") or [""])[0] or url.path).rsplit("/", 1)[-1]
             if leaf in ICONS:
                 f = STATIC / ICONS[leaf]
                 return self._send(200, f.read_bytes(), CTYPES[f.suffix], {"Cache-Control": "public, max-age=86400"})
