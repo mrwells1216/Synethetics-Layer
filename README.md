@@ -19,6 +19,7 @@ Read `reports/Color styling for reading and retention.md` first: it says what th
 | `--ai` | meaning layer: Claude marks key terms, definitions, actions, cautions, examples. Sends text to Claude through your `claude` login. Cached. `--ai-model`, `--ai-max-calls` |
 | `--fast` / `--tables` | skip / force PDF table detection (on for one file, off for folders) |
 | `--lens my.toml` | your own categories, colors and patterns |
+| `--keep` | keep the original look: write `file (colored).pdf/.docx/.xlsx` with the colors added on top, instead of an HTML page |
 
 On the page: switch style, spacing (Normal/Roomy), theme and palette live; the legend turns each layer and category on or off. Choices are remembered per browser.
 
@@ -30,6 +31,8 @@ The same upload page runs in two places:
 - **On this machine:** `.venv\Scripts\python.exe -m synesthetic serve` (add `--tailscale` to reach it from your phone over your Tailscale network). Up to 60 MB, nothing leaves the machine.
 
 **Customize** sets each category's color (dark and light theme), body and heading fonts, text size, highlight style and theme, with a live preview. The defaults come from the lens; Reset puts them back. Settings are saved in the browser and baked into every page you convert. Export saves them as a file, which you can import on another device or pass to the command line with `--style synesthetic-style.json`.
+
+**Keep the original look** (a switch that shows up for PDF, Word and Excel files) adds the colors on top of your file and gives the same kind of file back, instead of pulling the text into a new page. PDFs get highlight notes over the matched words (underlines in the Underline style), so the pages, fonts and pictures are untouched and any PDF app can hide the colors. Word files have the matched words recolored in place, following your highlight style. Excel files color number and date cells and the matched words in text cells; formulas are left alone, but charts and pictures are not kept. The colors are your light-theme ones, since documents are white. Code: `synesthetic/overlay.py`.
 
 **Color this app's text** (a switch on the home page and in Customize, on by default) runs the same content colors over the app's own instructions, labels and messages, in the chosen highlight style.
 

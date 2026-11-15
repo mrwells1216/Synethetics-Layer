@@ -8,10 +8,23 @@ from pathlib import Path
 
 from .annotate import load_lens
 from .extract import SUPPORTED, UnsupportedFile, extract
+from .overlay import OVERLAY_TYPES, OverlayError, out_name, overlay
 from .render import render_document, render_index
 
 
+def _dest(src: Path, out_dir: Path, rel: str, keep: bool) -> Path:
+    if keep and src.suffix.lower() in OVERLAY_TYPES:
+        return out_dir / Path(rel).parent / out_name(src.name)
+    return out_dir / (rel + ".html")
+
+
 def _convert(src: Path, dest: Path, lens, args, find_tables: bool) -> str:
+    if dest.suffix.lower() in OVERLAY_TYPES:
+        ov = overlay(src.name, src.read_bytes(), lens, style=args.style_data, palette=args.palette,
+                     grammar=args.grammar, log=print)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(ov.data)
+        return "ok" if not ov.notes else "ok (" + "; ".join(ov.notes) + ")"
     doc = extract(src, find_tables=find_tables)
     dest.parent.mkdir(parents=True, exist_ok=True)
     ai = {"model": args.ai_model, "max_calls": args.ai_max_calls} if args.ai else None
@@ -44,7 +57,12 @@ def main(argv=None) -> int:
     ap.add_argument("--fast", action="store_true", help="Skip PDF table detection (about 30x faster on big PDFs)")
     ap.add_argument("--tables", action="store_true", help="Force PDF table detection (default: on for one file, off for folders)")
     ap.add_argument("--style", help="Colors and fonts exported from the web app's Customize screen (.json)")
+    ap.add_argument("--keep", action="store_true",
+                    help="Keep the original look: write a colored copy of each PDF, Word or Excel file "
+                         "(other types still get the HTML page)")
     args = ap.parse_args(argv)
+    if args.keep and args.ai:
+        print("Note: --ai is not used for colored copies (--keep); it still applies to HTML pages.", file=sys.stderr)
     args.style_data = None
     if args.style:
         try:
@@ -62,10 +80,10 @@ def main(argv=None) -> int:
 
     if src.is_file():
         out_dir = Path(args.out).resolve() if args.out else src.parent / "synesthetic-out"
-        dest = out_dir / (src.name + ".html")
+        dest = _dest(src, out_dir, src.name, args.keep)
         try:
             status = _convert(src, dest, lens, args, find_tables)
-        except UnsupportedFile as e:
+        except (UnsupportedFile, OverlayError) as e:
             print(f"Skipped: {e}", file=sys.stderr)
             return 1
         print(f"{status}: {dest}")
@@ -80,7 +98,7 @@ def main(argv=None) -> int:
         if out_dir in f.parents:
             continue
         rel = f.relative_to(src)
-        dest = out_dir / (str(rel) + ".html")
+        dest = _dest(f, out_dir, str(rel), args.keep)
         try:
             status = _convert(f, dest, lens, args, find_tables)
             ok += 1

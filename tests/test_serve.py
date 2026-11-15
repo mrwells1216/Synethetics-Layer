@@ -90,6 +90,23 @@ def test_style_header_is_applied(server):
     assert urllib.request.urlopen(bad, timeout=10).status == 200
 
 
+def test_keep_returns_the_same_kind_of_file(server, fixtures):
+    import json
+    from urllib.parse import unquote
+
+    for name, magic in (("sample.pdf", b"%PDF"), ("sample.docx", b"PK"), ("sample.xlsx", b"PK")):
+        req = urllib.request.Request(f"{server}/api/convert?keep=1", data=(fixtures / name).read_bytes(),
+                                     method="POST", headers={"X-File-Name": name})
+        r = urllib.request.urlopen(req, timeout=30)
+        info = json.loads(unquote(r.headers["X-Overlay"]))
+        assert r.read().startswith(magic) and info["count"] > 0 and info["name"].endswith("(colored)" + name[6:])
+    # types without a layout of their own still get the styled page
+    req = urllib.request.Request(f"{server}/api/convert?keep=1", data=b"Pay $5.\n", method="POST",
+                                 headers={"X-File-Name": "a.md"})
+    r = urllib.request.urlopen(req, timeout=10)
+    assert r.headers.get("X-Overlay") is None and b'data-cat="number"' in r.read()
+
+
 def test_size_limit_is_per_server():
     srv = make_server("127.0.0.1", 0)
     srv.RequestHandlerClass = make_handler(load_lens(), max_bytes=10)

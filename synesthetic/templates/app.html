@@ -142,6 +142,15 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
 .rbar{display:flex;gap:8px;align-items:center;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--surface)}
 .rbar .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:14px}
 #frame{flex:1;width:100%;border:0;background:var(--doc-bg)}
+#kept{flex:1;overflow:auto;padding:28px 16px}
+.kcard{max-width:520px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 18px;display:grid;gap:10px}
+.kcard h2{font-family:var(--font-head);font-size:1.4rem;font-weight:650;margin:0;overflow-wrap:anywhere}
+.kcard p,.kcard ul{margin:0}
+.kcard ul{padding-left:1.2em}
+.kdots{display:flex;gap:4px;height:8px}
+.kdots i{flex:1;max-width:22px;border-radius:4px;background:var(--k)}
+.kcard .go{margin-top:6px}
+.kopen{justify-self:center}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 <style id="catcss"></style>
@@ -178,6 +187,7 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
       <textarea id="txt" placeholder="Paste text or Markdown here" aria-label="Text to convert"></textarea>
     </div>
     <div class="opts">
+      <label class="sw-row" id="o-keep" hidden><input id="keep" type="checkbox" role="switch"><span>Keep the original look<small>Puts the colors on top of your PDF, Word or Excel file and gives that file back, layout and pictures unchanged.</small></span></label>
       <label class="sw-row" id="o-grammar" hidden><input id="grammar" type="checkbox" role="switch"><span>Grammar layer<small>Tints nouns, verbs, adjectives and adverbs. Busier page.</small></span></label>
       <label class="sw-row" id="o-fast" hidden><input id="fast" type="checkbox" role="switch"><span>Fast PDF<small>Skips table detection. Use it if a big PDF is slow.</small></span></label>
     </div>
@@ -233,6 +243,17 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     <a class="pill" id="open" target="_blank" rel="noopener">Open</a>
   </div>
   <iframe id="frame" title="Converted page"></iframe>
+  <div id="kept" hidden>
+    <div class="kcard">
+      <div class="kdots" id="kdots" aria-hidden="true"></div>
+      <h2 id="kname"></h2>
+      <p id="kcount"></p>
+      <p class="hint" id="khow"></p>
+      <ul class="hint" id="knotes"></ul>
+      <a class="go" id="ksave" download>Save colored file</a>
+      <a class="pill kopen" id="kopen" target="_blank" rel="noopener">Open it</a>
+    </div>
+  </div>
 </div>
 
 <script id="cfg" type="application/json">{{CONFIG}}</script>
@@ -491,8 +512,14 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   function ready(){
     var ok = mode === 'file' ? !!file : txt.value.trim().length > 0;
     go.setAttribute('aria-disabled', ok && !busy ? 'false' : 'true');
-    $('o-fast').hidden = !(mode === 'file' && file && ext(file.name) === '.pdf');
+    var canKeep = mode === 'file' && !!file && (cfg.keepExts || []).indexOf(ext(file.name)) >= 0;
+    $('o-keep').hidden = !canKeep;
+    // table detection only matters for the styled page
+    $('o-fast').hidden = !(mode === 'file' && file && ext(file.name) === '.pdf') || (canKeep && $('keep').checked);
+    go.textContent = canKeep && $('keep').checked ? 'Add colors to my file' : 'Convert';
   }
+  $('keep').checked = lsGet('synapp.keep') === '1';
+  $('keep').onchange = function(){ lsSet('synapp.keep', this.checked ? '1' : '0'); ready(); };
   function setTab(m){
     mode = m;
     $('t-file').setAttribute('aria-selected', m === 'file');
@@ -529,24 +556,26 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     return {colors: st.colors, body: st.body, heading: st.heading, size: st.size, mode: s.mode, theme: s.theme};
   }
   // send one document; `out` is the status line under the button that started it
-  async function send(name, body, grammar, fast, out){
+  async function send(name, body, grammar, fast, out, keep){
     function tell(t, err){ out.className = err ? 'err' : ''; out.textContent = t; }
     if (body.size > cfg.maxBytes){ tell('Too large: the limit here is ' + mb(cfg.maxBytes) + '.', true); return; }
     busy = true; ready();
     out.className = ''; out.innerHTML = '<span class="spin" aria-hidden="true"></span>Coloring it in...';
     try {
-      var q = 'grammar=' + (grammar ? 1 : 0) + '&fast=' + (fast ? 1 : 0);
+      var q = 'grammar=' + (grammar ? 1 : 0) + '&fast=' + (fast ? 1 : 0) + '&keep=' + (keep ? 1 : 0);
       var r = await fetch('/api/convert?' + q, {method: 'POST', body: body, headers: {
         'X-File-Name': encodeURIComponent(name), 'X-Style': encodeURIComponent(JSON.stringify(styleForServer()))}});
-      var t = await r.text();
       if (!r.ok){
+        var t = await r.text();
         var plain = (r.headers.get('content-type') || '').indexOf('text/plain') === 0;
-        if (r.status === 413) t = 'Too large for this server. Convert it on your computer instead.';
+        if (r.status === 413 && !plain) t = 'Too large for this server. Convert it on your computer instead.';
         else if (r.status === 504) t = 'The server took too long. Try Fast PDF, or a smaller file.';
         else if (!plain) t = 'Conversion failed (error ' + r.status + ').';
         tell(t, true); return;
       }
-      show(t, name);
+      var kept = r.headers.get('X-Overlay');
+      if (kept) showKept(await r.blob(), JSON.parse(decodeURIComponent(kept)));
+      else show(await r.text(), name);
       tell('');
     } catch (e) {
       tell('Could not reach the server: ' + e.message, true);
@@ -554,7 +583,7 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   }
   function convert(){
     if (go.getAttribute('aria-disabled') === 'true') return;
-    if (mode === 'file') send(file.name, file, $('grammar').checked, $('fast').checked, msg);
+    if (mode === 'file') send(file.name, file, $('grammar').checked, $('fast').checked, msg, !$('o-keep').hidden && $('keep').checked);
     else send('Pasted text.md', new Blob([txt.value], {type: 'text/markdown'}), $('grammar').checked, false, msg);
   }
   go.onclick = convert;
@@ -581,13 +610,34 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   $('exs').hidden = !(cfg.examples || []).length;
   go.onkeydown = function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); convert(); } };
 
+  var HOW = {
+    '.pdf': 'Each color is a highlight note on the page, so your PDF app can hide or delete them.',
+    '.docx': 'The matched words are recolored in place. Open it in Word, Pages or Google Docs.',
+    '.xlsx': 'Number and date cells take their colors; in text cells only the matched words are colored.'
+  };
+  HOW['.xlsm'] = HOW['.xlsx'];
   function show(html, name){
+    openResult(new Blob([html], {type: 'text/html'}), name, name.replace(/\.[^.]+$/, '') + '.html', false);
+  }
+  function showKept(blob, info){
+    openResult(blob, info.name, info.name, true);
+    $('kname').textContent = info.name;
+    $('kcount').textContent = info.count ? info.count + (info.count === 1 ? ' item' : ' items') + ' colored. Everything else is exactly as it was.' : 'Nothing matched a category.';
+    $('khow').textContent = HOW[ext(info.name)] || '';
+    var dots = $('kdots'); dots.textContent = '';
+    (info.cats || []).forEach(function(c){ var i = document.createElement('i'); i.style.setProperty('--k', 'var(--c-' + c + ')'); dots.appendChild(i); });
+    var ul = $('knotes'); ul.textContent = '';
+    (info.notes || []).forEach(function(n){ var li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
+    ul.hidden = !(info.notes || []).length;
+  }
+  function openResult(blob, title, saveAs, kept){
     if (url) URL.revokeObjectURL(url);
-    url = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
-    $('frame').src = url;
-    $('dl').href = url; $('dl').download = name.replace(/\.[^.]+$/, '') + '.html';
-    $('open').href = url;
-    $('rname').textContent = name;
+    url = URL.createObjectURL(blob);
+    $('frame').hidden = kept; $('kept').hidden = !kept;
+    $('frame').src = kept ? 'about:blank' : url;
+    $('dl').href = $('ksave').href = url; $('dl').download = $('ksave').download = saveAs;
+    $('open').href = $('kopen').href = url;
+    $('rname').textContent = title;
     $('result').classList.add('on');
     document.body.style.overflow = 'hidden';
     history.pushState({v:'result'}, '');

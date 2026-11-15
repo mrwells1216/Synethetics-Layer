@@ -16,10 +16,11 @@ import tempfile
 import tomllib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 from .annotate import load_lens
 from .extract import SUPPORTED, UnsupportedFile, extract
+from .overlay import OVERLAY_TYPES, OverlayError, overlay
 from .render import FONT_CHOICES, STYLE_DEFAULTS, render_document
 
 MAX_BYTES = 60 * 1024 * 1024
@@ -49,7 +50,7 @@ def load_examples(lens) -> list[dict]:
 
 def app_page(lens, max_bytes: int, hosted: bool) -> str:
     cfg = {
-        "exts": sorted(SUPPORTED), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted,
+        "exts": sorted(SUPPORTED), "keepExts": sorted(OVERLAY_TYPES), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted,
         "examples": load_examples(lens),
         "categories": [
             {"name": c.name, "label": c.label, "layer": c.layer, "example": c.example,
@@ -78,10 +79,12 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
         def log_message(self, fmt, *args):  # quiet: file names are private
             pass
 
-        def _send(self, code: int, body: str, ctype="text/html; charset=utf-8"):
-            data = body.encode("utf-8")
+        def _send(self, code: int, body: str | bytes, ctype="text/html; charset=utf-8", extra=None):
+            data = body.encode("utf-8") if isinstance(body, str) else body
             self.send_response(code)
             self.send_header("Content-Type", ctype)
+            for k, v in (extra or {}).items():
+                self.send_header(k, v)
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
@@ -127,16 +130,31 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
             if Path(name).suffix.lower() not in SUPPORTED:
                 return self._send(400, f"Unsupported file type. Use: {', '.join(sorted(SUPPORTED))}",
                                   "text/plain; charset=utf-8")
+            try:  # the page's saved colors and fonts; render_document keeps only valid values
+                style = json.loads(unquote(self.headers.get("X-Style", "")) or "null")
+            except ValueError:
+                style = None
+            grammar = (q.get("grammar") or ["0"])[0] == "1"
+            if (q.get("keep") or ["0"])[0] == "1" and Path(name).suffix.lower() in OVERLAY_TYPES:
+                # keep the original look: the same kind of file back, with the colors on top
+                try:
+                    ov = overlay(name, body, lens, style=style, grammar=grammar, log=lambda *a, **k: None)
+                except OverlayError as e:
+                    return self._send(400, str(e), "text/plain; charset=utf-8")
+                except Exception as e:
+                    return self._send(500, f"Could not color this file: {e}", "text/plain; charset=utf-8")
+                if len(ov.data) > max_bytes:
+                    return self._send(413, "The colored copy is too large to send back here.",
+                                      "text/plain; charset=utf-8")
+                info = quote(json.dumps({"name": ov.name, "count": sum(ov.counts.values()), "notes": ov.notes,
+                                         "cats": [c for c, _n in ov.counts.most_common()]}))
+                return self._send(200, ov.data, ov.mime, {"X-Overlay": info})
             tmp = Path(tempfile.mkdtemp(prefix="synesthetic_up_"))
             try:
                 src = tmp / name
                 src.write_bytes(body)
                 doc = extract(src, find_tables=(q.get("fast") or ["0"])[0] != "1")
-                try:  # the page's saved colors and fonts; render_document keeps only valid values
-                    style = json.loads(unquote(self.headers.get("X-Style", "")) or "null")
-                except ValueError:
-                    style = None
-                html = render_document(doc, lens, grammar=(q.get("grammar") or ["0"])[0] == "1", style=style)
+                html = render_document(doc, lens, grammar=grammar, style=style)
                 self._send(200, html)
             except UnsupportedFile as e:
                 self._send(400, str(e), "text/plain; charset=utf-8")
