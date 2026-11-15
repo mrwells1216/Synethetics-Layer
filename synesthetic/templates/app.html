@@ -83,6 +83,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .drop .small{color:var(--muted);font-size:14px;margin-top:-10px}
 
 .opts{margin:16px 0;display:grid;gap:12px}
+.samples{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.samples .pill small{font-weight:500;color:var(--muted)}
 .sw-row{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
 .sw-row small{display:block;color:var(--muted);font-size:13px}
 .sw-row input{appearance:none;-webkit-appearance:none;flex:none;margin:1px 0 0;width:44px;height:26px;border-radius:13px;background:var(--raised);border:1px solid var(--line);position:relative;cursor:pointer;transition:background .2s}
@@ -440,8 +442,10 @@ body.dragging #dropall{display:grid}
           <span class="big" id="fname">Choose a file</span>
           <span class="small" id="fmeta">or drop it here</span>
         </label>
+        <div class="samples" id="samples" hidden><span class="hint" style="margin:0">No file handy? Try a sample:</span></div>
         <div class="opts">
           <label class="sw-row" id="o-keep" hidden><input id="keep" type="checkbox" role="switch"><span>Keep the original layout<small>On: the colors go on top of your PDF, Word or Excel file. Off: the text is pulled out into a new colored page.</small></span></label>
+          <label class="sw-row" id="o-pdf" hidden><input id="pdfletters" type="checkbox" role="switch"><span>Change the letters<small>On: matched words are redrawn in your colors, fonts, ALL CAPS and sizes, right where they were. Off: light highlight notes on top, which any PDF app can hide.</small></span></label>
           <label class="sw-row" id="o-roll" hidden><input id="useroll" type="checkbox" role="switch"><span>Choose what to color (Roller)<small>Opens your file so you can select the parts to color, like rolling paint on. Everything else stays as it is.</small></span></label>
           <p class="hint" id="o-nolayout" hidden>This kind of file has no layout of its own, so it becomes a colored page.</p>
           <label class="sw-row" id="o-grammar" hidden><input id="grammar" type="checkbox" role="switch"><span>Grammar layer<small>Tints nouns, verbs, adjectives and adverbs. Busier page.</small></span></label>
@@ -1194,7 +1198,7 @@ body.dragging #dropall{display:grid}
     if (SHOWDATA){ if (!show.key) openExample(SHOWDATA[0].key); return; }
     if (!cfg.showcase){ $('show-msg').textContent = 'The examples are not available here.'; return; }
     show.mode = st.mode; show.cb = st.palette === 'cb'; show.theme = theme();
-    fetch('/showcase.json').then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d){
+    fetch('/showcase.json?v=' + (cfg.showcaseV || '')).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d){
       SHOWDATA = d.examples;
       var pick = $('show-pick'), groups = {famous: 'Famous writing', everyday: 'Everyday'};
       Object.keys(groups).forEach(function(g){
@@ -1324,10 +1328,26 @@ body.dragging #dropall{display:grid}
     $('o-grammar').hidden = !cfg.grammar || !file;
     $('o-fast').hidden = !(file && extOf(file.name) === '.pdf') || keeping();
     $('o-roll').hidden = !keeping();
+    $('o-pdf').hidden = !(keeping() && extOf(file.name) === '.pdf');
     go.textContent = !file || keeping() ? (keeping() && $('useroll').checked ? 'Open the roller' : 'Synesthesize') : 'Make a colored page';
   }
   $('keep').checked = lsGet('synapp.keep') !== '0';
   $('keep').onchange = function(){ lsSet('synapp.keep', this.checked ? '1' : '0'); ready(); };
+  $('pdfletters').checked = lsGet('synapp.pdfletters') !== '0';
+  $('pdfletters').onchange = function(){ lsSet('synapp.pdfletters', this.checked ? '1' : '0'); };
+  // sample files to try it on
+  (cfg.samples || []).forEach(function(x){
+    var b = el('button', 'pill'); b.type = 'button';
+    b.append(document.createTextNode(x.label + ' '), el('small', null, x.kind));
+    b.onclick = function(){
+      say(''); msg.innerHTML = '<span class="spin" aria-hidden="true"></span>Getting the sample...';
+      fetch('/' + x.file).then(function(r){ if (!r.ok) throw new Error(r.status); return r.blob(); })
+        .then(function(bl){ say(''); pick(new File([bl], x.file.replace('market-wrap', 'Weekly market wrap'), {type: bl.type})); })
+        .catch(function(){ say('Could not get the sample. Check the connection.', true); });
+    };
+    $('samples').appendChild(b);
+  });
+  $('samples').hidden = !(cfg.samples || []).length;
   $('useroll').checked = lsGet('synapp.useroll') === '1';
   $('useroll').onchange = function(){ lsSet('synapp.useroll', this.checked ? '1' : '0'); ready(); };
   function pick(fl){
@@ -1372,7 +1392,7 @@ body.dragging #dropall{display:grid}
   function styleForServer(){
     var s = load();  // includes any style, theme or palette picked on a converted page
     return {colors: st.colors, body: st.body, heading: st.heading, size: st.size, mode: s.mode, theme: s.theme, palette: s.palette, hl: st.hl,
-            look: st.look, wordbank: {on: st.wordbank.on, words: st.wordbank.words.filter(function(w){ return !w.off; })}};
+            look: st.look, pdf: $('pdfletters').checked ? 'restyle' : 'notes', wordbank: {on: st.wordbank.on, words: st.wordbank.words.filter(function(w){ return !w.off; })}};
   }
   function headers(name){ return {'X-File-Name': encodeURIComponent(name), 'X-Style': encodeURIComponent(JSON.stringify(styleForServer()))}; }
   // send one document; `out` is the status line under the button that started it
@@ -1469,7 +1489,7 @@ body.dragging #dropall{display:grid}
   // ---- the result screen ----
   var HOW = {
     '.pdf': 'Each color is a highlight note on the page, so your PDF app can hide or delete them.',
-    '.docx': 'The matched words are recolored in place. Open it in Word, Pages or Google Docs.',
+    '.docx': 'The matched words are recolored in place, with their fonts, ALL CAPS and sizes. Open it in Word, Pages or Google Docs.',
     '.xlsx': 'Number and date cells take their colors; in text cells only the matched words are colored.'
   };
   HOW['.xlsm'] = HOW['.xlsx'];
@@ -1477,7 +1497,9 @@ body.dragging #dropall{display:grid}
     openResult(blob, info.name, info.name, true, rec);
     $('kname').textContent = info.name;
     $('kcount').textContent = info.count ? info.count + (info.count === 1 ? ' item' : ' items') + ' colored. Everything else is exactly as it was.' : 'Nothing matched a category.';
-    $('khow').textContent = HOW[extOf(info.name)] || '';
+    $('khow').textContent = extOf(info.name) === '.pdf' && $('pdfletters').checked
+      ? 'Matched words are redrawn in your colors, fonts, ALL CAPS and sizes, right where they were. Everything else on every page is untouched.'
+      : HOW[extOf(info.name)] || '';
     var dots = $('kdots'); dots.textContent = '';
     (info.cats || []).forEach(function(c){ var i = el('i'); i.style.setProperty('--k', 'var(--c-' + c + ')'); dots.appendChild(i); });
     var ul = $('knotes'); ul.textContent = '';

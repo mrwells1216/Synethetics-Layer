@@ -51,6 +51,12 @@ group = "famous"
 grammar = true
 
 [[example]]
+file = "market-wrap.md"
+title = "Weekly market wrap"
+blurb = "A long read: the S&P 500 at 6,912.48, up 1.6%, CPI at 8:30 AM ET on Nov 10, sector tables and risks."
+group = "everyday"
+
+[[example]]
 file = "study-notes.md"
 title = "Study notes"
 blurb = "Definitions, Figure 4.7, page 112 and the exam on Oct 14. Grammar layer on."

@@ -1,5 +1,6 @@
 import io
 import zipfile
+from pathlib import Path
 
 import pytest
 
@@ -13,11 +14,11 @@ def lens():
     return load_lens()
 
 
-def test_pdf_gets_highlights_and_keeps_its_text(fixtures, lens):
+def test_pdf_notes_keep_the_text_exactly(fixtures, lens):
     import pymupdf
 
     src = (fixtures / "sample.pdf").read_bytes()
-    ov = overlay("sample.pdf", src, lens)
+    ov = overlay("sample.pdf", src, lens, style={"pdf": "notes"})
     assert ov.name == "sample (colored).pdf" and ov.mime == "application/pdf"
     assert ov.counts["date"] == 2 and ov.counts["number"] == 2 and ov.counts["link"] == 2
     out = pymupdf.open(stream=ov.data, filetype="pdf")
@@ -26,7 +27,7 @@ def test_pdf_gets_highlights_and_keeps_its_text(fixtures, lens):
     annots = [(a.type[1], a.info["content"]) for a in out[0].annots()]
     assert ("Highlight", lens.get("date").label) in annots
     # underline-only style uses underline marks instead
-    ov_d = overlay("sample.pdf", src, lens, style={"mode": "d"})
+    ov_d = overlay("sample.pdf", src, lens, style={"mode": "d", "pdf": "notes"})
     kinds = {a.type[1] for a in pymupdf.open(stream=ov_d.data, filetype="pdf")[0].annots()}
     assert kinds == {"Underline"}
 
@@ -35,10 +36,62 @@ def test_custom_light_color_is_used(fixtures, lens):
     import pymupdf
 
     ov = overlay("sample.pdf", (fixtures / "sample.pdf").read_bytes(), lens,
-                 style={"colors": {"date": {"light": "#ff0000"}}})
+                 style={"colors": {"date": {"light": "#ff0000"}}, "pdf": "notes"})
     page = pymupdf.open(stream=ov.data, filetype="pdf")[0]
     date = next(a for a in page.annots() if a.info["content"] == lens.get("date").label)
     assert tuple(round(x, 2) for x in date.colors["stroke"]) == (1.0, 0.0, 0.0)
+
+
+def _pdf_with(lines):
+    import pymupdf
+
+    d = pymupdf.open()
+    page = d.new_page()
+    for i, t in enumerate(lines):
+        page.insert_text((72, 100 + 30 * i), t, fontsize=12, fontname="tiro")
+    return d.tobytes()
+
+
+def test_pdf_words_are_redrawn_in_their_new_look(lens):
+    import pymupdf
+
+    src = _pdf_with(["Pay $1,450 by Sep 1, 2026. Do not be late.", "Please yell about it."])
+    style = {"mode": "a", "wordbank": {"on": True, "words": [{"word": "yell", "caps": True, "color": "#c00000",
+                                                             "bg": "#ffe14d", "font": "arial", "size": 1.3, "bold": True}]}}
+    ov = overlay("x.pdf", src, lens, style=style)
+    assert ov.counts["number"] == 1 and ov.counts["date"] == 1 and ov.counts["warning"] == 1 and ov.counts["Word Bank"] == 1
+    page = pymupdf.open(stream=ov.data, filetype="pdf")[0]
+    assert not list(page.annots())        # drawn into the page, not notes on top
+    new = {}
+    for b in page.get_text("dict")["blocks"]:
+        for line in b.get("lines", []):
+            for sp in line["spans"]:
+                if sp["color"] != 0:          # the redrawn words are the colored ones
+                    new[sp["text"].strip()] = sp
+    warn = new["DO NOT"]                                   # ALL CAPS, bold, in the warning color
+    assert "Bold" in warn["font"] and warn["color"] == int(lens.get("warning").colors["light"][1:], 16)
+    def tall(sp):   # drawn height (narrowed letters report a smaller "size", but keep their height)
+        return sp["bbox"][3] - sp["bbox"][1]
+    plain = 12 * 1.333   # the height of the 12 pt text around them, roughly
+    assert tall(new["$1,450"]) > plain - 0.5             # numbers a little larger
+    yell = new["YELL"]
+    assert yell["font"] == "Helvetica-Bold" and yell["color"] == 0xC00000 and tall(yell) > plain - 0.5
+    # everything else stays exactly where it was
+    before = {w[4]: w[:2] for w in pymupdf.open(stream=src, filetype="pdf")[0].get_text("words")}
+    after = {w[4]: w[:2] for w in page.get_text("words")}
+    for word in ("Pay", "by", "be", "late.", "Please", "about", "it."):
+        assert after[word] == before[word]
+
+
+def test_pdf_restyle_does_not_cover_neighbors_or_miss_ligatures(lens):
+    import pymupdf
+
+    src = (Path(__file__).resolve().parent.parent / "synesthetic" / "static" / "samples" / "market-wrap.pdf").read_bytes()
+    style = {"wordbank": {"on": True, "words": [{"word": "inflation", "bg": "#ffe14d"}]}}
+    ov = overlay("market-wrap.pdf", src, lens, style=style)
+    assert ov.counts["Word Bank"] >= 3            # "inflation" is set with an fl ligature in this file
+    assert ov.counts["number"] > 50 and ov.counts["date"] > 20
+    assert len(pymupdf.open(stream=ov.data, filetype="pdf")) == 3
 
 
 def test_scanned_pdf_is_refused(lens):

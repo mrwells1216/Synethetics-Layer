@@ -89,6 +89,7 @@ def overlay(name: str, data: bytes, lens: Lens, *, style=None, palette: str = "d
     st = clean_style(style, lens)
     ctx = _Ctx(lens, _palette(lens, style, palette), st.get("mode", "c"), grammar, log,
                bank=st.get("wordbank", []), look=st.get("look", {}), only=only)
+    ctx.pdf = st.get("pdf", "restyle")
     fn = {".pdf": _pdf, ".docx": _docx, ".xlsx": _xlsx, ".xlsm": _xlsx}[ext]
     out = fn(data, ctx, ext)
     if not ctx.counts:
@@ -100,6 +101,7 @@ class _Ctx:
     def __init__(self, lens, colors, mode, grammar, log, bank=(), look=None, only=None):
         self.lens, self.colors, self.mode, self.grammar, self.log = lens, colors, mode, grammar, log
         self.bank, self.only = list(bank), only
+        self.pdf = "restyle"   # PDF words: "restyle" (new letters in place) or "notes" (highlight notes on top)
         self.counts: Counter = Counter()
         self.notes: list[str] = []
         self.ann = None
@@ -118,6 +120,7 @@ class _Ctx:
         out = [s for s in self.ann(text) if s.layer != "meaning"]
         if self.bank:
             out = with_bank(out, bank_spans(text, self.bank))
+        out = [s for s in out if s.layer == "bank" or not (self.lens.get(s.cat) and self.lens.get(s.cat).default_off)]
         if self.only is not None:
             rs = self.only.get(unit, [])
             out = [s for s in out if any(s.start < b and s.end > a for a, b in rs)]
@@ -155,41 +158,217 @@ def _open_pdf(data: bytes):
 
 def _pdf_units(doc) -> list:
     """Text units of a PDF, one per text block: (page number, text, [rect or None per char],
-    [line id per char]). Lines are joined with one space."""
+    [line id per char], [glyph info or None per char]). Lines are joined with one space.
+    Glyph info: (font name, size, flags, color, baseline origin, horizontal?)."""
     import pymupdf
 
-    flags = pymupdf.TEXTFLAGS_RAWDICT & ~pymupdf.TEXT_PRESERVE_IMAGES
-    units = []  # (page number, text, [rect or None per char], [line id per char])
+    # ligatures split into their letters, so "ﬂ" in "inﬂation" still reads as "fl"
+    flags = pymupdf.TEXTFLAGS_RAWDICT & ~pymupdf.TEXT_PRESERVE_IMAGES & ~pymupdf.TEXT_PRESERVE_LIGATURES
+    units = []
     for pno, page in enumerate(doc):
         for bi, block in enumerate(page.get_text("rawdict", flags=flags)["blocks"]):
             if block.get("type") != 0:
                 continue
-            chars, rects, lines = [], [], []
+            chars, rects, lines, info = [], [], [], []
             for li, line in enumerate(block["lines"]):
                 if chars:
-                    chars.append(" "); rects.append(None); lines.append(None)
+                    chars.append(" "); rects.append(None); lines.append(None); info.append(None)
+                flat = abs(line.get("dir", (1, 0))[1]) < 1e-3 and line.get("dir", (1, 0))[0] > 0
                 for span in line["spans"]:
                     for ch in span["chars"]:
                         chars.append(ch["c"]); rects.append(pymupdf.Rect(ch["bbox"])); lines.append((bi, li))
+                        info.append((span["font"], span["size"], span["flags"], span["color"], tuple(ch["origin"]), flat))
             text = "".join(chars)
             if text.strip():
-                units.append((pno, text, rects, lines))
+                units.append((pno, text, rects, lines, info))
     if not units:
         raise OverlayError("This PDF has no text layer (it's probably a scan), so there is nothing to color.")
     return units
 
 
+# base-14 fonts by family, bold, italic: what restyled PDF words are set in
+_BASE14 = {("sans", 0, 0): "helv", ("sans", 1, 0): "hebo", ("sans", 0, 1): "heit", ("sans", 1, 1): "hebi",
+           ("serif", 0, 0): "tiro", ("serif", 1, 0): "tibo", ("serif", 0, 1): "tiit", ("serif", 1, 1): "tibi",
+           ("mono", 0, 0): "cour", ("mono", 1, 0): "cobo", ("mono", 0, 1): "coit", ("mono", 1, 1): "cobi"}
+_SERIF_CHOICES = {"fraunces", "young", "literata", "source-serif", "georgia", "times"}
+_PLAIN = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2013": "-", "\u2014": "-",
+                        "\u2026": "...", "\u00a0": " ", "\u2212": "-"})
+
+
+def _family(font: str, flags: int) -> str:
+    n = font.lower()
+    if flags & 8 or any(k in n for k in ("mono", "courier", "consol", "menlo")):
+        return "mono"
+    if "sans" not in n and (flags & 4 or any(k in n for k in ("times", "serif", "georgia", "roman", "garamond",
+                                                                "cambria", "minion", "palatino", "book"))):
+        return "serif"
+    return "sans"
+
+
+def _rgb_int(c: int) -> tuple:
+    return ((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255
+
+
+def _restyle_look(sp, ctx: _Ctx, font: str, flags: int, color: int) -> dict:
+    """How one matched PDF word is drawn: font, caps, size, text color, background and underline."""
+    fam, bold, ital = _family(font, flags), bool(flags & 16) or "bold" in font.lower(), bool(flags & 2) or "italic" in font.lower()
+    e = ctx.entry(sp.cat)
+    if e:
+        if "font" in e:
+            fam = "mono" if e["font"] == "courier" else "serif" if e["font"] in _SERIF_CHOICES else "sans"
+        return {"fam": fam, "bold": bold or e.get("bold", False), "ital": ital or e.get("italic", False),
+                "caps": e.get("caps", False), "scale": e.get("size", 1),
+                "ink": _rgb(e["color"]) if "color" in e else _rgb("#" + _on(e["bg"])) if "bg" in e else _rgb_int(color),
+                "bg": _rgb(e["bg"]) if "bg" in e else None,
+                "line": (_rgb(e.get("color", "#000000")) if e.get("underline") else None)}
+    col = ctx.colors[sp.cat]
+    if sp.layer == "grammar":
+        return {"fam": fam, "bold": bold, "ital": ital, "caps": False, "scale": 1, "ink": _rgb(col), "bg": None, "line": None}
+    cat = ctx.lens.get(sp.cat)
+    look = ctx.look.get(sp.cat, {})
+    if cat.font in ("mono", "serif"):
+        fam = cat.font
+    out = {"fam": fam, "bold": bold or cat.weight >= 600, "ital": ital or cat.font == "italic",
+           "caps": look.get("case") == "upper", "scale": look.get("scale", 1), "bg": None, "line": None}
+    if ctx.mode == "b":
+        out.update(ink=_rgb("#" + _on(col)), bg=_rgb(col))
+    elif ctx.mode == "c":
+        out.update(ink=_rgb(col), bg=_rgb(col), alpha=0.22)
+    elif ctx.mode == "d":
+        out.update(ink=_rgb_int(color), line=_rgb(col))
+    else:
+        out.update(ink=_rgb(col))
+    return out
+
+
+def _segments(text, rects, lines, info, a, b):
+    """The parts of text[a:b] on each line: (first index, last index) of non-space characters."""
+    out, cur = [], None
+    for i in range(a, b):
+        if rects[i] is None or info[i] is None:
+            continue
+        if cur and lines[cur[0]] == lines[i]:
+            if text[i].strip():
+                cur[1] = i
+        elif text[i].strip():
+            cur = [i, i]
+            out.append(cur)
+    return out
+
+
+def _paper(pix, box, zoom) -> tuple:
+    """The color around a word on the rendered page (its paper, table shading or box), so covering
+    the old word leaves no mark."""
+    from collections import Counter as _C
+
+    x0, y0 = max(int(box.x0 * zoom) - 2, 0), max(int(box.y0 * zoom) - 2, 0)
+    x1, y1 = min(int(box.x1 * zoom) + 2, pix.width - 1), min(int(box.y1 * zoom) + 2, pix.height - 1)
+    seen, sums = _C(), {}
+    pts = [(x, y) for x in range(x0, x1 + 1, 2) for y in (y0, y1)] + [(x, y) for y in range(y0, y1 + 1, 2) for x in (x0, x1)]
+    for x, y in pts:
+        c = pix.pixel(x, y)[:3]
+        key = tuple(v // 12 for v in c)
+        seen[key] += 1
+        t = sums.setdefault(key, [0, 0, 0])
+        for i in range(3):
+            t[i] += c[i]
+    if not seen:
+        return (1, 1, 1)
+    key, n = seen.most_common(1)[0]
+    return tuple(v / n / 255 for v in sums[key])
+
+
+def _restyle_page(page, jobs, ctx):
+    """Draw each matched word again in its new look, right where it was: the old word is covered with
+    the color of the paper around it, so nothing else on the page moves."""
+    import pymupdf
+
+    zoom = 2
+    pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
+    for j in jobs:
+        page.draw_rect(j["rect"] + (-0.2, 0, 0.2, 0), color=None, fill=_paper(pix, j["rect"], zoom))
+    for j in jobs:   # backgrounds next, so every word sits on top of its own; never over a neighbor
+        if j["look"]["bg"]:
+            x, y, fs, w = j["x"], j["y"], j["fs"], j["w"]
+            x0 = max(x - fs * 0.14, (j["lo"] + x) / 2)
+            x1 = max(min(x + w + fs * 0.14, (x + w + j["hi"]) / 2), x + w)
+            page.draw_rect(pymupdf.Rect(x0, y - fs * 0.84, x1, y + fs * 0.24), color=None, fill=j["look"]["bg"],
+                           fill_opacity=j["look"].get("alpha", 1), radius=0.18)
+    for j in jobs:
+        x, y, fs, w, k = j["x"], j["y"], j["fs"], j["w"], j["k"]
+        pt = pymupdf.Point(x, y)
+        page.insert_text(pt, j["text"], fontsize=fs, fontname=j["font"], color=j["look"]["ink"],
+                         morph=(pt, pymupdf.Matrix(k, 1)) if k < 0.999 else None)
+        if j["look"]["line"]:
+            page.draw_line((x, y + fs * 0.16), (x + w, y + fs * 0.16), color=j["look"]["line"], width=max(0.8, fs * 0.08))
+
+
 def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
+    import pymupdf
+
     doc = _open_pdf(data)
     units = _pdf_units(doc)
     ctx.prepare([u[1] for u in units])
     marks: dict[tuple[int, str, str], list] = {}
-    for ui, (pno, text, rects, lines) in enumerate(units):
+    jobs: dict[int, list] = {}
+    for ui, (pno, text, rects, lines, info) in enumerate(units):
+        page = doc[pno]
         for sp in ctx.spans(text, ui):
             if sp.layer == "grammar" and ctx.mode == "d":
                 continue  # underline-only mode keeps grammar plain, as on converted pages
+            if ctx.pdf == "restyle" and page.rotation == 0:
+                made = []
+                for i0, i1 in _segments(text, rects, lines, info, sp.start, sp.end):
+                    font, size, flags, color, origin, flat = info[i0]
+                    word = text[i0:i1 + 1].translate(_PLAIN)
+                    look = _restyle_look(sp, ctx, font, flags, color)
+                    if look["caps"]:
+                        word = word.upper()
+                    try:
+                        word.encode("latin-1")
+                    except UnicodeEncodeError:
+                        made = None
+                        break
+                    if not flat or size <= 0:
+                        made = None
+                        break
+                    box = pymupdf.Rect(rects[i0])
+                    for i in range(i0, i1 + 1):
+                        if rects[i] is not None and not rects[i].is_empty:
+                            box |= rects[i]
+                    # room to grow: up to the next word on the same line, or the page margin
+                    nxt = next((rects[j].x0 for j in range(i1 + 1, len(text))
+                                if lines[j] == lines[i0] and rects[j] is not None and text[j].strip()), None)
+                    prv = next((rects[j].x1 for j in range(i0 - 1, -1, -1)
+                                if lines[j] == lines[i0] and rects[j] is not None and text[j].strip()), None)
+                    # a bigger word may use a third of the space after it, so words stay apart; when it
+                    # doesn't fit, its letters get narrower, then it may use more of the space, then it
+                    # shrinks, but never below the size of the text around it
+                    own = box.x1 - origin[0]
+                    gap = max(nxt - box.x1, 0) if nxt is not None else min(page.rect.x1 - 24 - box.x1, own)
+                    room, wide_room = own + gap * 0.35, own + gap * 0.85
+                    fname = _BASE14[(look["fam"], int(look["bold"]), int(look["ital"]))]
+                    fs = size * look["scale"]
+                    w = pymupdf.get_text_length(word, fontname=fname, fontsize=fs)
+                    k = 1.0
+                    if w > room:
+                        k = room / w
+                        if k < 0.62:
+                            fs = max(size, fs * room / (w * 0.62))
+                            w = pymupdf.get_text_length(word, fontname=fname, fontsize=fs)
+                            k = min(1.0, max(room / w, min(0.62, wide_room / w)))
+                            k = max(k, 0.45)
+                    made.append({"rect": box, "x": origin[0], "y": origin[1], "fs": fs, "w": w * k, "k": k,
+                                 "text": word, "font": fname, "look": look,
+                                 "lo": prv if prv is not None else origin[0] - fs * 0.3,
+                                 "hi": nxt if nxt is not None else origin[0] + w * k + fs * 0.3})
+                if made:
+                    jobs.setdefault(pno, []).extend(made)
+                    continue
+                if made == []:
+                    continue
             e = ctx.entry(sp.cat)
-            if e:  # a PDF can't change its letters: a Word Bank word gets its highlight or underline
+            if e:  # highlight notes: a Word Bank word gets its highlight or underline
                 kind = "highlight" if "bg" in e or "underline" not in e else "underline"
             else:
                 kind = "underline" if ctx.mode == "d" or sp.layer == "grammar" else "highlight"
@@ -200,6 +379,8 @@ def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
                 r = per_line.get(lines[i])
                 per_line[lines[i]] = rects[i] if r is None else r | rects[i]
             marks.setdefault((pno, sp.cat, kind), []).extend(per_line.values())
+    for pno, page_jobs in jobs.items():
+        _restyle_page(doc[pno], page_jobs, ctx)
     for (pno, cat, kind), rects in marks.items():
         if not rects:
             continue
@@ -223,6 +404,7 @@ _RPR_ORDER = ["rStyle", "rFonts", "b", "bCs", "i", "iCs", "caps", "smallCaps", "
               "w", "kern", "position", "sz", "szCs", "highlight", "u", "effect", "bdr", "shd", "fitText",
               "vertAlign", "rtl", "cs", "em", "lang", "eastAsianLayout", "specVanish", "oMath"]
 _U = {"dotted": "dotted", "dashed": "dash", "double": "double", "wavy": "wave"}
+_WORD_FONTS = {"mono": "Consolas", "serif": "Georgia"}
 
 
 def _q(tag: str) -> str:
@@ -287,6 +469,15 @@ def _paint_run(run, cat: str, layer: str, ctx: _Ctx):
         return _paint_bank(run, e)
     col = _hex(ctx.colors[cat]).upper()  # Word writes RGB in upper case
     look = ctx.look.get(cat, {})
+    c = ctx.lens.get(cat)
+    if layer == "content" and c is not None:   # the category's own font cues, as on colored pages
+        if c.font in _WORD_FONTS:
+            f = _WORD_FONTS[c.font]
+            _set_rpr(run, "rFonts", {"ascii": f, "hAnsi": f, "cs": f})
+        if c.weight >= 600:
+            _set_rpr(run, "b", {})
+        if c.font == "italic":
+            _set_rpr(run, "i", {})
     if layer == "content" and look.get("case") == "upper":
         _set_rpr(run, "caps", {})
     if layer == "content" and look.get("scale", 1) != 1:
@@ -474,6 +665,13 @@ def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
                 e = ctx.entry(s.cat)
                 hexcol = (e.get("color") or e.get("bg") or "#000000") if e else ctx.colors[s.cat]
                 scale = ctx.look.get(s.cat, {}).get("scale", 1) if s.layer == "content" else 1
+                if not e and s.layer == "content":
+                    c = ctx.lens.get(s.cat)
+                    e = {k: v for k, v in (("bold", c.weight >= 600), ("italic", c.font == "italic")) if v}
+                    if c.font == "mono":
+                        e["font"] = "courier"
+                    elif c.font == "serif":
+                        e["font"] = "georgia"
                 parts.append(TextBlock(font(Color(rgb="FF" + _hex(hexcol).upper()), e, scale), v[s.start:s.end]))
                 cur = s.end
             if cur < len(v):
@@ -507,7 +705,7 @@ def layout_units(name: str, data: bytes, *, width: int = 760) -> dict:
             w, h = page.rect.width, page.rect.height
             pix = page.get_pixmap(matrix=pymupdf.Matrix(width / w, width / w))
             lines = []
-            for ui, (upno, text, rects, lids) in enumerate(units):
+            for ui, (upno, text, rects, lids, _info) in enumerate(units):
                 if upno != pno:
                     continue
                 i = 0

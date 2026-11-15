@@ -28,11 +28,23 @@ APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
 STATIC = Path(__file__).resolve().parent / "static"  # icons, drawn by tools/make_icons.py
 ICONS = {"favicon.ico": "favicon-32.png", **{p: p for p in (
     "icon.svg", "favicon.svg", "favicon-32.png", "icon-192.png", "icon-512.png",
-    "icon-maskable-512.png", "apple-touch-icon.png", "showcase.json")}}
-CTYPES = {".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json"}
+    "icon-maskable-512.png", "apple-touch-icon.png", "showcase.json")},
+    # sample files to try in Synesthesize (tools/build_samples.py)
+    "market-wrap.pdf": "samples/market-wrap.pdf", "market-wrap.docx": "samples/market-wrap.docx"}
+CTYPES = {".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json", ".pdf": "application/pdf",
+          ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+SAMPLES = [{"file": "market-wrap.pdf", "label": "Weekly market wrap", "kind": "PDF, 3 pages"},
+           {"file": "market-wrap.docx", "label": "Weekly market wrap", "kind": "Word"}]
 MIME = {".txt": "text/plain", ".md": "text/markdown", ".markdown": "text/markdown", ".pdf": "application/pdf",
         ".doc": "application/msword", **OVERLAY_TYPES,
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+
+
+def _version(path: Path) -> str:
+    """A short fingerprint of a file, so browsers fetch it again after it changes."""
+    import hashlib
+
+    return hashlib.sha1(path.read_bytes()).hexdigest()[:10] if path.is_file() else ""
 
 
 def manifest(exts) -> dict:
@@ -64,7 +76,8 @@ def grammar_installed() -> bool:
 def app_page(lens, max_bytes: int, hosted: bool) -> str:
     cfg = {
         "exts": sorted(SUPPORTED), "keepExts": sorted(OVERLAY_TYPES), "maxBytes": max_bytes, "grammar": grammar_installed(), "hosted": hosted,
-        "showcase": (STATIC / "showcase.json").is_file(), "hlCss": HL_SIZES,
+        "showcase": (STATIC / "showcase.json").is_file(), "showcaseV": _version(STATIC / "showcase.json"),
+        "samples": [x for x in SAMPLES if (STATIC / ICONS[x["file"]]).is_file()], "hlCss": HL_SIZES,
         "categories": [
             {"name": c.name, "label": c.label, "layer": c.layer, "example": c.example,
              "dark": c.colors["dark"], "light": c.colors["light"], "off": c.default_off,
@@ -138,6 +151,15 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                 n = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 n = 0
+            if n > max_bytes:
+                # read (and drop) what was sent first: refusing mid-upload makes browsers show a reset
+                # connection instead of this message
+                left = min(n, 512 * 1024 * 1024)
+                while left > 0:
+                    chunk = self.rfile.read(min(left, 1 << 20))
+                    if not chunk:
+                        break
+                    left -= len(chunk)
             if n <= 0 or n > max_bytes:
                 return self._send(413, f"File is empty or larger than {max_bytes / 1048576:.1f} MB.",
                                   "text/plain; charset=utf-8")

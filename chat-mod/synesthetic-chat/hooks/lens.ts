@@ -64,7 +64,7 @@ export const LENS: LensCategory[] = [
     "priority": 3,
     "flags": "",
     "patterns": [
-      "\\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\\.?\\s+(?:\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?|\\d{4})\\b",
+      "\\b(?:(?:January|February|March|April|May|June|July|August|September|October|November|December)|(?:Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\\.?)\\s+(?:\\d{1,2}(?:st|nd|rd|th)?(?![\\d%])(?:,?\\s+\\d{4})?|\\d{4})\\b",
       "\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\.?,?\\s+\\d{4}\\b",
       "\\b\\d{4}-\\d{2}-\\d{2}(?:[T ]\\d{2}:\\d{2}(?::\\d{2})?Z?)?\\b",
       "\\b\\d{1,2}/\\d{1,2}/(?:\\d{4}|\\d{2})\\b",

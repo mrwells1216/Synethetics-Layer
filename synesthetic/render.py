@@ -75,6 +75,8 @@ def clean_style(style, lens: Lens) -> dict:
         out["palette"] = style["palette"]
     if style.get("hl") in HL_SIZES:
         out["hl"] = style["hl"]
+    if style.get("pdf") in ("restyle", "notes"):
+        out["pdf"] = style["pdf"]
     look = style.get("look")
     if isinstance(look, dict):  # per category: ALL CAPS and size
         clean = {}
