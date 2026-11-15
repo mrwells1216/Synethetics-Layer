@@ -107,6 +107,23 @@ def test_keep_returns_the_same_kind_of_file(server, fixtures):
     assert r.headers.get("X-Overlay") is None and b'data-cat="number"' in r.read()
 
 
+def test_app_can_be_installed(server):
+    import json
+
+    html = urllib.request.urlopen(server + "/", timeout=10).read().decode()
+    assert 'rel="manifest"' in html and 'rel="apple-touch-icon"' in html
+    r = urllib.request.urlopen(server + "/manifest.webmanifest", timeout=10)
+    m = json.loads(r.read())
+    assert r.headers["Content-Type"] == "application/manifest+json" and m["display"] == "standalone"
+    assert {"192x192", "512x512"} <= {i["sizes"] for i in m["icons"]}
+    assert any(i["purpose"] == "maskable" for i in m["icons"])
+    assert ".pdf" in m["file_handlers"][0]["accept"]["application/pdf"]
+    for i in m["icons"] + [{"src": "/apple-touch-icon.png"}, {"src": "/favicon.ico"}, {"src": "/api/icon-192.png"}]:
+        r = urllib.request.urlopen(server + i["src"], timeout=10)
+        body = r.read()
+        assert r.headers["Content-Type"].startswith("image/") and (body[:4] == b"\x89PNG" or b"<svg" in body)
+
+
 def test_size_limit_is_per_server():
     srv = make_server("127.0.0.1", 0)
     srv.RequestHandlerClass = make_handler(load_lens(), max_bytes=10)

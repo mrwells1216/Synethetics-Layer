@@ -26,6 +26,35 @@ from .render import FONT_CHOICES, STYLE_DEFAULTS, render_document
 MAX_BYTES = 60 * 1024 * 1024
 APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
 EXAMPLES = Path(__file__).resolve().parent / "examples"
+STATIC = Path(__file__).resolve().parent / "static"  # icons, drawn by tools/make_icons.py
+ICONS = {"favicon.ico": "favicon-32.png", **{p: p for p in (
+    "icon.svg", "favicon.svg", "favicon-32.png", "icon-192.png", "icon-512.png",
+    "icon-maskable-512.png", "apple-touch-icon.png")}}
+CTYPES = {".png": "image/png", ".svg": "image/svg+xml"}
+MIME = {".txt": "text/plain", ".md": "text/markdown", ".markdown": "text/markdown", ".pdf": "application/pdf",
+        ".doc": "application/msword", **OVERLAY_TYPES,
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+
+
+def manifest(exts) -> dict:
+    """Lets phones add the app to the home screen and desktop browsers install it as an app
+    (its own window, and on desktop Chrome/Edge an "Open with" entry for the supported files)."""
+    accept: dict[str, list[str]] = {}
+    for e in sorted(exts):
+        accept.setdefault(MIME.get(e, "application/octet-stream"), []).append(e)
+    return {
+        "name": "Synesthetic Layer", "short_name": "Synesthetic", "id": "/", "start_url": "/",
+        "description": "Your documents, re-lettered in color.",
+        "display": "standalone", "background_color": "#0e1014", "theme_color": "#0e1014",
+        "icons": [
+            {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+            {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+        ],
+        "file_handlers": [{"action": "/", "accept": accept}],
+        "launch_handler": {"client_mode": "focus-existing"},
+    }
 
 
 def grammar_installed() -> bool:
@@ -72,6 +101,7 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
     """One page (any GET) and one action (any POST converts the body), so it works the same
     behind Vercel's rewrites as on this machine."""
     page = app_page(lens, max_bytes, hosted)
+    manifest_json = json.dumps(manifest(SUPPORTED))
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "Synesthetic"
@@ -81,18 +111,24 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
 
         def _send(self, code: int, body: str | bytes, ctype="text/html; charset=utf-8", extra=None):
             data = body.encode("utf-8") if isinstance(body, str) else body
+            extra = {"Cache-Control": "no-store", **(extra or {})}
             self.send_response(code)
             self.send_header("Content-Type", ctype)
-            for k, v in (extra or {}).items():
+            for k, v in extra.items():
                 self.send_header(k, v)
             self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(data)
 
         def do_GET(self):
-            if urlparse(self.path).path.endswith(("/favicon.ico", "/robots.txt")):
+            leaf = urlparse(self.path).path.rsplit("/", 1)[-1]
+            if leaf in ICONS:
+                f = STATIC / ICONS[leaf]
+                return self._send(200, f.read_bytes(), CTYPES[f.suffix], {"Cache-Control": "public, max-age=86400"})
+            if leaf == "manifest.webmanifest":
+                return self._send(200, manifest_json, "application/manifest+json")
+            if leaf == "robots.txt":
                 return self._send(404, "Not found", "text/plain; charset=utf-8")
             self._send(200, page)
 

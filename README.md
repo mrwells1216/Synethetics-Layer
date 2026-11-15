@@ -34,6 +34,10 @@ The same upload page runs in two places:
 
 **Keep the original look** (a switch that shows up for PDF, Word and Excel files) adds the colors on top of your file and gives the same kind of file back, instead of pulling the text into a new page. PDFs get highlight notes over the matched words (underlines in the Underline style), so the pages, fonts and pictures are untouched and any PDF app can hide the colors. Word files have the matched words recolored in place, following your highlight style. Excel files color number and date cells and the matched words in text cells; formulas are left alone, but charts and pictures are not kept. The colors are your light-theme ones, since documents are white. Code: `synesthetic/overlay.py`.
 
+**On a computer** the page spreads into two columns (upload beside the examples; Customize keeps its preview in view). Drop a file anywhere on the page or paste one, Ctrl/Cmd+Enter converts, Esc goes back.
+
+**Install it** on a phone (Safari: Share, then Add to Home Screen; Chrome: Add to Home screen) or a computer (Chrome or Edge: the Install app button, or Install in the address bar) and it opens in its own window with its own icon. Installed on a computer with Chrome or Edge, it also shows up under "Open with" for the supported files. The icons are drawn by `tools/make_icons.py` into `synesthetic/static/`.
+
 **Color this app's text** (a switch on the home page and in Customize, on by default) runs the same content colors over the app's own instructions, labels and messages, in the chosen highlight style.
 
 **Try an example** on the home page converts a made-up document for a common use (study notes, a lease, care instructions, a work email, a recipe, a budget, a trip itinerary) with your settings. The samples are in `synesthetic/examples/`; add one by dropping a `.md` file there and listing it in `examples.toml`.

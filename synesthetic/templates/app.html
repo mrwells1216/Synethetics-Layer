@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1014">
 <title>Synesthetic Layer</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Synesthetic">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
@@ -151,6 +159,36 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
 .kdots i{flex:1;max-width:22px;border-radius:4px;background:var(--k)}
 .kcard .go{margin-top:6px}
 .kopen{justify-self:center}
+/* Drop a file anywhere on the page (computers) */
+#dropall{position:fixed;inset:12px;z-index:20;display:none;place-items:center;border-radius:var(--r-lg);border:3px dashed var(--fg);background:color-mix(in srgb,var(--bg) 82%,transparent);font-family:var(--font-head);font-size:clamp(1.6rem,4vw,2.6rem);font-weight:650;pointer-events:none}
+body.dragging #dropall{display:grid}
+.top-act{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.desk{display:none}
+kbd{font:inherit;font-size:.9em;padding:0 .35em;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--surface)}
+@media (hover:hover) and (pointer:fine){.desk{display:block}.ex:hover{transform:translateY(-2px)}}
+
+/* Desktop: use the width. Upload on the left, examples beside it; Customize keeps the preview in view. */
+@media (min-width:960px){
+  .wrap{width:min(1160px,100%);padding:36px 40px 56px}
+  .mark{font-size:3.4rem}
+  .spectrum{margin:20px 0 34px}
+  #home:not([hidden]){display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);column-gap:56px;align-items:start}
+  #home .lede{max-width:40ch;font-size:1.1em}
+  .drop{padding:24px}
+  .sheet{padding:22px;gap:12px}
+  textarea{min-height:290px}
+  .exs{margin-top:0;grid-column:2;grid-row:1}
+  .ex-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .ex{padding:16px 18px}
+  .foot{grid-column:1/-1}
+  #studio:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);column-gap:56px;align-items:start}
+  .st-head,#studio>.sub{grid-column:1/-1}
+  .st-side{position:sticky;top:24px}
+  .st-side .pv{font-size:19px;padding:22px 24px}
+  .cex{max-width:34ch}
+  .kcard{max-width:600px;padding:30px 28px;margin-top:4vh}
+  .rbar{padding:10px 18px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 <style id="catcss"></style>
@@ -159,11 +197,15 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
 <div class="wrap">
   <header class="top">
     <h1 class="mark" id="mark" aria-label="Synesthetic Layer"></h1>
-    <button class="pill" id="to-studio" aria-label="Customize colors and fonts">Customize</button>
+    <div class="top-act">
+      <button class="pill" id="install" hidden>Install app</button>
+      <button class="pill" id="to-studio" aria-label="Customize colors and fonts">Customize</button>
+    </div>
   </header>
   <button class="spectrum" id="spectrum" aria-label="Customize colors"></button>
 
   <section id="home">
+   <div class="main">
     <p class="lede">Your documents, re-lettered in color. Numbers like 1,250 and 15%, dates like Aug 14, "quotes", page 5 references and do not warnings each get their own.</p>
     <label class="sw-row ui-sw"><input class="uitext" type="checkbox" role="switch"><span>Color this app's text<small>Your colors on these instructions and labels too.</small></span></label>
     <div class="tabs" role="tablist">
@@ -193,9 +235,10 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     </div>
     <div class="go" id="go" role="button" tabindex="0" aria-disabled="true">Convert</div>
     <div id="msg" role="status" aria-live="polite"></div>
+   </div>
     <div class="exs" id="exs" hidden>
       <h2>Try an example</h2>
-      <p class="sub">Made-up documents for different uses. Tap one to see it in your colors.</p>
+      <p class="sub">Made-up documents for different uses. Pick one to see it in your colors.</p>
       <div class="ex-grid" id="ex-grid"></div>
       <div id="exmsg" role="status" aria-live="polite"></div>
     </div>
@@ -205,10 +248,13 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   <section id="studio" hidden>
     <div class="st-head"><h2>Customize</h2><button class="pill" id="done">Done</button></div>
     <p class="sub">Saved on this device and used for every page you convert.</p>
+   <div class="st-side">
     <div class="pv m-c" id="pv">
       <h4>Quarterly plan</h4>
       <p>Pay <span class="c c-number">$1,250</span> by <span class="c c-date">Aug 14, 2026</span>. <span class="c c-warning">Do not</span> exceed <span class="c c-number">15%</span>; <span class="c c-reference">see Section 3</span>. <span class="c c-term">Owner:</span> Dana, <span class="c c-link">help@site.com</span>, ticket <span class="c c-id">INV-20481</span>, who said <span class="c c-quote">"ship it"</span>.</p>
     </div>
+   </div>
+   <div class="st-main">
     <div class="field"><span class="flabel">Highlight style</span>
       <div class="seg" data-k="mode"><button data-v="c">Combined</button><button data-v="b">Highlights</button><button data-v="a">Colored text</button><button data-v="d">Underline</button></div></div>
     <div class="field"><span class="flabel">Theme</span>
@@ -232,9 +278,11 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
       <label class="pill" tabindex="0">Import<input type="file" id="import" accept=".json,application/json" hidden></label>
     </div>
     <p class="hint" style="margin-top:12px">Export saves these settings as a file. Import it on another device, or pass it to the command line with --style.</p>
+   </div>
   </section>
 </div>
 
+<div id="dropall" aria-hidden="true">Drop it to color it</div>
 <div id="result" aria-label="Converted page">
   <div class="rbar">
     <button class="pill" id="back">Back</button>
@@ -498,13 +546,16 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
 
   // ---- convert ----
   var f = $('f'), drop = $('drop'), txt = $('txt'), go = $('go'), msg = $('msg');
+  var MOD = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? 'Cmd' : 'Ctrl';
   var mode = 'file', file = null, busy = false, url = null;
   f.accept = cfg.exts.join(',');
   $('o-grammar').hidden = !cfg.grammar;
   $('fmeta').textContent = 'or drop it here · ' + cfg.exts.filter(function(e){ return ['.markdown','.xlsm'].indexOf(e) < 0; }).join(' ');
   $('foot').innerHTML =
     '<p>Up to ' + mb(cfg.maxBytes) + ' per file. ' + (cfg.hosted ? 'Files are converted on the server and never stored.' : 'Runs on this computer. Nothing leaves it.') + '</p>' +
-    '<p>On a converted page, the bar at the top switches style, spacing, theme and palette; the legend turns categories on or off.</p>';
+    '<p>On a converted page, the bar at the top switches style, spacing, theme and palette; the legend turns categories on or off.</p>' +
+    '<p class="desk">On a computer: drop a file anywhere on this page or paste one, press <kbd>' + MOD + '</kbd> + <kbd>Enter</kbd> to convert, and <kbd>Esc</kbd> to go back.</p>' +
+    '<p id="addhome">To keep it on your home screen or desktop: in Safari, Share then Add to Home Screen; in Chrome or Edge, the menu then Install or Add to Home screen.</p>';
 
   function mb(n){ return (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB'; }
   function ext(name){ var i = name.lastIndexOf('.'); return i < 0 ? '' : name.slice(i).toLowerCase(); }
@@ -546,9 +597,30 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
     ready();
   }
   f.onchange = function(){ pick(f.files[0]); };
-  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
-  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
-  drop.addEventListener('drop', function(e){ if (e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]); });
+  // a file from anywhere: dropped on the page, pasted, or opened with the installed app
+  function take(fl){
+    if (!fl) return;
+    hideResult(); view('home'); history.replaceState(null, '');
+    if (mode !== 'file') setTab('file');
+    pick(fl);
+  }
+  var depth = 0;
+  function hasFiles(e){ return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0; }
+  document.addEventListener('dragenter', function(e){ if (!hasFiles(e)) return; e.preventDefault(); depth++; document.body.classList.add('dragging'); drop.classList.add('over'); });
+  document.addEventListener('dragover', function(e){ if (hasFiles(e)) e.preventDefault(); });
+  document.addEventListener('dragleave', function(){ if (--depth <= 0){ depth = 0; document.body.classList.remove('dragging'); drop.classList.remove('over'); } });
+  document.addEventListener('drop', function(e){
+    if (!hasFiles(e)) return;
+    e.preventDefault(); depth = 0; document.body.classList.remove('dragging'); drop.classList.remove('over');
+    take(e.dataTransfer.files[0]);
+  });
+  document.addEventListener('paste', function(e){
+    var fl = e.clipboardData && e.clipboardData.files && e.clipboardData.files[0];
+    if (fl && e.target !== txt){ e.preventDefault(); take(fl); }
+  });
+  if ('launchQueue' in window) launchQueue.setConsumer(function(p){
+    if (p.files && p.files[0]) p.files[0].getFile().then(take);
+  });
   txt.oninput = ready;
 
   function styleForServer(){
@@ -609,6 +681,26 @@ details.more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--m
   });
   $('exs').hidden = !(cfg.examples || []).length;
   go.onkeydown = function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); convert(); } };
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('home').hidden && !$('result').classList.contains('on')){
+      e.preventDefault(); convert();
+    } else if (e.key === 'Escape'){
+      if ($('result').classList.contains('on')) $('back').click();
+      else if (!$('studio').hidden) $('done').click();
+    }
+  });
+
+  // installing: Chrome and Edge offer a prompt; the app already open as an app needs no hint
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+  if (standalone) $('addhome').hidden = true;
+  var installEv = null;
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); installEv = e; $('install').hidden = false; });
+  $('install').onclick = function(){
+    if (!installEv) return;
+    installEv.prompt();
+    installEv.userChoice.finally(function(){ installEv = null; $('install').hidden = true; });
+  };
+  window.addEventListener('appinstalled', function(){ $('install').hidden = true; $('addhome').hidden = true; });
 
   var HOW = {
     '.pdf': 'Each color is a highlight note on the page, so your PDF app can hide or delete them.',
