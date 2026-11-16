@@ -1,5 +1,16 @@
 [
  {
+  "sha": "6b1265e9874961212d2dad04cdd461f5c66f7816",
+  "short": "6b1265e",
+  "date": "2026-11-15T21:56:57-06:00",
+  "title": "Find the fix storage however Vercel named it",
+  "body": "Connecting a Blob store can give its variables a custom prefix; the server now finds the store's token and id by their values. The dev key is trimmed, so a pasted space or line break doesn't lock developer mode.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/6b1265e9874961212d2dad04cdd461f5c66f7816"
+ },
+ {
   "sha": "a68a56ac2d49550ac66f84f7fa6a5ff527cf27bf",
   "short": "a68a56a",
   "date": "2026-11-15T21:54:40-06:00",
