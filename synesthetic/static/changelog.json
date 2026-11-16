@@ -1,5 +1,16 @@
 [
  {
+  "sha": "6c69483362f9b0a178ed07aab08c728678a6a981",
+  "short": "6c69483",
+  "date": "2026-11-15T22:43:47-06:00",
+  "title": "Side strip floats over the page; a glowing plus shows or hides it",
+  "body": "On phones the seven-color tab strip is now the top layer over the page instead of pushing it over. The spectrum button is gone: a plus after the name (Synesthetic+) with a slow colorful glow shows or hides the strip, filled while it's out and an outline while it's away.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/6c69483362f9b0a178ed07aab08c728678a6a981"
+ },
+ {
   "sha": "1a77b87e68c32df60387cdeefe745c4f3cd6f2e3",
   "short": "1a77b87",
   "date": "2026-11-15T22:13:09-06:00",
