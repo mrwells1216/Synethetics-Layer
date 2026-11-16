@@ -79,6 +79,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 @media (max-width:599px){
   .tab span{display:none}
   .tab{min-height:0;padding-bottom:12px}
+  /* the color bars stay pinned at the top only while the side strip is away (then they're the way around) */
+  :root:not(.vfolded) .tabbar{position:relative}
   .vbar{display:flex;flex-direction:column;position:fixed;z-index:25;top:0;right:0;bottom:0;width:34px;
     padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     transition:transform .42s var(--ease)}
@@ -114,6 +116,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sec{font-family:var(--font-head);font-size:1.3rem;font-weight:650;margin:30px 0 10px}
 .sec-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .sec-row .sec{margin-bottom:10px}
+/* Headers: ALL CAPS, with a line in the page's color running behind the letters (on every line of a long one) */
+#v-how{--hk:var(--c-warning)}#v-layer{--hk:var(--c-quote)}#v-free{--hk:var(--c-date)}
+#v-editor{--hk:var(--c-id)}#v-saved{--hk:var(--c-number)}#v-settings{--hk:var(--c-reference)}
+.vh,.sec,.card h3{--hl:color-mix(in srgb,var(--hk,var(--c-link)) 80%,transparent);text-transform:uppercase;letter-spacing:.03em;
+  line-height:1.2;width:fit-content;max-width:100%;padding:0 .15em;margin-left:-.15em;
+  background:linear-gradient(transparent 41%,var(--hl) 41%,var(--hl) 55%,transparent 55%) 0 0/100% 1.2em repeat-y}
+.steps strong,.hcard b{text-transform:uppercase;letter-spacing:.03em}
 
 /* Controls */
 .pill{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:15px;font-weight:600;white-space:nowrap}
@@ -467,12 +476,12 @@ body.dragging #dropall{display:grid}
         </ol>
       </div>
       <div>
-        <h3 class="sec" style="margin-top:0">What gets a color</h3>
+        <h3 class="sec" style="margin-top:0">Formula</h3>
         <div class="lg-grid" id="how-legend"></div>
       </div>
     </div>
 
-    <h3 class="sec">See it on real writing</h3>
+    <h3 class="sec">Customize</h3>
     <p class="sub">Famous writing and everyday documents, already colored. Change the switches and watch the page change.</p>
     <div class="show">
       <div class="show-pick" id="show-pick" role="group" aria-label="Examples"></div>
@@ -909,10 +918,10 @@ body.dragging #dropall{display:grid}
       root.style.setProperty('--c-' + c.name, h);
       root.style.setProperty('--on-' + c.name, onColor(h));
       css.push('.c-' + c.name + '{--c:var(--c-' + c.name + ');--on:var(--on-' + c.name + ')}');
-      if (HL && c.layer === 'content') css.push('::highlight(fr-' + c.name + '){' + hlRule(c.name, st.mode) + '}');
+      if (HL && c.layer === 'content') css.push('::highlight(fr-' + c.name + '){' + hlRule(c.name, st.mode) + hlUl(c, st.mode) + '}');
     });
     css.push(HLCSS[st.hl] || '', lookCss(), bankCss());
-    CONTENT.forEach(function(c){ css.push('::highlight(ly-' + c.name + '){' + lyRule('var(--c-' + c.name + ')', st.mode) + '}'); });
+    CONTENT.forEach(function(c){ css.push('::highlight(ly-' + c.name + '){' + lyRule('var(--c-' + c.name + ')', st.mode) + hlUl(c, st.mode) + '}'); });
     BANK.forEach(function(b){
       var w = b.w, c = w.bg || w.color || '#ffd400';
       css.push('::highlight(fr-wb-' + b.i + '){' + (w.color ? 'color:' + w.color + ';' : '') + 'background-color:' + (w.bg || 'color-mix(in srgb,' + c + ' 22%,transparent)') + (w.underline ? ';text-decoration:underline 2px ' + c : '') + '}');
@@ -992,6 +1001,12 @@ body.dragging #dropall{display:grid}
       d.push('text-decoration:' + (w.underline ? 'underline 2px ' + (w.color || 'currentColor') : 'none'));
       return 'body .c.c-wb-' + b.i + '{' + d.join(';') + '}';
     }).join('');
+  }
+  // the live roller previews draw with ::highlight, which can't bold or slant, but can underline
+  function hlUl(c, mode){
+    var l = lookOf(c), u = l.underline === 'none' ? (mode === 'd' ? 'solid' : '') : l.underline;
+    if (!u) return '';
+    return ';text-decoration:underline ' + u + ' ' + (mode === 'd' ? 3 : 2) + 'px ' + (l.ul || (mode === 'b' ? 'var(--on-' + c.name + ')' : 'var(--c-' + c.name + ')'));
   }
   function lyRule(c, mode){ return mode === 'd' ? 'text-decoration:underline 3px ' + c : 'background-color:color-mix(in srgb,' + c + ' 45%,transparent)'; }
   function spans(text){
@@ -1302,6 +1317,7 @@ body.dragging #dropall{display:grid}
     lsSet('synapp.vbar', folded ? 'folded' : 'open');
     var p = $('vplus');
     p.setAttribute('aria-pressed', folded ? 'false' : 'true');
+    measureTabs();
     if (animate && !calmNow()){
       p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
       setTimeout(function(){ p.classList.remove('pop'); }, 500);
@@ -1328,7 +1344,8 @@ body.dragging #dropall{display:grid}
     if (g.getAttribute('data-sv')) svTab = g.getAttribute('data-sv');
     setTab(g.getAttribute('data-go'));
   });
-  function measureTabs(){ root.style.setProperty('--tabh', $('tabbar').offsetHeight + 'px'); }
+  // how much the pinned bars cover (0 while they scroll away), for things that pin themselves under them
+  function measureTabs(){ var tb = $('tabbar'); root.style.setProperty('--tabh', (getComputedStyle(tb).position === 'sticky' ? tb.offsetHeight : 0) + 'px'); }
   window.addEventListener('resize', measureTabs);
 
   // ================= How it works =================

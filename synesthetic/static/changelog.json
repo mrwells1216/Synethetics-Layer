@@ -1,5 +1,16 @@
 [
  {
+  "sha": "be6d83712926b1857efd2488aa0ae7922e6f9313",
+  "short": "be6d837",
+  "date": "2026-11-15T23:03:54-06:00",
+  "title": "Add bold, italic and underline to each color's look",
+  "body": "Every category now has bold, italic, an underline style (solid, dotted, dashed, double, wavy or none) and an underline color that can differ from its text color, set in Editor beside ALL CAPS and size. Each example shows its look. Underlines are thicker and show in every highlight style, and the look carries into Free Rain, the examples, converted pages, and PDF, Word and Excel files (Excel underlines are single or double, in the text's color).",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/be6d83712926b1857efd2488aa0ae7922e6f9313"
+ },
+ {
   "sha": "d5107d67eda915fff33e6f05c7123e4630fc807d",
   "short": "d5107d6",
   "date": "2026-11-15T22:56:23-06:00",
