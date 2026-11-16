@@ -1,5 +1,16 @@
 [
  {
+  "sha": "82883ebf176aa682aa722203e6113e11be1009d3",
+  "short": "82883eb",
+  "date": "2026-11-15T23:11:36-06:00",
+  "title": "ALL CAPS headers with a color line behind, Formula and Customize",
+  "body": "Headers across the app are in ALL CAPS with a line in their page's tab color running behind the letters. \"What gets a color\" is now Formula and \"See it on real writing\" is Customize. The live roller previews show each color's underline too. On phones the color bars scroll away while the side strip is out, and stay pinned at the top only when it's hidden.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/82883ebf176aa682aa722203e6113e11be1009d3"
+ },
+ {
   "sha": "be6d83712926b1857efd2488aa0ae7922e6f9313",
   "short": "be6d837",
   "date": "2026-11-15T23:03:54-06:00",
