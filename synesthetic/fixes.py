@@ -243,7 +243,24 @@ def _public(e: dict, ref) -> dict:
 
 # ---------------------------------------------------------------- hosted store (private Vercel Blob)
 
+def adopt_blob_env(env=None) -> None:
+    """Connecting a Blob store in Vercel can give its variables a custom prefix (MYSTORE_READ_WRITE_TOKEN);
+    the SDK only reads the BLOB_ names, so take the store's own values from whatever they are called."""
+    env = os.environ if env is None else env
+    if not (env.get("BLOB_READ_WRITE_TOKEN") or env.get("VERCEL_BLOB_READ_WRITE_TOKEN")):
+        for k, v in sorted(env.items()):
+            if k.endswith("_READ_WRITE_TOKEN") and str(v).strip().startswith("vercel_blob_rw_"):
+                env["BLOB_READ_WRITE_TOKEN"] = str(v).strip()
+                break
+    if not env.get("BLOB_STORE_ID"):
+        for k, v in sorted(env.items()):
+            if k.endswith("STORE_ID") and str(v).strip().startswith("store_"):
+                env["BLOB_STORE_ID"] = str(v).strip()
+                break
+
+
 def blob_ready() -> bool:
+    adopt_blob_env()
     return bool(os.environ.get("BLOB_READ_WRITE_TOKEN") or os.environ.get("VERCEL_BLOB_READ_WRITE_TOKEN")
                 or os.environ.get("BLOB_STORE_ID"))
 

@@ -99,7 +99,7 @@ def app_page(lens, max_bytes: int, hosted: bool) -> str:
         # developer mode: where fixes go, and the build they were made on
         "build": changelog.head()[:7], "repo": changelog.REPO_URL,
         "dev": {"store": ("blob" if fixmod.blob_ready() else "none") if hosted else "local",
-                "keyed": bool(os.environ.get(DEV_KEY_ENV))},
+                "keyed": bool(os.environ.get(DEV_KEY_ENV, "").strip())},
     }
     page = APP_PAGE.read_text(encoding="utf-8").replace("{{DEVJS}}", _version(STATIC / "dev.js"))
     return page.replace("{{CONFIG}}", json.dumps(cfg).replace("</", "<\\/"))
@@ -265,9 +265,9 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
             text = "text/plain; charset=utf-8"
             if self.headers.get("X-App") != "1":
                 return self._send(403, "Missing the app's header.", text)
-            key = os.environ.get(DEV_KEY_ENV, "")
+            key = os.environ.get(DEV_KEY_ENV, "").strip()  # a pasted key can carry a stray space or newline
             if key:
-                if not hmac.compare_digest(self.headers.get("X-Dev-Key", "").encode(), key.encode()):
+                if not hmac.compare_digest(self.headers.get("X-Dev-Key", "").strip().encode(), key.encode()):
                     return self._send(403, "This device isn't linked for developer mode. Open your dev link on it.",
                                       text)
             elif hosted:

@@ -1,5 +1,16 @@
 [
  {
+  "sha": "a68a56ac2d49550ac66f84f7fa6a5ff527cf27bf",
+  "short": "a68a56a",
+  "date": "2026-11-15T21:54:40-06:00",
+  "title": "Bring back the 7th color bar, and add tab name styles to try",
+  "body": "The center (green) bar is a color only, not a tab; Editor, Saved and Settings move to the last three bars. Settings, Tab names switches between Plain, In their color (each name in its bar's color) and Highlighted (each name highlighted in its bar's color, letters in the page color, line by line like the core chips). Screenshots in developer mode keep the style.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/a68a56ac2d49550ac66f84f7fa6a5ff527cf27bf"
+ },
+ {
   "sha": "6a6801c217d6a83f90a3a25bc7a2068b5f49c37f",
   "short": "6a6801c",
   "date": "2026-11-15T21:31:28-06:00",

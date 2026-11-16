@@ -182,6 +182,16 @@ def test_blob_store_is_append_only():
     assert b.image("../x") is None
 
 
+def test_blob_variables_with_a_custom_prefix_are_found():
+    env = {"SYNESTHETIC_FIXES_READ_WRITE_TOKEN": " vercel_blob_rw_abc123 ", "OTHER_READ_WRITE_TOKEN": "nope",
+           "SYNESTHETIC_FIXES_STORE_ID": "store_xyz"}
+    fx.adopt_blob_env(env)
+    assert env["BLOB_READ_WRITE_TOKEN"] == "vercel_blob_rw_abc123" and env["BLOB_STORE_ID"] == "store_xyz"
+    env = {"BLOB_READ_WRITE_TOKEN": "vercel_blob_rw_keep", "X_READ_WRITE_TOKEN": "vercel_blob_rw_other"}
+    fx.adopt_blob_env(env)
+    assert env["BLOB_READ_WRITE_TOKEN"] == "vercel_blob_rw_keep"
+
+
 # ---------------------------------------------------------------- the endpoint
 
 def serve(hosted=False):
