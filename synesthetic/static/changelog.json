@@ -1,5 +1,16 @@
 [
  {
+  "sha": "1a77b87e68c32df60387cdeefe745c4f3cd6f2e3",
+  "short": "1a77b87",
+  "date": "2026-11-15T22:13:09-06:00",
+  "title": "Add a side strip of the seven colors for tabs on phones",
+  "body": "On phones the tab names move to a strip down the right edge, one color per tab and the green center left blank, each name on one line reading bottom to top. The open tab sticks out. The seven bars stay at the top. A small spectrum button folds the strip up into the header (the bars ripple as it lands) and opens it again from there.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/1a77b87e68c32df60387cdeefe745c4f3cd6f2e3"
+ },
+ {
   "sha": "86305ce9f9a46d8d7f60144cf37a565312dbf64c",
   "short": "86305ce",
   "date": "2026-11-15T22:01:14-06:00",
