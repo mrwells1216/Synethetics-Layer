@@ -1,5 +1,27 @@
 [
  {
+  "sha": "1896e535e17b151b4037f14b486fc9235d0eb7b6",
+  "short": "1896e53",
+  "date": "2026-11-16T06:17:12-06:00",
+  "title": "Add a chat style sheet: Claude replies in the app's colors and looks",
+  "body": "docs/chat-style-instructions.md is ready to paste into Claude's preferences. It has plain markdown cues that work everywhere, real color through inline math using the app's default colors, and an HTML page for long answers.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/1896e535e17b151b4037f14b486fc9235d0eb7b6"
+ },
+ {
+  "sha": "e6ee50aff5806665d873d34ee58a02b7b42e40a0",
+  "short": "e6ee50a",
+  "date": "2026-11-15T23:34:19-06:00",
+  "title": "Make the plus part of the name: Synesthetic+",
+  "body": "The + is now a letter of the name: the same font, size and weight, set right against the \"c\", in the next color of the name's color cycle. It is filled while the phone tab strip is out and an outline while it's away.",
+  "tags": [
+   "Changed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/e6ee50aff5806665d873d34ee58a02b7b42e40a0"
+ },
+ {
   "sha": "82883ebf176aa682aa722203e6113e11be1009d3",
   "short": "82883eb",
   "date": "2026-11-15T23:11:36-06:00",
