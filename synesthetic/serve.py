@@ -87,6 +87,7 @@ def app_page(lens, max_bytes: int, hosted: bool) -> str:
             {"name": c.name, "label": c.label, "layer": c.layer, "example": c.example,
              "dark": c.colors["dark"], "light": c.colors["light"], "off": c.default_off,
              "cbDark": c.colors["cb_dark"], "cbLight": c.colors["cb_light"], "case": c.case, "scale": c.scale,
+             "bold": c.weight >= 600, "italic": c.font == "italic", "underline": c.underline,
              # content patterns, so the page can color its own text the same way (JS regex syntax
              # matches; tools/parity.py checks the same patterns for the chat mod)
              "priority": c.priority, "patterns": [p.pattern for p in c.patterns] if c.layer == "content" else [],

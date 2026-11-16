@@ -78,7 +78,7 @@ def clean_style(style, lens: Lens) -> dict:
     if style.get("pdf") in ("restyle", "notes"):
         out["pdf"] = style["pdf"]
     look = style.get("look")
-    if isinstance(look, dict):  # per category: ALL CAPS and size
+    if isinstance(look, dict):  # per category: ALL CAPS, size, bold, italic, underline and its color
         clean = {}
         for name, v in look.items():
             c = lens.get(name)
@@ -89,6 +89,13 @@ def clean_style(style, lens: Lens) -> dict:
                 item["case"] = v["case"]
             if _num(v.get("scale"), 0.8, 2.0):
                 item["scale"] = round(float(v["scale"]), 2)
+            for k in ("bold", "italic"):
+                if isinstance(v.get(k), bool):
+                    item[k] = v[k]
+            if v.get("underline") in UNDERLINES:
+                item["underline"] = v["underline"]
+            if isinstance(v.get("ul"), str) and _HEX.match(v["ul"]):
+                item["ul"] = v["ul"].lower()
             if item:
                 clean[name] = item
         if clean:
@@ -97,6 +104,45 @@ def clean_style(style, lens: Lens) -> dict:
     if bank:
         out["wordbank"] = bank
     return out
+
+
+UNDERLINES = ("none", "solid", "dotted", "dashed", "double", "wavy")
+
+
+def default_look(c) -> dict:
+    """A content category's look from the lens: ALL CAPS, size, bold, italic and underline style.
+    The underline color is the text's own color unless a look sets "ul"."""
+    return {"case": c.case, "scale": c.scale, "bold": c.weight >= 600, "italic": c.font == "italic",
+            "underline": c.underline if c.underline in UNDERLINES else "none"}
+
+
+def look_for(c, user: dict | None) -> dict:
+    return {**default_look(c), **(user or {})}
+
+
+def underline_rules(sel: str, style: str) -> list[str]:
+    """Underline for one category in each highlight style. Its color is --ul when the reader picked one,
+    else the category color (on a filled chip, the chip's text color)."""
+    if style == "none":
+        return [f".m-a {sel},.m-b {sel},.m-c {sel}{{text-decoration:none}}",
+                f".m-d {sel}{{text-decoration-style:solid}}"]
+    line = (f"text-decoration-line:underline;text-decoration-style:{style};text-decoration-thickness:2px;"
+            "text-underline-offset:.22em")
+    return [f".m-a {sel},.m-c {sel}{{{line};text-decoration-color:var(--ul,var(--c))}}",
+            f".m-b {sel}{{{line};text-decoration-color:var(--ul,var(--on))}}",
+            f".m-d {sel}{{text-decoration-style:{style}}}"]
+
+
+def look_rules(name: str, lk: dict) -> list[str]:
+    """The whole look of a content category as CSS (the app's lookCss writes the same rules)."""
+    sel = f".c-{name}"
+    d = ["text-transform:" + ("uppercase" if lk.get("case") == "upper" else "none"),
+         f"font-size:{float(lk.get('scale', 1)):g}em",
+         "font-weight:" + ("700" if lk.get("bold") else "inherit"),
+         "font-style:" + ("italic" if lk.get("italic") else "inherit")]
+    if lk.get("ul"):
+        d.append(f"--ul:{lk['ul']}")
+    return [f"{sel}{{{';'.join(d)}}}", *underline_rules(sel, lk.get("underline", "none"))]
 
 
 def _num(v, lo, hi) -> bool:
@@ -189,7 +235,7 @@ HL_SIZES = {
 }
 
 
-def _custom_css(st: dict) -> tuple[str, str]:
+def _custom_css(st: dict, lens: Lens | None = None) -> tuple[str, str]:
     """CSS and <head> font links for a cleaned style. Custom colors apply to the standard palette;
     the color-blind palette stays as designed."""
     css = []
@@ -208,12 +254,9 @@ def _custom_css(st: dict) -> tuple[str, str]:
     if st.get("hl"):
         css.append(HL_SIZES[st["hl"]])
     for name, v in st.get("look", {}).items():
-        d = []
-        if "case" in v:
-            d.append("text-transform:" + ("uppercase" if v["case"] == "upper" else "none"))
-        if "scale" in v:
-            d.append(f"font-size:{v['scale']}em")
-        css.append(f".c-{name}{{{';'.join(d)}}}")
+        c = lens.get(name) if lens else None
+        if c:
+            css.extend(look_rules(name, look_for(c, v)))
     bank_fonts = set()
     if st.get("wordbank"):
         css.append(bank_css(st["wordbank"]))
@@ -283,7 +326,9 @@ def _cat_css(lens: Lens) -> str:
         if c.scale != 1:
             decl.append(f"font-size:{c.scale:g}em")
         out.append(f".c-{c.name}{{{';'.join(decl)}}}")
-        if c.underline and c.underline != "none":
+        if c.layer == "content":   # underline in every highlight style, in its own color when one is set
+            out.extend(underline_rules(f".c-{c.name}", default_look(c)["underline"]))
+        elif c.underline and c.underline != "none":
             out.append(
                 f".m-a .c-{c.name},.m-c .c-{c.name}{{text-decoration:underline {c.underline} var(--c);"
                 f"text-decoration-thickness:1px;text-underline-offset:.22em}}"
@@ -445,7 +490,7 @@ def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palett
                     grammar=False, ai=None, log=print, style=None) -> str:
     st = clean_style(style, lens)
     mode, theme, palette = st.get("mode", mode), st.get("theme", theme), st.get("palette", palette)
-    custom_css, font_links = _custom_css(st)
+    custom_css, font_links = _custom_css(st, lens)
     counts: Counter = Counter()
     ann = make_annotator(_doc_texts(doc), lens, grammar=grammar, ai=ai, log=log)
     if st.get("wordbank"):

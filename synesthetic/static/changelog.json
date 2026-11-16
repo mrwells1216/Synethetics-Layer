@@ -1,5 +1,16 @@
 [
  {
+  "sha": "d5107d67eda915fff33e6f05c7123e4630fc807d",
+  "short": "d5107d6",
+  "date": "2026-11-15T22:56:23-06:00",
+  "title": "Thinner plus, and one smooth motion for the tab strip",
+  "body": "The plus after the name is thinner and has no glow. The phone tab strip slides the same way out and back (sideways, no squish or fade), and all seven header bars light up together in one pulse each time. Opening the page no longer plays the slide.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/d5107d67eda915fff33e6f05c7123e4630fc807d"
+ },
+ {
   "sha": "6c69483362f9b0a178ed07aab08c728678a6a981",
   "short": "6c69483",
   "date": "2026-11-15T22:43:47-06:00",

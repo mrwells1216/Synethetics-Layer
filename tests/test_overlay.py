@@ -216,4 +216,67 @@ def test_word_bank_on_pages(lens):
     html = render_document(doc, lens, style=style, log=lambda *a, **k: None)
     assert html.count('class="c c-wb-0 l-bank"') == 2
     assert "body .c.c-wb-0{color:#d00000" in html and "text-transform:uppercase" in html
-    assert ".c-number{text-transform:uppercase;font-size:1.5em}" in html
+    assert ".c-number{text-transform:uppercase;font-size:1.5em;" in html
+
+
+LOOK = {"number": {"bold": True, "italic": True, "underline": "wavy", "ul": "#00AA55"},
+        "warning": {"bold": False, "underline": "none"}}
+
+
+def test_bold_italic_underline_and_its_color_on_pages(lens):
+    from synesthetic.model import Block, Document
+    from synesthetic.render import clean_style, render_document
+
+    st = clean_style({"look": {**LOOK, "date": {"underline": "zigzag", "ul": "red", "bold": "yes"}}}, lens)
+    assert st["look"]["number"] == {"bold": True, "italic": True, "underline": "wavy", "ul": "#00aa55"}
+    assert "date" not in st["look"]                       # nothing valid in it
+    doc = Document(source="a.md", title="t", blocks=[Block(kind="para", text="Do not pay $40.")])
+    html = render_document(doc, lens, style={"look": LOOK}, log=lambda *a, **k: None)
+    assert ".c-number{text-transform:none;font-size:1.12em;font-weight:700;font-style:italic;--ul:#00aa55}" in html
+    assert ".m-a .c-number,.m-c .c-number{text-decoration-line:underline;text-decoration-style:wavy;" in html
+    assert "text-decoration-color:var(--ul,var(--on))" in html      # on a filled chip too
+    assert ".m-a .c-warning,.m-b .c-warning,.m-c .c-warning{text-decoration:none}" in html
+    # the lens defaults underline in every highlight style too (links are solid, quotes are italic)
+    plain = render_document(doc, lens, log=lambda *a, **k: None)
+    assert ".m-b .c-link{text-decoration-line:underline;text-decoration-style:solid" in plain
+
+
+def test_bold_italic_underline_in_word_excel_and_pdf(lens):
+    import docx
+    import openpyxl
+    import pymupdf
+
+    d = docx.Document()
+    d.add_paragraph().add_run("Do not pay $40")
+    buf = io.BytesIO()
+    d.save(buf)
+    ov = overlay("x.docx", buf.getvalue(), lens, style={"mode": "a", "look": LOOK})
+    xml = zipfile.ZipFile(io.BytesIO(ov.data)).read("word/document.xml").decode()
+    import re
+
+    def rpr(word):
+        return re.search(r"<w:rPr>((?:(?!</w:rPr>).)*)</w:rPr><w:t[^>]*>" + re.escape(word) + "<", xml).group(1)
+    num = rpr("$40")
+    assert "<w:b/>" in num and "<w:i/>" in num and '<w:u w:val="wave" w:color="00AA55"/>' in num
+    warn = rpr("Do not")
+    assert "<w:b/>" not in warn and "<w:u " not in warn
+
+    wb = openpyxl.Workbook()
+    wb.active["A1"] = 40
+    wb.active["A2"] = "Pay $40 now"
+    xb = io.BytesIO()
+    wb.save(xb)
+    out = openpyxl.load_workbook(io.BytesIO(overlay("x.xlsx", xb.getvalue(), lens, style={"look": LOOK}).data),
+                                 rich_text=True)
+    f = out.active["A1"].font
+    assert f.b and f.i and f.u == "single"
+    block = [b for b in out.active["A2"].value if not isinstance(b, str) and "40" in b.text][0]
+    assert block.font.b and block.font.i and block.font.u == "single"
+
+    ov = overlay("x.pdf", _pdf_with(["Pay $1,450 today."]), lens, style={"mode": "a", "look": LOOK})
+    page = pymupdf.open(stream=ov.data, filetype="pdf")[0]
+    num = next(sp for b in page.get_text("dict")["blocks"] for ln in b.get("lines", []) for sp in ln["spans"]
+               if "1,450" in sp["text"] and sp["color"] != 0)   # the redrawn word, not the covered original
+    assert "BoldOblique" in num["font"] or "BoldItalic" in num["font"]
+    green = [p for p in page.get_drawings() if p.get("color") and tuple(round(x, 2) for x in p["color"]) == (0.0, 0.67, 0.33)]
+    assert green and green[0]["items"][0][0] == "l"        # a wavy line, in the underline's own color

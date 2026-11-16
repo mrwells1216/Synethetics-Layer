@@ -25,7 +25,7 @@ from pathlib import Path
 from .annotate import Lens
 from .colorcheck import contrast
 from .layers import make_annotator
-from .render import FONT_CHOICES, bank_spans, clean_style, with_bank
+from .render import FONT_CHOICES, bank_spans, clean_style, default_look, with_bank
 
 OVERLAY_TYPES = {".pdf": "application/pdf",
                  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -105,8 +105,8 @@ class _Ctx:
         self.counts: Counter = Counter()
         self.notes: list[str] = []
         self.ann = None
-        # ALL CAPS and size per category: the lens defaults, then the reader's own choices
-        self.look = {c.name: {"case": c.case, "scale": c.scale} for c in lens.categories if c.layer == "content"}
+        # ALL CAPS, size, bold, italic and underline per category: the lens defaults, then the reader's own
+        self.look = {c.name: default_look(c) for c in lens.categories if c.layer == "content"}
         for name, v in (look or {}).items():
             self.look.setdefault(name, {}).update(v)
 
@@ -228,17 +228,42 @@ def _restyle_look(sp, ctx: _Ctx, font: str, flags: int, color: int) -> dict:
     look = ctx.look.get(sp.cat, {})
     if cat.font in ("mono", "serif"):
         fam = cat.font
-    out = {"fam": fam, "bold": bold or cat.weight >= 600, "ital": ital or cat.font == "italic",
+    out = {"fam": fam, "bold": bold or look.get("bold", False), "ital": ital or look.get("italic", False),
            "caps": look.get("case") == "upper", "scale": look.get("scale", 1), "bg": None, "line": None}
+    ul, style = look.get("ul"), look.get("underline", "none")
     if ctx.mode == "b":
         out.update(ink=_rgb("#" + _on(col)), bg=_rgb(col))
     elif ctx.mode == "c":
         out.update(ink=_rgb(col), bg=_rgb(col), alpha=0.22)
-    elif ctx.mode == "d":
-        out.update(ink=_rgb_int(color), line=_rgb(col))
+    elif ctx.mode == "d":   # underline-only: always underlined, in its style (solid when it has none)
+        out.update(ink=_rgb_int(color), line=_rgb(ul or col), lstyle=style if style != "none" else "solid")
     else:
         out.update(ink=_rgb(col))
+    if ctx.mode != "d" and style != "none":   # its own underline, in the underline color or the text's
+        out.update(line=_rgb(ul) if ul else out["ink"], lstyle=style)
     return out
+
+
+def _underline(page, x: float, y: float, w: float, fs: float, color, style: str):
+    """An underline under a redrawn PDF word: solid, dotted, dashed, double or wavy."""
+    import math
+
+    lw = max(0.8, fs * 0.075)
+    y0 = y + fs * 0.17
+    if style == "double":
+        for dy in (-lw * 0.9, lw * 0.9):
+            page.draw_line((x, y0 + dy), (x + w, y0 + dy), color=color, width=lw * 0.7)
+    elif style == "wavy":
+        step, amp = fs * 0.09, lw * 1.1
+        n = max(4, int(w / step))
+        pts = [(x + w * i / n, y0 + amp * math.sin(i * math.pi / 2)) for i in range(n + 1)]
+        page.draw_polyline(pts, color=color, width=lw * 0.85)
+    elif style == "dotted":
+        page.draw_line((x, y0), (x + w, y0), color=color, width=lw, dashes=f"[0 {lw * 2.2:.2f}] 0", lineCap=1)
+    elif style == "dashed":
+        page.draw_line((x, y0), (x + w, y0), color=color, width=lw, dashes=f"[{lw * 4:.2f} {lw * 2.5:.2f}] 0")
+    else:
+        page.draw_line((x, y0), (x + w, y0), color=color, width=lw)
 
 
 def _segments(text, rects, lines, info, a, b):
@@ -300,7 +325,7 @@ def _restyle_page(page, jobs, ctx):
         page.insert_text(pt, j["text"], fontsize=fs, fontname=j["font"], color=j["look"]["ink"],
                          morph=(pt, pymupdf.Matrix(k, 1)) if k < 0.999 else None)
         if j["look"]["line"]:
-            page.draw_line((x, y + fs * 0.16), (x + w, y + fs * 0.16), color=j["look"]["line"], width=max(0.8, fs * 0.08))
+            _underline(page, x, y, w, fs, j["look"]["line"], j["look"].get("lstyle", "solid"))
 
 
 def _pdf(data: bytes, ctx: _Ctx, ext: str) -> bytes:
@@ -474,9 +499,9 @@ def _paint_run(run, cat: str, layer: str, ctx: _Ctx):
         if c.font in _WORD_FONTS:
             f = _WORD_FONTS[c.font]
             _set_rpr(run, "rFonts", {"ascii": f, "hAnsi": f, "cs": f})
-        if c.weight >= 600:
+        if look.get("bold"):
             _set_rpr(run, "b", {})
-        if c.font == "italic":
+        if look.get("italic"):
             _set_rpr(run, "i", {})
     if layer == "content" and look.get("case") == "upper":
         _set_rpr(run, "caps", {})
@@ -486,8 +511,9 @@ def _paint_run(run, cat: str, layer: str, ctx: _Ctx):
         if ctx.mode != "d":
             _set_rpr(run, "color", {"val": col})
         return
+    style, ul = look.get("underline", "none"), (_hex(look["ul"]).upper() if look.get("ul") else None)
     if ctx.mode == "d":
-        _set_rpr(run, "u", {"val": _U.get(ctx.lens.get(cat).underline, "single"), "color": col})
+        _set_rpr(run, "u", {"val": _U.get(style, "single"), "color": ul or col})
     elif ctx.mode == "b":
         _set_rpr(run, "color", {"val": _on(col)})
         _set_rpr(run, "shd", {"val": "clear", "color": "auto", "fill": col})
@@ -495,6 +521,8 @@ def _paint_run(run, cat: str, layer: str, ctx: _Ctx):
         _set_rpr(run, "color", {"val": col})
         if ctx.mode == "c":
             _set_rpr(run, "shd", {"val": "clear", "color": "auto", "fill": _tint(col)})
+    if ctx.mode != "d" and style != "none":   # its own underline, in the underline color or the text's
+        _set_rpr(run, "u", {"val": _U.get(style, "single"), "color": ul or (_on(col) if ctx.mode == "b" else col)})
 
 
 def _runs(p):
@@ -626,12 +654,22 @@ def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
     cells = _xlsx_cells(wb)
     ctx.prepare([c.value for c in cells if isinstance(c.value, str)])
 
+    def xl_under(style):   # Excel underlines are single or double, in the text's own color
+        return None if style in (None, "none") else "double" if style == "double" else "single"
+
     def colored(cell, cat):
         f = copy.copy(cell.font)
         f.color = Color(rgb="FF" + _hex(ctx.colors[cat]).upper())
-        scale = ctx.look.get(cat, {}).get("scale", 1)
+        lk = ctx.look.get(cat, {})
+        scale = lk.get("scale", 1)
         if scale != 1:
             f.sz = round((f.sz or 11) * scale, 1)
+        if lk.get("bold"):
+            f.b = True
+        if lk.get("italic"):
+            f.i = True
+        if xl_under(lk.get("underline")):
+            f.u = xl_under(lk.get("underline"))
         cell.font = f
 
     for ui, cell in enumerate(cells):
@@ -655,7 +693,8 @@ def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
                 return InlineFont(rFont=FONT_CHOICES[e["font"]][0] if "font" in e else base.name,
                                   sz=round((base.sz or 11) * e.get("size", scale), 1) if ("size" in e or scale != 1) else base.sz,
                                   b=True if e.get("bold") else base.b, i=True if e.get("italic") else base.i,
-                                  u="single" if e.get("underline") else base.u,
+                                  u=(e["underline"] if isinstance(e.get("underline"), str) else "single")
+                                  if e.get("underline") else base.u,
                                   strike=base.strike, vertAlign=base.vertAlign, color=color)
             plain = font(base.color)
             parts, cur = [], 0
@@ -666,8 +705,9 @@ def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
                 hexcol = (e.get("color") or e.get("bg") or "#000000") if e else ctx.colors[s.cat]
                 scale = ctx.look.get(s.cat, {}).get("scale", 1) if s.layer == "content" else 1
                 if not e and s.layer == "content":
-                    c = ctx.lens.get(s.cat)
-                    e = {k: v for k, v in (("bold", c.weight >= 600), ("italic", c.font == "italic")) if v}
+                    c, lk = ctx.lens.get(s.cat), ctx.look.get(s.cat, {})
+                    e = {k: v for k, v in (("bold", lk.get("bold")), ("italic", lk.get("italic")),
+                                           ("underline", xl_under(lk.get("underline")))) if v}
                     if c.font == "mono":
                         e["font"] = "courier"
                     elif c.font == "serif":

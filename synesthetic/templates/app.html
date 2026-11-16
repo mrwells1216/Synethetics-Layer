@@ -178,7 +178,7 @@ input[type=search]{width:100%;padding:11px 14px;border-radius:999px;border:1px s
 .m-a .c{color:var(--c)}
 .m-b .c{background:var(--c);color:var(--on);padding:.04em .38em}
 .m-c .c{color:var(--c);background:color-mix(in srgb,var(--c) 20%,transparent);padding:.04em .3em;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--c) 70%,transparent)}
-.m-d .c{color:inherit;background:none;padding:0;text-decoration-line:underline;text-decoration-color:var(--c);text-decoration-thickness:3px;text-underline-offset:.22em}
+.m-d .c{color:inherit;background:none;padding:0;text-decoration-line:underline;text-decoration-color:var(--ul,var(--c));text-decoration-thickness:3px;text-underline-offset:.22em}
 
 /* How it works */
 .steps{list-style:none;margin:0;padding:0;display:grid;gap:12px}
@@ -340,6 +340,12 @@ body.dragging #dropall{display:grid}
 .clook{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .clook .seg button{padding:5px 11px;font-size:13px}
 .clook select{width:auto;padding:6px 32px 6px 10px;font-size:13px;background-position:right 10px center}
+.clook .seg[data-look=fx] button{min-width:34px;text-align:center;font-family:var(--font-head)}
+.ulc{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+.ulc input{appearance:none;-webkit-appearance:none;width:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer}
+.ulc input::-webkit-color-swatch-wrapper{padding:3px}.ulc input::-webkit-color-swatch{border:0;border-radius:5px}
+.ulc input::-moz-color-swatch{border:0;border-radius:5px}
+.clook .link{font-size:13px}
 .wb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 14px;align-items:end}
 .wb-grid .field{margin:0}
 .wb-col{display:flex;gap:8px;align-items:center}
@@ -780,6 +786,7 @@ body.dragging #dropall{display:grid}
   var CATS = cfg.categories, FONTS = {}, DEF = cfg.defaults, HLCSS = cfg.hlCss || {};
   cfg.fonts.forEach(function(f){ FONTS[f.key] = f; });
   var RAINBOW = ['warning','quote','date','link','id','number','reference'];
+  var UNDERLINES = ['none', 'solid', 'dotted', 'dashed', 'double', 'wavy'];
   var CONTENT = CATS.filter(function(c){ return c.layer === 'content'; });
   var mq = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -826,6 +833,10 @@ body.dragging #dropall{display:grid}
       var o = {};
       if (v['case'] === 'upper' || v['case'] === 'normal') o['case'] = v['case'];
       if (typeof v.scale === 'number' && v.scale >= .8 && v.scale <= 2) o.scale = v.scale;
+      if (typeof v.bold === 'boolean') o.bold = v.bold;
+      if (typeof v.italic === 'boolean') o.italic = v.italic;
+      if (UNDERLINES.indexOf(v.underline) >= 0) o.underline = v.underline;
+      if (/^#[0-9a-f]{6}$/i.test(v.ul || '')) o.ul = v.ul.toLowerCase();
       if (Object.keys(o).length) s.look[c.name] = o;
     });
     if (src.wordbank && Array.isArray(src.wordbank.words))
@@ -947,9 +958,25 @@ body.dragging #dropall{display:grid}
       return {re: re, i: i, w: w};
     });
   }
-  function lookOf(c){ var v = st.look[c.name] || {}; return {'case': v['case'] || c['case'] || 'normal', scale: v.scale || c.scale || 1}; }
+  // a category's look: the lens defaults, then the reader's own (render.py look_rules writes the same CSS)
+  function lookDef(c){ return {'case': c['case'] || 'normal', scale: c.scale || 1, bold: !!c.bold, italic: !!c.italic, underline: UNDERLINES.indexOf(c.underline) >= 0 ? c.underline : 'none', ul: ''}; }
+  function lookOf(c){
+    var v = st.look[c.name] || {}, d = lookDef(c);
+    Object.keys(d).forEach(function(k){ if (v[k] !== undefined) d[k] = v[k]; });
+    return d;
+  }
+  function ulRules(sel, u){
+    if (u === 'none') return '.m-a ' + sel + ',.m-b ' + sel + ',.m-c ' + sel + '{text-decoration:none}.m-d ' + sel + '{text-decoration-style:solid}';
+    var line = 'text-decoration-line:underline;text-decoration-style:' + u + ';text-decoration-thickness:2px;text-underline-offset:.22em';
+    return '.m-a ' + sel + ',.m-c ' + sel + '{' + line + ';text-decoration-color:var(--ul,var(--c))}' +
+      '.m-b ' + sel + '{' + line + ';text-decoration-color:var(--ul,var(--on))}.m-d ' + sel + '{text-decoration-style:' + u + '}';
+  }
   function lookCss(){
-    return CONTENT.map(function(c){ var l = lookOf(c); return '.c-' + c.name + '{text-transform:' + (l['case'] === 'upper' ? 'uppercase' : 'none') + ';font-size:' + l.scale + 'em}'; }).join('');
+    return CONTENT.map(function(c){
+      var l = lookOf(c), sel = '.c-' + c.name;
+      return sel + '{text-transform:' + (l['case'] === 'upper' ? 'uppercase' : 'none') + ';font-size:' + l.scale + 'em;font-weight:' + (l.bold ? '700' : 'inherit') +
+        ';font-style:' + (l.italic ? 'italic' : 'inherit') + (l.ul ? ';--ul:' + l.ul : '') + '}' + ulRules(sel, l.underline);
+    }).join('');
   }
   function bankCss(){
     return BANK.map(function(b){
@@ -1898,7 +1925,7 @@ body.dragging #dropall{display:grid}
       'ul.check{list-style:none;padding-left:0}ul.check li::before{content:"\\2610  "}ul.check li.done::before{content:"\\2611  "}ul.check li.done{text-decoration:line-through;opacity:.7}' +
       '.c{border-radius:.3em;-webkit-box-decoration-break:clone;box-decoration-break:clone}.m-a .c{color:var(--c)}.m-b .c{background:var(--c);color:var(--on);padding:.04em .38em}' +
       '.m-c .c{color:var(--c);background:color-mix(in srgb,var(--c) 20%,transparent);padding:.04em .3em;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--c) 70%,transparent)}' +
-      '.m-d .c{text-decoration:underline 3px var(--c);text-underline-offset:.22em}' + cats + (HLCSS[st.hl] || '') + lookCss() + bankCss() +
+      '.m-d .c{text-decoration:underline 3px var(--ul,var(--c));text-underline-offset:.22em}' + cats + (HLCSS[st.hl] || '') + lookCss() + bankCss() +
       '</style></head><body class="m-' + st.mode + '"><main>' + noteColored(r) + '</main></body></html>';
   }
   function current(){ var s = frState(); s.name = noteName(); return s; }
@@ -2162,7 +2189,8 @@ body.dragging #dropall{display:grid}
   ['content','grammar','meaning'].forEach(function(layer){
     $('c-' + layer).innerHTML = CATS.filter(function(c){ return c.layer === layer; }).map(function(c){
       return '<div class="crow" data-n="' + c.name + '" style="--c:var(--c-' + c.name + ')">' +
-        '<div><span class="cname">' + esc(c.label) + '</span><span class="cex">' + esc(c.example) + '</span>' +
+        // a content category's example shows its whole look: bold, italic, underline, caps, size
+        '<div><span class="cname">' + esc(c.label) + '</span><span class="cex">' + (c.layer === 'content' ? '<span class="c c-' + c.name + '">' + esc(c.example) + '</span>' : esc(c.example)) + '</span>' +
         '<span class="warn" hidden></span><button class="rst" hidden>Reset</button></div>' +
         '<label class="pick" data-t="dark"><input type="color" data-t="dark" aria-label="' + esc(c.label) + ', dark theme"><span>Dark</span></label>' +
         '<label class="pick" data-t="light"><input type="color" data-t="light" aria-label="' + esc(c.label) + ', light theme"><span>Light</span></label></div>';
@@ -2217,7 +2245,7 @@ body.dragging #dropall{display:grid}
     document.querySelectorAll('.crow').forEach(function(row){
       var c = cat(row.getAttribute('data-n'));
       var changed = false, low = [];
-      row.querySelectorAll('input[type=color]').forEach(function(inp){
+      row.querySelectorAll('input[type=color][data-t]').forEach(function(inp){
         var th = inp.getAttribute('data-t'), h = own(c, th);
         if (inp.value !== h) inp.value = h;
         if (h !== c[th]) changed = true;
@@ -2242,7 +2270,7 @@ body.dragging #dropall{display:grid}
   $('f-heading').onchange = function(){ st.heading = this.value; save(); apply(); };
   $('f-size').oninput = function(){ st.size = +this.value; save(); syncEditor(); };
   document.addEventListener('input', function(e){
-    var inp = e.target; if (inp.type !== 'color' || !inp.closest('.crow')) return;
+    var inp = e.target; if (inp.type !== 'color' || !inp.closest('.crow') || !inp.hasAttribute('data-t')) return;
     var n = inp.closest('.crow').getAttribute('data-n'), t = inp.getAttribute('data-t');
     (st.colors[n] = st.colors[n] || {})[t] = inp.value.toLowerCase();
     if (inp.value.toLowerCase() === cat(n)[t]) delete st.colors[n][t];
@@ -2259,33 +2287,53 @@ body.dragging #dropall{display:grid}
     });
   };
 
-  // ---- ALL CAPS and size per category ----
+  // ---- per category: ALL CAPS, size, bold, italic, underline and the underline's own color ----
+  var UL_LABELS = {none: 'No underline', solid: 'Underline', dotted: 'Dotted underline', dashed: 'Dashed underline', double: 'Double underline', wavy: 'Wavy underline'};
   document.querySelectorAll('#c-content .crow').forEach(function(row){
     var n = row.getAttribute('data-n'), c = cat(n);
     var box = el('div', 'clook');
     box.innerHTML = '<div class="seg" data-look="case"><button data-v="normal">Aa</button><button data-v="upper">ALL CAPS</button></div>' +
-      '<select data-look="scale" aria-label="' + esc(c.label) + ' size"><option value="1">Same size</option><option value="1.12">Larger</option><option value="1.25">Larger still</option><option value="1.4">Largest</option></select>';
+      '<select data-look="scale" aria-label="' + esc(c.label) + ' size"><option value="1">Same size</option><option value="1.12">Larger</option><option value="1.25">Larger still</option><option value="1.4">Largest</option></select>' +
+      '<div class="seg" data-look="fx"><button data-k="bold" aria-label="' + esc(c.label) + ' bold"><b>B</b></button><button data-k="italic" aria-label="' + esc(c.label) + ' italic"><i>I</i></button></div>' +
+      '<select data-look="underline" aria-label="' + esc(c.label) + ' underline">' + UNDERLINES.map(function(u){ return '<option value="' + u + '">' + UL_LABELS[u] + '</option>'; }).join('') + '</select>' +
+      '<label class="ulc"><input type="color" data-look="ul" aria-label="' + esc(c.label) + ' underline color"><span>Underline color</span></label>' +
+      '<button class="link" data-look="ulreset">Same as text</button>';
     row.appendChild(box);
-    box.querySelector('.seg').addEventListener('click', function(e){
+    box.querySelector('[data-look=case]').addEventListener('click', function(e){
       var b = e.target.closest('button'); if (!b) return;
       setLook(n, 'case', b.getAttribute('data-v'));
     });
-    box.querySelector('select').onchange = function(){ setLook(n, 'scale', +this.value); };
+    box.querySelector('[data-look=fx]').addEventListener('click', function(e){
+      var b = e.target.closest('button'); if (!b) return;
+      var k = b.getAttribute('data-k'); setLook(n, k, !lookOf(c)[k]);
+    });
+    box.querySelector('[data-look=scale]').onchange = function(){ setLook(n, 'scale', +this.value); };
+    box.querySelector('[data-look=underline]').onchange = function(){ setLook(n, 'underline', this.value); };
+    box.querySelector('[data-look=ul]').oninput = function(){ setLook(n, 'ul', this.value.toLowerCase(), true); };
+    box.querySelector('[data-look=ulreset]').onclick = function(){ setLook(n, 'ul', ''); };
   });
-  function setLook(n, k, v){
+  var lookT = null;
+  function setLook(n, k, v, live){
     var c = cat(n), o = st.look[n] = st.look[n] || {};
-    var def = k === 'case' ? (c['case'] || 'normal') : (c.scale || 1);
-    if (v === def) delete o[k]; else o[k] = v;
+    if (v === lookDef(c)[k]) delete o[k]; else o[k] = v;
     if (!Object.keys(o).length) delete st.look[n];
-    save(); apply();
+    save();
+    if (live){ clearTimeout(lookT); lookT = setTimeout(apply, 60); } else apply();   // the color picker fires as you drag
   }
   function syncLook(){
+    var t = theme();
     document.querySelectorAll('#c-content .crow').forEach(function(row){
-      var l = lookOf(cat(row.getAttribute('data-n')));
+      var c = cat(row.getAttribute('data-n')), l = lookOf(c);
       row.querySelectorAll('[data-look=case] button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-v') === l['case'] ? 'true' : 'false'); });
+      row.querySelectorAll('[data-look=fx] button').forEach(function(b){ b.setAttribute('aria-pressed', l[b.getAttribute('data-k')] ? 'true' : 'false'); });
       var s = row.querySelector('[data-look=scale]'), want = String(l.scale);
       if (!Array.prototype.some.call(s.options, function(o){ return o.value === want; })){ var o = el('option', null, Math.round(l.scale * 100) + '%'); o.value = want; s.appendChild(o); }
       s.value = want;
+      row.querySelector('[data-look=underline]').value = l.underline;
+      var pick = row.querySelector('[data-look=ul]');
+      if (document.activeElement !== pick) pick.value = l.ul || col(c, t);
+      pick.closest('.ulc').hidden = l.underline === 'none' && st.mode !== 'd';
+      row.querySelector('[data-look=ulreset]').hidden = !l.ul;
     });
   }
 
