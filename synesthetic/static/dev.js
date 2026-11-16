@@ -708,7 +708,8 @@
       var xhtml = new XMLSerializer().serializeToString(wrap);
       var hs = win.getComputedStyle(html);
       var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"' +
-        attr('class', html.getAttribute('class')) + attr('data-theme', html.getAttribute('data-theme')) + attr('lang', html.getAttribute('lang')) +
+        attr('class', html.getAttribute('class')) + attr('lang', html.getAttribute('lang')) +
+        Array.prototype.map.call(html.attributes, function(a){ return /^data-/.test(a.name) ? attr(a.name, a.value) : ''; }).join('') +
         attr('style', (html.getAttribute('style') || '') + ';font-size:' + hs.fontSize + ';color-scheme:' + (hs.colorScheme || 'normal')) + '>' +
         '<style><![CDATA[' + css.replace(/\]\]>/g, ']]]]><![CDATA[>') + ']]></style>' +
         '<foreignObject x="0" y="0" width="' + W + '" height="' + H + '">' + xhtml + '</foreignObject></svg>';

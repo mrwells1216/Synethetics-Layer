@@ -44,13 +44,29 @@ button,input,select,textarea{font:inherit;color:inherit}
 .mark .lyr{display:block;font-family:var(--font-body);font-size:.8rem;font-weight:700;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);margin:.7em 0 0 .15em}
 
 /* Tabs: one per color bar */
-.tabbar{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:16px -16px 22px;padding:calc(10px + env(safe-area-inset-top)) 16px 0;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.tabbar{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:16px -16px 22px;padding:calc(10px + env(safe-area-inset-top)) 16px 0;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .tab{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:8px;align-content:start;justify-items:center;text-align:center;padding:0 0 10px;min-height:50px;font-size:12px;font-weight:650;line-height:1.15;color:var(--muted);-webkit-hyphens:manual;hyphens:manual;overflow-wrap:anywhere}
 .tab i{display:block;width:100%;height:6px;border-radius:3px;background:var(--k);opacity:.38;transition:opacity .2s,transform .2s var(--ease)}
 .tab:hover i{opacity:.7}
 .tab[aria-selected=true]{color:var(--fg)}
 .tab[aria-selected=true] i{opacity:1;transform:scaleY(1.4)}
 .tab:focus-visible{outline:2px solid var(--fg);outline-offset:2px;border-radius:6px}
+/* the center bar is a color only, not a tab */
+.tabgap{display:grid;align-content:start;padding:0 0 10px}
+.tabgap i{display:block;width:100%;height:6px;border-radius:3px;background:var(--k);opacity:.38}
+/* tab names (Settings, Tab names): in their bar's color, or highlighted in it with page-colored letters */
+.tab{overflow-wrap:normal}
+.tab span{margin:0 -3px;max-width:calc(100% + 6px)}
+@media (max-width:420px){.tab{font-size:11.5px;letter-spacing:-.01em}}
+[data-tabs=color] .tab span{color:var(--k);opacity:.72;transition:opacity .2s}
+[data-tabs=color] .tab:hover span,[data-tabs=color] .tab[aria-selected=true] span{opacity:1}
+.tab span b{font-weight:inherit}
+[data-tabs=chip] .tab span{line-height:1.5}
+[data-tabs=chip] .tab span b{background:var(--k);color:var(--bg);padding:1px 4px;border-radius:5px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+[data-tabs=chip] .tab span{opacity:.6;transition:opacity .2s}
+:root[data-theme=light][data-tabs=chip] .tab span b{color:var(--ok,var(--fg))}
+[data-tabs=chip] .tab:hover span{opacity:.85}
+[data-tabs=chip] .tab[aria-selected=true] span{opacity:1}
 
 .vh{margin:0 0 4px;font-family:var(--font-head);font-size:1.9rem;font-weight:650;letter-spacing:-.01em;line-height:1.15}
 .vh-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -367,12 +383,13 @@ body.dragging #dropall{display:grid}
   </header>
 
   <nav class="tabbar" id="tabbar" role="tablist" aria-label="Pages">
-    <button class="tab" role="tab" id="t-how" data-tab="how" aria-controls="v-how" style="--k:var(--c-warning)"><i></i><span>How it works</span></button>
-    <button class="tab" role="tab" id="t-layer" data-tab="layer" aria-controls="v-layer" style="--k:var(--c-quote)"><i></i><span>Synes&shy;thesize</span></button>
-    <button class="tab" role="tab" id="t-free" data-tab="free" aria-controls="v-free" style="--k:var(--c-date)"><i></i><span>Free Rain</span></button>
-    <button class="tab" role="tab" id="t-editor" data-tab="editor" aria-controls="v-editor" style="--k:var(--c-link)"><i></i><span>Editor</span></button>
-    <button class="tab" role="tab" id="t-saved" data-tab="saved" aria-controls="v-saved" style="--k:var(--c-number)"><i></i><span>Saved</span></button>
-    <button class="tab" role="tab" id="t-settings" data-tab="settings" aria-controls="v-settings" style="--k:var(--c-reference)"><i></i><span>Settings</span></button>
+    <button class="tab" role="tab" id="t-how" data-tab="how" aria-controls="v-how" style="--k:var(--c-warning);--ok:var(--on-warning)"><i></i><span><b>How it works</b></span></button>
+    <button class="tab" role="tab" id="t-layer" data-tab="layer" aria-controls="v-layer" style="--k:var(--c-quote);--ok:var(--on-quote)"><i></i><span><b>Synes&shy;thesize</b></span></button>
+    <button class="tab" role="tab" id="t-free" data-tab="free" aria-controls="v-free" style="--k:var(--c-date);--ok:var(--on-date)"><i></i><span><b>Free Rain</b></span></button>
+    <span class="tabgap" aria-hidden="true" style="--k:var(--c-link)"><i></i></span>
+    <button class="tab" role="tab" id="t-editor" data-tab="editor" aria-controls="v-editor" style="--k:var(--c-id);--ok:var(--on-id)"><i></i><span><b>Editor</b></span></button>
+    <button class="tab" role="tab" id="t-saved" data-tab="saved" aria-controls="v-saved" style="--k:var(--c-number);--ok:var(--on-number)"><i></i><span><b>Saved</b></span></button>
+    <button class="tab" role="tab" id="t-settings" data-tab="settings" aria-controls="v-settings" style="--k:var(--c-reference);--ok:var(--on-reference)"><i></i><span><b>Settings</b></span></button>
   </nav>
 
   <!-- ============ How it works ============ -->
@@ -577,6 +594,7 @@ body.dragging #dropall{display:grid}
       <div class="card">
         <h3>Appearance</h3>
         <div class="field"><span class="flabel">Theme</span><div class="seg" data-k="theme"><button data-v="dark">Dark</button><button data-v="light">Light</button><button data-v="auto">Auto</button></div></div>
+        <div class="field"><span class="flabel">Tab names</span><div class="seg" id="set-tabs"><button data-v="plain">Plain</button><button data-v="color">In their color</button><button data-v="chip">Highlighted</button></div></div>
         <div class="opts">
           <label class="sw-row"><input type="checkbox" role="switch" id="set-cb"><span>Color-blind safe colors<small>Okabe-Ito based colors that stay apart with red-green and blue-yellow color blindness. Used on converted pages and colored files too.</small></span></label>
           <label class="sw-row"><input class="uitext" type="checkbox" role="switch"><span>Color this app's text<small>Your colors and highlight style on the app's own instructions and labels.</small></span></label>
@@ -2343,6 +2361,12 @@ body.dragging #dropall{display:grid}
   function setCalm(on){ calm = on; lsSet('synapp.calm', on ? '1' : '0'); root.classList.toggle('calm', on); $('set-calm').checked = on; if (rain) rainSync(); }
   $('set-calm').onchange = function(){ setCalm(this.checked); };
   setCalm(calm);
+  function setTabStyle(v){
+    v = ['plain', 'color', 'chip'].indexOf(v) >= 0 ? v : 'plain';
+    lsSet('synapp.tabs', v); root.setAttribute('data-tabs', v); segSet('set-tabs', v);
+  }
+  setTabStyle(lsGet('synapp.tabs'));
+  $('set-tabs').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b) setTabStyle(b.getAttribute('data-v')); });
   $('set-start').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b){ lsSet('synapp.start', b.getAttribute('data-v')); syncSettings(); } });
   $('export').onclick = function(){ download(new Blob([JSON.stringify(Object.assign({version: 1}, st), null, 2)], {type: 'application/json'}), 'synesthetic-style.json'); };
   $('import').onchange = function(){

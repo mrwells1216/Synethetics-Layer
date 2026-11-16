@@ -1,5 +1,16 @@
 [
  {
+  "sha": "6a6801c217d6a83f90a3a25bc7a2068b5f49c37f",
+  "short": "6a6801c",
+  "date": "2026-11-15T21:31:28-06:00",
+  "title": "Change log tags read only what a change says it did",
+  "body": "A description that merely mentions \"fixed\" or \"removed\" no longer adds those tags; only a sentence that starts with Fix or Remove does.",
+  "tags": [
+   "Changed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/6a6801c217d6a83f90a3a25bc7a2068b5f49c37f"
+ },
+ {
   "sha": "b6af8ecd5d4076e46a15478b021618a83c72c103",
   "short": "b6af8ec",
   "date": "2026-11-15T21:29:26-06:00",
