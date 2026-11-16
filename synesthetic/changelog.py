@@ -37,10 +37,12 @@ def tags_for(title: str, body: str = "") -> list[str]:
     else:
         main = "Added"
     out = [main]
-    b = body.lower()
-    if main != "Fixed" and re.search(r"\b(fix|fixes|fixed)\b", b):
+    # a sentence in the description that starts with Fix... or Remove... adds that tag too
+    starts = re.findall(r"(?:^|[.;:!?]\s+|\n\s*)(fix(?:es|ed)?|remove[sd]?|drop(?:s|ped)?)\b", body, re.I)
+    words = {w.lower() for w in starts}
+    if main != "Fixed" and words & {"fix", "fixes", "fixed"}:
         out.append("Fixed")
-    if main != "Removed" and re.search(r"\b(removed?|no longer offered|dropped)\b", b):
+    if main != "Removed" and words & {"remove", "removes", "removed", "drop", "drops", "dropped"}:
         out.append("Removed")
     return out
 

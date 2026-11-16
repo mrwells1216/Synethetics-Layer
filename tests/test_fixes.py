@@ -308,12 +308,15 @@ def test_page_loads_the_dev_script_and_config(data):
 def test_changelog_parse_and_tags():
     raw = ("aaaa111\x1f2026-11-15T10:00:00-06:00\x1fMerge pull request #4 from x/y\x1fRemove the old picker\n\nIt was slow.\n\nCo-Authored-By: C <c@x>\x1e\n"
            "bbbb222\x1f2026-11-14T10:00:00-06:00\x1fFix stale examples\x1f\x1e\n"
-           "cccc333\x1f2026-11-13T10:00:00-06:00\x1fSix tabs and a Word Bank\x1fAlso fixes the date bug.\n\nCo-Authored-By: C <c@x>\x1e")
+           "cccc333\x1f2026-11-13T10:00:00-06:00\x1fSix tabs and a Word Bank\x1fNew tabs. Fixes the date bug too.\n\nCo-Authored-By: C <c@x>\x1e")
     got = changelog.parse(raw)
     assert [g["tags"][0] for g in got] == ["Removed", "Fixed", "Added"]
     assert got[0]["title"] == "Remove the old picker" and got[0]["url"].endswith("/pull/4")
     assert got[0]["body"] == "It was slow." and "Co-Authored" not in got[2]["body"]
     assert got[2]["tags"] == ["Added", "Fixed"] and got[1]["url"].endswith("/commit/bbbb222")
+    # words merely mentioned in a sentence don't add tags
+    assert changelog.tags_for("Add a change log", "Each change is tagged Added, Changed, Fixed or Removed.") == ["Added"]
+    assert changelog.tags_for("New samples", "Better PDFs. Fixes: dates, ligatures.") == ["Added", "Fixed"]
 
 
 def test_changelog_hosted_puts_the_deployed_commit_on_top(tmp_path, monkeypatch):

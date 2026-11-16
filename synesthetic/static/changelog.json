@@ -1,5 +1,16 @@
 [
  {
+  "sha": "b6af8ecd5d4076e46a15478b021618a83c72c103",
+  "short": "b6af8ec",
+  "date": "2026-11-15T21:29:26-06:00",
+  "title": "Add developer mode and a change log in Settings",
+  "body": "Developer mode is a layer for fixing the app: highlight text and press Fix/idea, or triple-click (triple-tap) for a screenshot frame to move, resize and mark Good, Not good or Fix/idea. The DEV button shows live requests, errors, warnings and state. Notes are append-only and wait for the next Claude session (python fixes.py list), which closes each with what it did. Hosted, they go to a private Vercel Blob store and only devices opened with the dev link can save or read them.\n\nWhat's new lists every change to main, tagged Added, Changed, Fixed or Removed, with a filter.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/b6af8ecd5d4076e46a15478b021618a83c72c103"
+ },
+ {
   "sha": "5b7c35729040146ada5bbc07b2f0e0b87a9678e4",
   "short": "5b7c357",
   "date": "2026-11-15T00:19:05-06:00",
@@ -106,8 +117,7 @@
   "title": "Fix review findings: encodings, AI-layer errors, table flag, upload origin check",
   "body": "- read_text no longer decodes BOM-less cp1252 text as utf-16 garbage - claude timeouts and spawn errors become AIUnavailable; finished batches are cached when another fails; one temp folder per run, removed afterwards - PDF table detection is a parameter of extract() instead of a module global (was racy under the threaded upload server) - /convert refuses cross-site posts (Sec-Fetch-Site / Origin) and reads the body before any error so browsers see the message - plain-text: a lead-in line after a blank line no longer glues onto the previous bullet; a lone bullet line is never a heading - LibreOffice failures surface as UnsupportedFile; its temp folder is removed - template filled in one pass so {{BODY}} in document text survives - render reuses colorcheck's contrast math; chat mod reads group offsets from m.indices; small dead-code cleanups - 6 new tests (64 pass); TS parity unchanged",
   "tags": [
-   "Fixed",
-   "Removed"
+   "Fixed"
   ],
   "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/06de3603f67f56d58abb0f44f440549627a375d6"
  },
