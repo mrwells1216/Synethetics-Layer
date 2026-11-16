@@ -1,5 +1,16 @@
 [
  {
+  "sha": "86305ce9f9a46d8d7f60144cf37a565312dbf64c",
+  "short": "86305ce",
+  "date": "2026-11-15T22:01:14-06:00",
+  "title": "Tighter color bars, and tab names in their bar's color by default",
+  "body": "The bars sit closer together, and each tab name now takes its bar's color unless Settings, Tab names says otherwise.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/86305ce9f9a46d8d7f60144cf37a565312dbf64c"
+ },
+ {
   "sha": "6b1265e9874961212d2dad04cdd461f5c66f7816",
   "short": "6b1265e",
   "date": "2026-11-15T21:56:57-06:00",

@@ -66,6 +66,48 @@ button,input,select,textarea{font:inherit;color:inherit}
 [data-tabs=chip] .tab span{opacity:.6;transition:opacity .2s}
 :root[data-theme=light][data-tabs=chip] .tab span b{color:var(--ok,var(--fg))}
 [data-tabs=chip] .tab:hover span{opacity:.85}
+.top-acts{display:flex;gap:8px;align-items:center}
+
+/* Phones: a strip of the seven colors down the right edge holds the tabs. Names read bottom to top, so the
+   bottom of the letters faces the screen edge. The spectrum button folds it up into the header's bars. */
+.vbar,.vopen{display:none}
+.vfold{all:unset;box-sizing:border-box;cursor:pointer;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
+.vfold:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.vfold.vopen{display:none}
+.fan{display:grid;gap:2px;width:14px;transition:transform .45s var(--ease)}
+.fan i{display:block;height:3px;border-radius:2px;background:var(--k);transition:transform .45s var(--ease)}
+.fan i:nth-child(2){transition-delay:.03s}.fan i:nth-child(3){transition-delay:.06s}.fan i:nth-child(4){transition-delay:.09s}
+.fan i:nth-child(5){transition-delay:.12s}.fan i:nth-child(6){transition-delay:.15s}.fan i:nth-child(7){transition-delay:.18s}
+.vfold.turning .fan{transform:rotate(-90deg)}
+.vfold.turning .fan i{transform:scaleX(.55)}
+@keyframes land{0%,100%{transform:scaleY(1)}45%{transform:scaleY(2.4)}}
+.tabbar.landing .tab i,.tabbar.landing .tabgap i{animation:land .55s var(--ease) both}
+.tabbar.landing>:nth-child(2) i{animation-delay:.05s}.tabbar.landing>:nth-child(3) i{animation-delay:.1s}
+.tabbar.landing>:nth-child(4) i{animation-delay:.15s}.tabbar.landing>:nth-child(5) i{animation-delay:.2s}
+.tabbar.landing>:nth-child(6) i{animation-delay:.25s}.tabbar.landing>:nth-child(7) i{animation-delay:.3s}
+@media (max-width:599px){
+  .tab span{display:none}
+  .tab{min-height:0;padding-bottom:12px}
+  .vbar{display:flex;flex-direction:column;position:fixed;z-index:8;top:0;right:0;bottom:0;width:34px;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);background:var(--bg);
+    transform-origin:top right;transition:transform .5s var(--ease),opacity .4s}
+  :root:not(.vfolded) .wrap{padding-right:50px}
+  .vbar .vfold{height:46px;flex:none;background:var(--surface);border-bottom:1px solid var(--line)}
+  .vtab,.vgap{all:unset;box-sizing:border-box;flex:1 1 0;min-height:0;display:grid;place-items:center;position:relative;
+    background:var(--k);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:margin .25s var(--ease),filter .2s}
+  .vtab{filter:saturate(.75) brightness(.78)}
+  .vtab span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;color:var(--bg);
+    font:750 clamp(11px,1.7vh,13.5px)/1 var(--font-body);letter-spacing:.03em}
+  .vtab[aria-current=page]{filter:none;margin-left:-8px;border-radius:9px 0 0 9px;box-shadow:-4px 0 12px rgba(0,0,0,.35);z-index:1}
+  .vtab:focus-visible{outline:2px solid var(--fg);outline-offset:-3px}
+  .vgap{cursor:default;filter:saturate(.75) brightness(.6)}
+  :root.vfolded .vbar{transform:translateY(-100%) scaleY(.2);opacity:0;pointer-events:none}
+  :root.vfolded .vfold.vopen{display:grid;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+  .vopen .fan{transform:rotate(-90deg)}
+  .vopen .fan i{transform:scaleX(.55)}
+  .vopen.turning .fan{transform:none}
+  .vopen.turning .fan i{transform:none}
+}
 [data-tabs=chip] .tab[aria-selected=true] span{opacity:1}
 
 .vh{margin:0 0 4px;font-family:var(--font-head);font-size:1.9rem;font-weight:650;letter-spacing:-.01em;line-height:1.15}
@@ -376,10 +418,24 @@ body.dragging #dropall{display:grid}
 </head>
 <body>
 <canvas id="rain" aria-hidden="true"></canvas>
+<!-- phones: the tabs as a strip of the seven colors down the right edge; the spectrum button folds it into the header -->
+<nav class="vbar" id="vbar" aria-label="Pages">
+  <button class="vfold" id="vfold" type="button" aria-label="Fold the side bar into the header" aria-expanded="true" title="Fold into the header"><span class="fan" aria-hidden="true"><i style="--k:var(--c-warning)"></i><i style="--k:var(--c-quote)"></i><i style="--k:var(--c-date)"></i><i style="--k:var(--c-link)"></i><i style="--k:var(--c-id)"></i><i style="--k:var(--c-number)"></i><i style="--k:var(--c-reference)"></i></span></button>
+  <button class="vtab" type="button" data-tab="how" style="--k:var(--c-warning)"><span>How it works</span></button>
+  <button class="vtab" type="button" data-tab="layer" style="--k:var(--c-quote)"><span>Synesthesize</span></button>
+  <button class="vtab" type="button" data-tab="free" style="--k:var(--c-date)"><span>Free Rain</span></button>
+  <span class="vgap" aria-hidden="true" style="--k:var(--c-link)"></span>
+  <button class="vtab" type="button" data-tab="editor" style="--k:var(--c-id)"><span>Editor</span></button>
+  <button class="vtab" type="button" data-tab="saved" style="--k:var(--c-number)"><span>Saved</span></button>
+  <button class="vtab" type="button" data-tab="settings" style="--k:var(--c-reference)"><span>Settings</span></button>
+</nav>
 <div class="wrap" id="wrap">
   <header class="top">
     <h1 class="mark" id="mark" aria-label="Synesthetic Layer"></h1>
-    <button class="pill" id="install" hidden>Install app</button>
+    <div class="top-acts">
+      <button class="pill" id="install" hidden>Install app</button>
+      <button class="vfold vopen" id="vopen" type="button" aria-label="Open the side bar" title="Open the side bar"><span class="fan" aria-hidden="true"><i style="--k:var(--c-warning)"></i><i style="--k:var(--c-quote)"></i><i style="--k:var(--c-date)"></i><i style="--k:var(--c-link)"></i><i style="--k:var(--c-id)"></i><i style="--k:var(--c-number)"></i><i style="--k:var(--c-reference)"></i></span></button>
+    </div>
   </header>
 
   <nav class="tabbar" id="tabbar" role="tablist" aria-label="Pages">
@@ -1200,6 +1256,9 @@ body.dragging #dropall{display:grid}
       $('t-' + x).setAttribute('aria-selected', x === t ? 'true' : 'false');
       $('t-' + x).tabIndex = x === t ? 0 : -1;
     });
+    document.querySelectorAll('.vtab').forEach(function(b){
+      if (b.getAttribute('data-tab') === t) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     lsSet('synapp.tab', t);
     if (location.hash !== '#' + t) history.replaceState(history.state, '', '#' + t);
     if (!keepScroll) window.scrollTo(0, 0);
@@ -1211,7 +1270,28 @@ body.dragging #dropall{display:grid}
     rainSync();
     measureTabs();
   }
-  document.querySelectorAll('.tab').forEach(function(b){ b.onclick = function(){ setTab(b.getAttribute('data-tab')); }; });
+  document.querySelectorAll('.tab,.vtab').forEach(function(b){ b.onclick = function(){ setTab(b.getAttribute('data-tab')); }; });
+  // phones: the side strip folds up into the header's bars, and opens again from the spectrum button there
+  function setFold(folded, animate){
+    var btn = folded ? $('vfold') : $('vopen');
+    function apply(){
+      root.classList.toggle('vfolded', folded);
+      lsSet('synapp.vbar', folded ? 'folded' : 'open');
+      $('vfold').setAttribute('aria-expanded', folded ? 'false' : 'true');
+      btn.classList.remove('turning');
+      if (folded && animate && !calmNow()){
+        var tb = $('tabbar'); tb.classList.remove('landing'); void tb.offsetWidth; tb.classList.add('landing');
+        setTimeout(function(){ tb.classList.remove('landing'); }, 900);
+      }
+      if (!folded) $('vopen').blur();
+      measureTabs();
+    }
+    if (animate && !calmNow()){ btn.classList.add('turning'); setTimeout(apply, 380); } else apply();
+  }
+  function calmNow(){ return root.classList.contains('calm') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  $('vfold').onclick = function(){ setFold(true, true); };
+  $('vopen').onclick = function(){ setFold(false, true); };
+  setFold(lsGet('synapp.vbar') === 'folded', false);
   $('tabbar').addEventListener('keydown', function(e){
     var i = TABS.indexOf(cur);
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
