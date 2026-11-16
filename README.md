@@ -37,7 +37,9 @@ The app has six tabs, one under each color bar:
 - **Free Rain** is a text box that grows as you type, with lists, checklists, headings, bold, italic, and word spacing, line spacing and margins. Auto color colors as you go; Roller colors only what you select (the colors roll on while you drag). Save, download as a colored page, copy, or make a full page through the converter. Calm rain falls behind it (the Rain button, or Reduce motion, turns it off).
 - **Editor** sets color schemes (Standard, Pastel, Vivid, Warm, Cool, or your own), each category's colors, ALL CAPS and size, the highlight style and size, and fonts, with a live preview. The **Word Bank** holds your own words, each with its own look (font color, highlight, font, size, ALL CAPS, bold, italic, underline); with its switch on, they are found in every document and win over their category.
 - **Saved** keeps documents in this browser: Saved, Recent (the last 40) and Deleted (removed for good after 30 days), as a list or thumbnails, with search, rename, keep, download, delete with undo, and restore.
-- **Settings**: theme, color-blind safe colors, coloring the app's own text, reduce motion, which tab opens first, install, export and import of your settings (also usable with `--style` on the command line), and storage.
+- **Settings**: theme, color-blind safe colors, coloring the app's own text, reduce motion, which tab opens first, install, export and import of your settings (also usable with `--style` on the command line), storage, **What's new** and **Developer mode**.
+  - **What's new** is the change log: every change that reached `main`, newest first, tagged Added, Changed, Fixed or Removed from its words, with a filter. Running here it reads `git log` live; the hosted app reads `synesthetic/static/changelog.json` (run `tools\build_changelog.py` before each push) and puts the deployed commit on top from Vercel's `VERCEL_GIT_COMMIT_SHA` / `_MESSAGE` (`synesthetic/changelog.py`).
+  - **Developer mode** is a layer for fixing the app (`synesthetic/static/dev.js`). Highlight text and press Fix/idea; triple-click (triple-tap on a phone) for a screenshot frame you can move and resize, with a comment and Good / Not good / Fix/idea; the DEV button opens live requests, errors and warnings, your fixes, and the app's state. A screenshot is the page drawing itself (a clone through an SVG `foreignObject`, CSS settled against the live page, web fonts and images inlined, inner frames drawn too), so no screen-share prompt; if a browser can't draw it, the text and comment are saved without the picture. Entries are append-only and go to `python fixes.py list` for the next Claude session (see `CLAUDE.md`). Running here they land in `%LOCALAPPDATA%\SynestheticLayer\fixes` (or `$SYNESTHETIC_DATA`); hosted, in the private Vercel Blob store connected to the project, and only devices opened once with the dev link (`python fixes.py pair <site>` makes the key; the site needs it as `SYNESTHETIC_DEV_KEY`) can save or read them.
 
 Warnings show in ALL CAPS and numbers a little larger by default (`case` and `scale` in `lenses/default.toml`); Editor changes this per category, and converted pages and Word files follow it.
 
@@ -57,7 +59,8 @@ The mod lives in `chat-mod/synesthetic-chat/` (copy it into `~/.claude/dev-mods/
 - `synesthetic/annotate.py`, `grammar.py`, `meaning.py`, `layers.py`: the three layers and how they combine
 - `synesthetic/colorcheck.py`: contrast and color-blindness checks (tested)
 - `lenses/default.toml`: the single source of categories, colors, cues
-- `tools/`: lens export for the mod, parity check
+- `synesthetic/fixes.py` (and `fixes.py` at the top): developer-mode fixes store and CLI; `synesthetic/changelog.py`: the change log
+- `tools/`: lens export for the mod, parity check, showcase, samples, icons, change log
 - `tests/`: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Known limits

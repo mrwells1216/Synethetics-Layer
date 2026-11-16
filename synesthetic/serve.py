@@ -6,8 +6,10 @@ Pick a file in the browser, get the styled page back. Binds to localhost unless 
 from __future__ import annotations
 
 import argparse
+import hmac
 import importlib.util
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -17,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
+from . import changelog
+from . import fixes as fixmod
 from .annotate import load_lens
 from .extract import SUPPORTED, UnsupportedFile, extract
 from .overlay import OVERLAY_TYPES, OverlayError, layout_units, overlay, parse_only
@@ -28,10 +32,11 @@ APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
 STATIC = Path(__file__).resolve().parent / "static"  # icons, drawn by tools/make_icons.py
 ICONS = {"favicon.ico": "favicon-32.png", **{p: p for p in (
     "icon.svg", "favicon.svg", "favicon-32.png", "icon-192.png", "icon-512.png",
-    "icon-maskable-512.png", "apple-touch-icon.png", "showcase.json")},
+    "icon-maskable-512.png", "apple-touch-icon.png", "showcase.json", "dev.js")},
     # sample files to try in Synesthesize (tools/build_samples.py)
     "market-wrap.pdf": "samples/market-wrap.pdf", "market-wrap.docx": "samples/market-wrap.docx"}
 CTYPES = {".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json", ".pdf": "application/pdf",
+          ".js": "text/javascript; charset=utf-8",
           ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
 SAMPLES = [{"file": "market-wrap.pdf", "label": "Weekly market wrap", "kind": "PDF, 3 pages"},
            {"file": "market-wrap.docx", "label": "Weekly market wrap", "kind": "Word"}]
@@ -91,8 +96,27 @@ def app_page(lens, max_bytes: int, hosted: bool) -> str:
         ],
         "fonts": [{"key": k, "label": v[0], "stack": v[1], "google": v[2]} for k, v in FONT_CHOICES.items()],
         "defaults": STYLE_DEFAULTS,
+        # developer mode: where fixes go, and the build they were made on
+        "build": changelog.head()[:7], "repo": changelog.REPO_URL,
+        "dev": {"store": ("blob" if fixmod.blob_ready() else "none") if hosted else "local",
+                "keyed": bool(os.environ.get(DEV_KEY_ENV))},
     }
-    return APP_PAGE.read_text(encoding="utf-8").replace("{{CONFIG}}", json.dumps(cfg).replace("</", "<\\/"))
+    page = APP_PAGE.read_text(encoding="utf-8").replace("{{DEVJS}}", _version(STATIC / "dev.js"))
+    return page.replace("{{CONFIG}}", json.dumps(cfg).replace("</", "<\\/"))
+
+
+DEV_KEY_ENV = "SYNESTHETIC_DEV_KEY"
+
+
+def _dev_store(hosted: bool, cache: dict):
+    if "store" not in cache:
+        if hosted:
+            if not fixmod.blob_ready():
+                raise fixmod.FixError("Fix storage isn't connected to this site yet.")
+            cache["store"] = fixmod.BlobStore()
+        else:
+            cache["store"] = fixmod.LocalStore()
+    return cache["store"]
 
 
 def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
@@ -100,6 +124,8 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
     behind Vercel's rewrites as on this machine."""
     page = app_page(lens, max_bytes, hosted)
     manifest_json = json.dumps(manifest(SUPPORTED))
+    log_cache = changelog.Cached()
+    dev_cache: dict = {}
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "Synesthetic"
@@ -129,6 +155,8 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                 return self._send(200, f.read_bytes(), CTYPES[f.suffix], {"Cache-Control": f"public, max-age={age}"})
             if leaf == "manifest.webmanifest":
                 return self._send(200, manifest_json, "application/manifest+json")
+            if leaf == "changelog.json":
+                return self._send(200, log_cache.get(), "application/json")
             if leaf == "robots.txt":
                 return self._send(404, "Not found", "text/plain; charset=utf-8")
             self._send(200, page)
@@ -170,6 +198,8 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                 return self._send(403, "Cross-site upload refused.", "text/plain; charset=utf-8")
             q = parse_qs(url.query)
             route = ((q.get("_p") or [""])[0] or url.path).rstrip("/").rsplit("/", 1)[-1]
+            if route.startswith("fix-"):
+                return self._fix(route, body)
             # the page sends the name in a header so it stays out of URLs and request logs
             name = unquote(self.headers.get("X-File-Name", "")) or (q.get("name") or ["upload"])[0]
             name = Path(name.replace("\\", "/")).name
@@ -228,6 +258,58 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                 self._send(500, f"Could not convert this file: {e}", "text/plain; charset=utf-8")
             finally:
                 shutil.rmtree(tmp, ignore_errors=True)
+
+        def _fix(self, route: str, body: bytes):
+            """Developer mode: fixes and ideas for the next Claude session. Same-origin (checked above), a
+            custom header, and the dev key when one is set; the hosted app refuses all of it without a key."""
+            text = "text/plain; charset=utf-8"
+            if self.headers.get("X-App") != "1":
+                return self._send(403, "Missing the app's header.", text)
+            key = os.environ.get(DEV_KEY_ENV, "")
+            if key:
+                if not hmac.compare_digest(self.headers.get("X-Dev-Key", "").encode(), key.encode()):
+                    return self._send(403, "This device isn't linked for developer mode. Open your dev link on it.",
+                                      text)
+            elif hosted:
+                return self._send(403, "Developer mode isn't set up on this site yet.", text)
+            oidc = self.headers.get("x-vercel-oidc-token")
+            if oidc:  # Vercel's per-request credential for the connected Blob store
+                os.environ["VERCEL_OIDC_TOKEN"] = oidc
+            try:
+                data = json.loads(body or b"{}")
+            except ValueError:
+                return self._send(400, "Send JSON.", text)
+            if not isinstance(data, dict):
+                return self._send(400, "Send a JSON object.", text)
+            ok = lambda d: self._send(200, json.dumps({"ok": True, **d}), "application/json")  # noqa: E731
+            try:
+                store = _dev_store(hosted, dev_cache)
+                if route == "fix-check":
+                    return ok({"store": "blob" if hosted else "local"})
+                if route == "fix-add":
+                    entry, png = fixmod.clean_entry(data)
+                    return ok({"id": store.add(entry, png)})
+                if route == "fix-list":
+                    return ok({"entries": store.public()})
+                if route == "fix-image":
+                    ref = str(data.get("ref", ""))
+                    png = store.image(int(ref)) if not hosted and ref.isdigit() else (
+                        store.image(ref) if hosted else None)
+                    return self._send(200, png, "image/png") if png else self._send(404, "No picture.", text)
+                if route == "fix-review":
+                    ref = str(data.get("ref", ""))
+                    rec = store.close(int(ref) if not hosted and ref.isdigit() else ref, data.get("status"),
+                                      data.get("review"))
+                    return ok({"status": rec["status"]})
+                if route == "fix-export":
+                    if not hosted:
+                        return ok({"entries": []})  # the CLI reads the local store directly
+                    return ok({"entries": store.entries(limit=500)})
+            except fixmod.FixError as e:
+                return self._send(400, str(e), text)
+            except Exception as e:  # storage trouble: say so, plainly
+                return self._send(502, f"Fix storage failed: {type(e).__name__}: {e}"[:300], text)
+            return self._send(404, "Unknown developer route.", text)
 
     return Handler
 

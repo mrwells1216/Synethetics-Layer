@@ -13,6 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Synesthetic">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="/dev.js?v={{DEVJS}}"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
@@ -349,6 +350,7 @@ body.dragging #dropall{display:grid}
   .fr-page{max-width:900px}
   .set-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
   .set-grid .card + .card{margin-top:0}
+  .set-grid .wide{grid-column:1/-1}
   .kcard{max-width:600px;padding:30px 28px;margin-top:3vh}
   .lb-stage img{width:auto;max-width:100%}
 }
@@ -607,6 +609,28 @@ body.dragging #dropall{display:grid}
         <div class="actions" style="margin-top:6px">
           <button class="pill" id="set-clear-recent">Clear Recent</button>
           <button class="pill danger" id="set-wipe">Delete all documents</button>
+        </div>
+      </div>
+      <div class="card wide" id="log-card">
+        <h3>What's new</h3>
+        <p class="hint">Every update to the app, newest first: what was added, changed, fixed or removed.</p>
+        <div class="seg" id="log-tags" aria-label="Show"><button data-v="all" aria-pressed="true">All</button><button data-v="Added">Added</button><button data-v="Changed">Changed</button><button data-v="Fixed">Fixed</button><button data-v="Removed">Removed</button></div>
+        <div id="log-list"></div>
+        <button class="link" id="log-more" hidden>Show more</button>
+      </div>
+      <div class="card wide" id="dev-card">
+        <h3>Developer mode</h3>
+        <label class="sw-row"><input type="checkbox" role="switch" id="set-dev"><span>Developer mode<small>A layer for fixing the app. Highlight text and press Fix/idea, or triple-click (triple-tap on a phone) for a screenshot frame. The DEV button shows live requests, errors and state. What you send waits here for the next Claude session, which makes the change and notes what it did. While it's on, triple-clicking text no longer selects its paragraph; dragging still does.</small></span></label>
+        <div id="dev-more" hidden>
+          <p class="hint" id="dev-status"></p>
+          <div class="actions" style="margin-top:6px">
+            <button class="pill" id="dev-shot">Screenshot</button>
+            <button class="pill" id="dev-panel">Dev panel</button>
+            <button class="pill" id="dev-refresh">Refresh list</button>
+            <button class="pill danger" id="dev-unlink" hidden>Unlink this device</button>
+          </div>
+          <h4 class="flabel" style="margin:18px 0 0">Your fixes and ideas</h4>
+          <div id="dev-fixes"></div>
         </div>
       </div>
       <div class="card">
@@ -2393,6 +2417,8 @@ body.dragging #dropall{display:grid}
   });
   if (obs) obs.observe(wrap, {childList: true, characterData: true, subtree: true});
   setUi(uiOn);
+  // for developer mode (/dev.js): the app's toast and which tab is open
+  window.synApp = {toast: toast, tab: function(){ return cur; }, setTab: setTab};
 })();
 </script>
 </body>

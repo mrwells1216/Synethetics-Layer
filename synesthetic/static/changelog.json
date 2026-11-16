@@ -1,0 +1,136 @@
+[
+ {
+  "sha": "5b7c35729040146ada5bbc07b2f0e0b87a9678e4",
+  "short": "5b7c357",
+  "date": "2026-11-15T00:19:05-06:00",
+  "title": "PDF words get their new look, and a long market wrap sample",
+  "body": "PDFs: matched words are redrawn in place with your colors, fonts, ALL CAPS and sizes (the old word is covered with the paper color around it, so nothing moves); highlight notes stay as an option. Word and Excel pick up the category fonts and bold. A 3-page made-up S&P 500 weekly wrap to try in Synesthesize and How it works. Fixes: dates no longer run across a sentence end (September. 77), ligatures in PDFs, upload-limit replies, stale examples.",
+  "tags": [
+   "Added",
+   "Fixed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/5b7c35729040146ada5bbc07b2f0e0b87a9678e4"
+ },
+ {
+  "sha": "a26f8fdbb1a0a1feaf32570f689f0fb56fda15dc",
+  "short": "a26f8fd",
+  "date": "2026-11-15T00:01:30-06:00",
+  "title": "Six tabs under the color bars, Word Bank, rollers, Free Rain and Saved",
+  "body": "How it works with famous writing and live switches; Synesthesize with a roller that colors only the parts you pick, recent thumbnails and a how-to strip; Free Rain editor with auto color, roller and rain; Editor with color schemes, ALL CAPS and size per category, and the Word Bank; Saved with list and thumbnail views, delete and undo; Settings.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/a26f8fdbb1a0a1feaf32570f689f0fb56fda15dc"
+ },
+ {
+  "sha": "b1901669a36dc4d06ef3957fb0efa215f917a5d3",
+  "short": "b190166",
+  "date": "2026-11-14T22:50:15-06:00",
+  "title": "Serve the icons and manifest behind Vercel's rewrite",
+  "body": "",
+  "tags": [
+   "Changed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/b1901669a36dc4d06ef3957fb0efa215f917a5d3"
+ },
+ {
+  "sha": "da83418e01d0610afa3acf183fd3ffc38adfbfa8",
+  "short": "da83418",
+  "date": "2026-11-14T22:46:01-06:00",
+  "title": "Desktop layout, app icons and installable app",
+  "body": "Two columns on wide screens, drop or paste a file anywhere, Ctrl/Cmd+Enter and Esc. Icons, a web manifest and an Install button so it can live on a phone home screen or a desktop.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/da83418e01d0610afa3acf183fd3ffc38adfbfa8"
+ },
+ {
+  "sha": "4e5232b67e71fe5d4ba567430644301e01d32c6d",
+  "short": "4e5232b",
+  "date": "2026-11-14T19:18:00-06:00",
+  "title": "Keep the original look: add the colors on top of PDF, Word and Excel files",
+  "body": "PDFs get highlight (or underline) notes over matched words; Word runs are recolored in place by highlight style; Excel colors number/date cells and matched words in text cells. Switch in the web app, --keep on the CLI.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/4e5232b67e71fe5d4ba567430644301e01d32c6d"
+ },
+ {
+  "sha": "b4764c906cd878e272ba267bdaaa5540bed5b6b2",
+  "short": "b4764c9",
+  "date": "2026-11-14T14:03:48-06:00",
+  "title": "Color the app's own text, with a switch to turn it off",
+  "body": "The page now runs the lens's content patterns over its own instructions, labels, example cards and messages, in the chosen highlight style. A switch on the home page and in Customize turns it on or off (on by default, saved per device). The copy names real examples (1,250, Aug 14, page 5, do not) so the colors show.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/b4764c906cd878e272ba267bdaaa5540bed5b6b2"
+ },
+ {
+  "sha": "3bbe76537a8b67906647bf171c47f3e05e3647e0",
+  "short": "3bbe765",
+  "date": "2026-11-14T14:00:00-06:00",
+  "title": "Add \"Try an example\" documents to the web app",
+  "body": "Seven made-up documents for different uses (study notes, a lease, care instructions, a work email, a recipe, a budget table, a trip itinerary). Tapping one converts it with the reader's own colors and fonts. Each card shows the colors that document uses; the study notes turn the grammar layer on.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/3bbe76537a8b67906647bf171c47f3e05e3647e0"
+ },
+ {
+  "sha": "67c5f65547a58f4959d18999128b83dc6b5be815",
+  "short": "67c5f65",
+  "date": "2026-11-14T12:06:20-06:00",
+  "title": "Redesign the web app and add a Customize screen for colors and fonts",
+  "body": "The app is themed by the reader's own category colors: a lettered wordmark, a spectrum strip, a colored paper preview and a gradient Convert button. Customize sets each category's dark and light color, body and heading fonts, text size, highlight style and theme, with a live preview, reset, export and import. The settings are sent with each conversion (validated server side) and baked into the page; the CLI reads the exported file with --style.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/67c5f65547a58f4959d18999128b83dc6b5be815"
+ },
+ {
+  "sha": "f62a6aada9ebaa4087c1a4afd8045c35020f8132",
+  "short": "f62a6aa",
+  "date": "2026-11-14T11:58:22-06:00",
+  "title": "Add web UI and Vercel deployment",
+  "body": "New upload page (file or pasted text, result shown in place with Save and Open), shared by `synesthetic serve` and a Vercel Python function. File names travel in a header so they stay out of URLs and logs; size limit is per host (4.4 MB on Vercel).",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/f62a6aada9ebaa4087c1a4afd8045c35020f8132"
+ },
+ {
+  "sha": "06de3603f67f56d58abb0f44f440549627a375d6",
+  "short": "06de360",
+  "date": "2026-11-14T09:19:03-06:00",
+  "title": "Fix review findings: encodings, AI-layer errors, table flag, upload origin check",
+  "body": "- read_text no longer decodes BOM-less cp1252 text as utf-16 garbage - claude timeouts and spawn errors become AIUnavailable; finished batches are cached when another fails; one temp folder per run, removed afterwards - PDF table detection is a parameter of extract() instead of a module global (was racy under the threaded upload server) - /convert refuses cross-site posts (Sec-Fetch-Site / Origin) and reads the body before any error so browsers see the message - plain-text: a lead-in line after a blank line no longer glues onto the previous bullet; a lone bullet line is never a heading - LibreOffice failures surface as UnsupportedFile; its temp folder is removed - template filled in one pass so {{BODY}} in document text survives - render reuses colorcheck's contrast math; chat mod reads group offsets from m.indices; small dead-code cleanups - 6 new tests (64 pass); TS parity unchanged",
+  "tags": [
+   "Fixed",
+   "Removed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/06de3603f67f56d58abb0f44f440549627a375d6"
+ },
+ {
+  "sha": "0aca353223d0112152c2b64a44509ddf73f3236b",
+  "short": "0aca353",
+  "date": "2026-11-14T08:38:54-06:00",
+  "title": "Add Synesthetic Layer: file-to-HTML color layer and Claude chat mod",
+  "body": "Converts .txt, .md, .docx, .doc, .pdf and .xlsx into self-contained HTML with content-type, grammar and AI-meaning layers; includes the Claude Code chat mod, tests and the research report behind the design.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/0aca353223d0112152c2b64a44509ddf73f3236b"
+ },
+ {
+  "sha": "d6381fcd72c13eac7b46002eb263546bdce5491d",
+  "short": "d6381fc",
+  "date": "2026-11-14T00:55:20-06:00",
+  "title": "Initial commit",
+  "body": "",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/d6381fcd72c13eac7b46002eb263546bdce5491d"
+ }
+]
