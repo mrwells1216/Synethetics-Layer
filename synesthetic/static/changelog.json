@@ -1,14 +1,26 @@
 [
  {
-  "sha": "1896e535e17b151b4037f14b486fc9235d0eb7b6",
-  "short": "1896e53",
-  "date": "2026-11-16T06:17:12-06:00",
+  "sha": "e508504c6bc8b06b42ea50e6cfdb36bb2c8dc67c",
+  "short": "e508504",
+  "date": "2026-11-16T10:26:19-06:00",
+  "title": "Highlight notes get Good and Not good; the side strip steps aside for results",
+  "body": "Highlighting text in developer mode now offers Good, Not good and Fix/idea, like the screenshot window. Good and Not good can be saved without a note.\n\nFix the phone tab strip covering the Open button in the result view: the strip slides away while a result or the roller is open.\n\nFix screenshots picking up a \"Saved\" toast, and the live panel adding a new listener each time it opened.\n\nThe chat style sheet now names the right place in Claude's settings, uses a sans font for colored words and lists light mode colors.",
+  "tags": [
+   "Added",
+   "Fixed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/e508504c6bc8b06b42ea50e6cfdb36bb2c8dc67c"
+ },
+ {
+  "sha": "715c9c9ec3e3c289325ec8084a50507856b485cf",
+  "short": "715c9c9",
+  "date": "2026-11-16T06:17:16-06:00",
   "title": "Add a chat style sheet: Claude replies in the app's colors and looks",
   "body": "docs/chat-style-instructions.md is ready to paste into Claude's preferences. It has plain markdown cues that work everywhere, real color through inline math using the app's default colors, and an HTML page for long answers.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/1896e535e17b151b4037f14b486fc9235d0eb7b6"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/715c9c9ec3e3c289325ec8084a50507856b485cf"
  },
  {
   "sha": "e6ee50aff5806665d873d34ee58a02b7b42e40a0",

@@ -156,6 +156,8 @@
     '.dv-bar{position:fixed;z-index:2147482600;display:flex;gap:2px;padding:4px;border-radius:999px;background:var(--fg);color:var(--bg);box-shadow:0 6px 18px rgba(0,0,0,.3)}',
     '.dv-bar button{all:unset;cursor:pointer;padding:7px 12px;border-radius:999px;font:750 14px/1 var(--font-body)}',
     '.dv-bar button:hover{background:color-mix(in srgb,var(--bg) 18%,transparent)}',
+    '.dv-bar .dv-barx{margin-left:2px;padding:7px 10px;border-left:1px solid color-mix(in srgb,var(--bg) 30%,transparent);border-radius:0 999px 999px 0;opacity:.75}',
+    '.dv-pick{margin:0 0 8px}',
     '.dv-dim{position:fixed;inset:0;z-index:2147482700;pointer-events:none;background:rgba(0,0,0,.5)}',
     '.dv-frame{position:fixed;z-index:2147482800;border:2px dashed #fff;outline:1px solid rgba(0,0,0,.75);box-shadow:inset 0 0 0 1px rgba(0,0,0,.45);touch-action:none;cursor:move;box-sizing:border-box}',
     '.dv-h{position:absolute;width:30px;height:30px;touch-action:none}',
@@ -257,7 +259,7 @@
   }
   function fillFixes(box, list){
     box.textContent = '';
-    if (!list.length){ box.append(h('p', {class: 'dv-empty', text: 'Nothing yet. Highlight text and press Fix/idea, or triple-click for a screenshot.'})); return; }
+    if (!list.length){ box.append(h('p', {class: 'dv-empty', text: 'Nothing yet. Highlight text and mark it, or triple-click for a screenshot.'})); return; }
     var open = list.filter(function(e){ return e.status === 'open'; }).length;
     box.append(h('p', {class: 'dv-empty', text: list.length + (list.length === 1 ? ' entry' : ' entries') + ', ' + open + ' waiting for Claude.'}));
     list.forEach(function(e){
@@ -297,7 +299,7 @@
     var b = dock.querySelector('.dv-badge');
     b.hidden = !unseen; b.textContent = unseen > 99 ? '99+' : String(unseen);
   }
-  var panelTab = 'live', liveT = null;
+  var panelTab = 'live', liveT = null, liveSub = false;
   function openPanel(tab){
     panelTab = tab || panelTab;
     if (!panel){
@@ -319,7 +321,7 @@
         tabs, h('div', {class: 'dv-line'}, [shotB, ideaB]), body]));
       panel._body = body; panel._tabs = tabs;
       document.body.appendChild(panel);
-      subs.push(function(){ if (panel && panelTab === 'live'){ clearTimeout(liveT); liveT = setTimeout(drawPanel, 250); } });
+      if (!liveSub){ liveSub = true; subs.push(function(){ if (panel && panelTab === 'live'){ clearTimeout(liveT); liveT = setTimeout(drawPanel, 250); } }); }
     }
     drawPanel();
   }
@@ -397,12 +399,17 @@
       var save = h('button', {class: 'dv-btn', type: 'button', text: 'Save'});
       var cancel = h('button', {class: 'dv-btn', type: 'button', text: 'Cancel'});
       var x = h('button', {class: 'dv-btn', type: 'button', 'aria-label': 'Close', text: '✕'});
+      var pick = h('div', {class: 'dv-marks dv-pick', role: 'group', 'aria-label': 'Mark'}, Object.keys(MARK).map(function(m){
+        var b = h('button', {class: 'dv-btn', type: 'button', 'data-m': m, text: MARK[m]});
+        b.addEventListener('click', function(){ setMark(m); noteD._ta.focus(); });
+        return b;
+      }));
       noteD = ui(h('dialog', {class: 'dv-note', 'aria-label': 'Fix or idea'}, [
         h('div', {class: 'dv-top'}, [h('h3'), x]),
         h('p', {class: 'hint', text: 'Saved for the next Claude session, which makes the change and reports back here. ' + (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl') + '+Enter saves.'}),
-        h('blockquote'), ta, h('div', {class: 'dv-marks'}, [save, cancel]), st]));
+        h('blockquote'), pick, ta, h('div', {class: 'dv-marks'}, [save, cancel]), st]));
       document.body.appendChild(noteD);
-      noteD._ta = ta; noteD._st = st;
+      noteD._ta = ta; noteD._st = st; noteD._pick = pick;
       function close(){ noteD.close(); }
       x.addEventListener('click', close); cancel.addEventListener('click', close);
       save.addEventListener('click', saveNote);
@@ -415,14 +422,23 @@
     var q = noteD.querySelector('blockquote');
     q.hidden = !opts.text; q.textContent = opts.text ? (opts.text.length > 900 ? opts.text.slice(0, 900) + '...' : opts.text) : '';
     noteD._ta.value = ''; noteD._st.textContent = '';
+    noteD._pick.hidden = !opts.marks;
+    setMark(opts.mark || 'fix');
     if (!noteD.open) noteD.showModal();
     noteD._ta.focus();
   }
+  // Good and Not good can be saved bare; a fix or idea needs words
+  var NOTE_HINT = {good: 'What works here (optional)', bad: 'What is off (optional)', fix: 'What should change, or your idea'};
+  function setMark(m){
+    noteOpts.mark = m;
+    noteD._ta.placeholder = NOTE_HINT[m] || NOTE_HINT.fix;
+    noteD._pick.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-m') === m ? 'true' : 'false'); });
+  }
   function saveNote(){
-    var o = noteOpts, note = noteD._ta.value.trim(), st = noteD._st;
-    if (!note){ st.textContent = 'Write what should change, or your idea.'; noteD._ta.focus(); return; }
+    var o = noteOpts, note = noteD._ta.value.trim(), st = noteD._st, mark = o.mark || 'fix';
+    if (!note && (mark === 'fix' || !o.text)){ st.textContent = 'Write what should change, or your idea.'; noteD._ta.focus(); return; }
     st.textContent = 'Saving...';
-    send({kind: o.kind, mark: o.mark || 'fix', note: note, text: (o.text || '').slice(0, 4000), section: o.section || tabNow(), context: context(o.context)})
+    send({kind: o.kind, mark: mark, note: note, text: (o.text || '').slice(0, 4000), section: o.section || tabNow(), context: context(o.context)})
       .then(function(){ noteD.close(); toast('Saved for Claude'); }, function(e){ st.textContent = e.message; });
   }
 
@@ -440,14 +456,18 @@
     var rect = r.getBoundingClientRect();
     if (!rect.width && !rect.height) return hideBar();
     if (!bar){
-      var fixB = h('button', {type: 'button', text: 'Fix/idea'}), closeB = h('button', {type: 'button', 'aria-label': 'Close', text: '✕'});
-      bar = ui(h('div', {class: 'dv-bar', role: 'toolbar', 'aria-label': 'Fix or idea'}, [fixB, closeB]));
+      var closeB = h('button', {type: 'button', class: 'dv-barx', 'aria-label': 'Close', text: '✕'});
+      var markBs = [['good', 'Good'], ['bad', 'Not good'], ['fix', 'Fix/idea']].map(function(m){
+        var b = h('button', {type: 'button', text: m[1]});
+        b.addEventListener('click', function(){
+          var sel = barSel; hideBar(); if (!sel) return;
+          openNote({kind: 'text', title: 'About this text', marks: true, mark: m[0], text: sel.text, section: sel.section, context: {picture: 'not drawn: highlight'}});
+        });
+        return b;
+      });
+      bar = ui(h('div', {class: 'dv-bar', role: 'toolbar', 'aria-label': 'Mark this text'}, markBs.concat([closeB])));
       // keep the selection when the bar is pressed
       bar.addEventListener('mousedown', function(ev){ ev.preventDefault(); });
-      fixB.addEventListener('click', function(){
-        var sel = barSel; hideBar(); if (!sel) return;
-        openNote({kind: 'text', title: 'Fix or idea', text: sel.text, section: sel.section, context: {picture: 'not drawn: highlight'}});
-      });
       closeB.addEventListener('click', function(){ dismissed = barSel ? barSel.text : ''; hideBar(); });
       document.body.appendChild(bar);
     }
@@ -609,7 +629,7 @@
     var out = [], walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {acceptNode: function(n){
       if (!n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
       var p = n.parentElement;
-      if (!p || p.closest('script,style,noscript,[data-devui]')) return NodeFilter.FILTER_REJECT;
+      if (!p || p.closest('script,style,noscript,[data-devui],#toast')) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     }});
     var range = doc.createRange(), n, total = 0, W = vw(), H = vh();
@@ -648,7 +668,7 @@
     for (var i = 0; i < orig.length && i < cl.length; i++){
       (function(o, c){
         var tag = o.tagName;
-        if (tag === 'SCRIPT' || tag === 'NOSCRIPT' || tag === 'STYLE' || tag === 'LINK' || tag === 'TEMPLATE' || o.hasAttribute('data-devui')){ drop.push(c); return; }
+        if (tag === 'SCRIPT' || tag === 'NOSCRIPT' || tag === 'STYLE' || tag === 'LINK' || tag === 'TEMPLATE' || o.hasAttribute('data-devui') || o.id === 'toast'){ drop.push(c); return; }
         if (tag === 'DIALOG' && !o.open){ drop.push(c); return; }
         var cs = win.getComputedStyle(o);
         if (cs.display === 'none') return;

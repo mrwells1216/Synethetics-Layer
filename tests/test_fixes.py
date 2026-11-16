@@ -38,6 +38,14 @@ def test_highlight_needs_text_and_note():
     assert e["mark"] == "fix" and png is None and e["section"] == "how"
 
 
+def test_good_and_not_good_highlights_need_no_note():
+    for mark in ("good", "bad"):
+        e, _ = fx.clean_entry({"kind": "text", "mark": mark, "text": "Some words"})
+        assert e["mark"] == mark and e["note"] == ""
+    with pytest.raises(fx.FixError):
+        fx.clean_entry({"kind": "text", "mark": "good", "note": "No text marked"})
+
+
 def test_screenshot_needs_something():
     with pytest.raises(fx.FixError):
         fx.clean_entry({"kind": "shot", "mark": "good"})

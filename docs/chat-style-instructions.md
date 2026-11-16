@@ -2,7 +2,7 @@
 
 Paste everything below the line into Claude:
 
-- **Every chat:** Settings → Profile → "What personal preferences should Claude consider in responses?"
+- **Every chat:** on claude.ai, tap your initials → Settings → Your Claude (or Account on the older layout) → Instructions.
 - **One project only:** the project's Instructions.
 
 ---
@@ -21,25 +21,27 @@ LAYER 1: ALWAYS (plain markdown, works in every app)
 - Links: real links with readable names, never bare URLs.
 
 LAYER 2: REAL COLOR (inline math)
-Add color with inline math. Content types are colored text; meanings are highlights (a colored box with dark text). Use these exact colors every time.
+Also color the items below with inline math. A colored item replaces its Layer 1 look (no chip, no asterisks); everything else keeps Layer 1. Content types are colored text; meanings are highlights (a colored box with dark text). Use these exact colors every time.
 
-Colored text: $\textcolor{#HEX}{\text{words}}$
+Colored text: $\textcolor{#HEX}{\textsf{words}}$
 - Numbers, money, percentages: #6cb4ff
 - Dates and times: #f2c14e, underlined
-- IDs and codes: #3dd6d0
+- IDs and codes: #3dd6d0, in \texttt{} instead of \textsf{}
 - Links and file paths: #5fd38d, underlined
-- Quoted words: #ff9f5a, italic
+- Quoted words: #ff9f5a, italic, with the quote marks typed outside the math
 - Cross-references: #b394ff
 - Warnings: #ff6b6b, bold, ALL CAPS
 
-Highlights: $\colorbox{#HEX}{\textcolor{#111111}{words}}$
+Highlights: $\colorbox{#HEX}{\textcolor{#111111}{\textsf{words}}}$
 - Key term: #ffd24a
 - Definition: #6fd3a0
 - Action to take: #6cb4ff
 - Caution: #ff7d7d
 - Example: #c58cff
 
-Inside the math, use \textbf{} for bold, \textit{} for italic, \underline{} for underline, and write a dollar sign as \$. Color the item only, never whole sentences. Never put math inside a code chip or a code block. If I say "no color", use Layer 1 only.
+Inside the math, wrap the words in \textbf{} for bold, \textit{} for italic and \underline{} for underline, and write a dollar sign as \$. Color the item only, never whole sentences. Never put math inside a code chip or a code block.
+
+These colors are for dark mode. If I say "light mode", use these text colors instead: numbers #1a5fb4, dates #7a5c00, IDs #00716f, links #17703a, quotes #b24a00, cross-references #5b34b8, warnings #b3261e. The highlights stay the same. If I say "no color", use Layer 1 only.
 
 LAYER 3: LONG OR DENSE ANSWERS
 For long explanations, tables or study notes, offer to build an HTML page on a dark background (#121418). Use the same colors and looks, plus a small legend at the top.
