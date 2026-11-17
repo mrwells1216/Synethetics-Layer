@@ -118,3 +118,18 @@ def test_render_nests_content_inside_meaning(monkeypatch, tmp_path):
     inner = html.split('c-example l-meaning"', 1)[1].split("</span></span>", 1)[0]
     assert 'data-cat="number"' in inner  # the number stays styled inside the marker
     assert "Meaning (AI)" in html
+
+
+def test_grammar_words_differ_by_shape_not_only_color():
+    from synesthetic.overlay import _Ctx
+    from synesthetic.render import _cat_css
+
+    lens = load_lens()
+    css = _cat_css(lens)
+    verb = css.split(".c-verb{", 1)[1].split("}", 1)[0]
+    adjective = css.split(".c-adjective{", 1)[1].split("}", 1)[0]
+    assert "font-weight:700" in verb and "font-style:italic" in adjective
+    assert ".c.l-grammar.c-adverb{text-decoration:underline dotted" in css
+    look = _Ctx(lens, {}, "a", True, print).look   # kept-layout files use the same shapes
+    assert look["verb"]["bold"] and look["adjective"]["italic"] and look["adverb"]["underline"] == "dotted"
+    assert not look["noun"]["bold"] and not look["noun"]["italic"]

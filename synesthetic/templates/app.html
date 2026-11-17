@@ -39,6 +39,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* Header: the wordmark is lettered in your own category colors */
 .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+/* the one switch for the mark-up tools: off, none of them run */
+.devsw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font:750 11px/1 var(--font-body);letter-spacing:.1em}
+.devsw input{appearance:none;-webkit-appearance:none;flex:none;margin:0;width:36px;height:20px;border-radius:10px;background:var(--raised);border:1px solid var(--line);position:relative;cursor:pointer;transition:background .2s}
+.devsw input::before{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .2s var(--ease),background .2s}
+.devsw input:checked{background:var(--c-link)}
+.devsw input:checked::before{transform:translateX(16px);background:var(--on-link)}
+.devsw input:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .mark{margin:0;font-family:var(--font-head);font-weight:650;font-size:clamp(2.1rem,10vw,2.9rem);line-height:.95;letter-spacing:-.02em}
 .mark .ch{display:inline-block;transition:color .4s var(--ease)}
 .mark .lyr{display:block;font-family:var(--font-body);font-size:.8rem;font-weight:700;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);margin:.7em 0 0 .15em}
@@ -97,6 +104,10 @@ button,input,select,textarea{font:inherit;color:inherit}
   /* a full-screen result or roller has its own buttons along that edge, so the strip steps aside for it */
   body:has(#result.on) .vbar,body:has(#roller.on) .vbar{transform:translateX(calc(100% + 24px));pointer-events:none}
   :root.vinit .vbar{transition:none}
+  /* the switch at the top keeps clear of the strip */
+  .top-acts{transition:margin-right .42s var(--ease)}
+  :root:not(.vfolded) .top-acts{margin-right:32px}
+  :root.vinit .top-acts{transition:none}
   /* the + is the name's last letter: same font, size and weight, the next color in its cycle; filled while
      the strip is out, an outline while it's away */
   .plus{all:unset;box-sizing:border-box;display:block;flex:none;margin-left:.01em;padding:0 .08em 0 0;cursor:pointer;
@@ -449,6 +460,7 @@ body.dragging #dropall{display:grid}
       <button class="plus" id="vplus" type="button" aria-label="Tab strip" aria-pressed="true" aria-controls="vbar"><span aria-hidden="true">+</span></button>
     </div>
     <div class="top-acts">
+      <label class="devsw" title="Tools: mark text and take screenshots"><span>DEV</span><input type="checkbox" role="switch" id="set-dev" aria-label="Developer tools"></label>
       <button class="pill" id="install" hidden>Install app</button>
     </div>
   </header>
@@ -495,7 +507,7 @@ body.dragging #dropall{display:grid}
           <div class="field"><span class="flabel">Colors</span>
             <div class="seg" data-show="scheme" id="show-schemes"></div></div>
           <div class="sws">
-            <label class="sw-row"><input type="checkbox" role="switch" id="show-grammar"><span>Grammar layer<small>Nouns, verbs, adjectives, adverbs</small></span></label>
+            <label class="sw-row"><input type="checkbox" role="switch" id="show-grammar"><span>Grammar layer<small>Nouns tinted, verbs bold, adjectives italic, adverbs italic and underlined</small></span></label>
             <label class="sw-row"><input type="checkbox" role="switch" id="show-cb"><span>Color-blind safe<small>Okabe-Ito based colors</small></span></label>
           </div>
           <div class="sws">
@@ -538,7 +550,7 @@ body.dragging #dropall{display:grid}
           <label class="sw-row" id="o-pdf" hidden><input id="pdfletters" type="checkbox" role="switch"><span>Change the letters<small>On: matched words are redrawn in your colors, fonts, ALL CAPS and sizes, right where they were. Off: light highlight notes on top, which any PDF app can hide.</small></span></label>
           <label class="sw-row" id="o-roll" hidden><input id="useroll" type="checkbox" role="switch"><span>Choose what to color (Roller)<small>Opens your file so you can select the parts to color, like rolling paint on. Everything else stays as it is.</small></span></label>
           <p class="hint" id="o-nolayout" hidden>This kind of file has no layout of its own, so it becomes a colored page.</p>
-          <label class="sw-row" id="o-grammar" hidden><input id="grammar" type="checkbox" role="switch"><span>Grammar layer<small>Tints nouns, verbs, adjectives and adverbs. Busier page.</small></span></label>
+          <label class="sw-row" id="o-grammar" hidden><input id="grammar" type="checkbox" role="switch"><span>Grammar layer<small>Tints nouns, bolds verbs, italicizes adjectives and underlines adverbs. Busier page.</small></span></label>
           <label class="sw-row" id="o-fast" hidden><input id="fast" type="checkbox" role="switch"><span>Fast PDF<small>Skips table detection. Use it if a big PDF is slow.</small></span></label>
         </div>
         <div class="go" id="go" role="button" tabindex="0" aria-disabled="true">Synesthesize</div>
@@ -708,17 +720,14 @@ body.dragging #dropall{display:grid}
         <button class="link" id="log-more" hidden>Show more</button>
       </div>
       <div class="card wide" id="dev-card">
-        <h3>Developer mode</h3>
-        <label class="sw-row"><input type="checkbox" role="switch" id="set-dev"><span>Developer mode<small>A layer for fixing the app. Highlight text and mark it Good, Not good or Fix/idea, or triple-click (triple-tap on a phone) for a screenshot frame. The DEV button shows live requests, errors and state. What you send waits here for the next Claude session, which makes the change and notes what it did. While it's on, triple-clicking text no longer selects its paragraph; dragging still does.</small></span></label>
+        <h3>Notes for Claude</h3>
+        <p class="hint" id="dev-status"></p>
         <div id="dev-more" hidden>
-          <p class="hint" id="dev-status"></p>
           <div class="actions" style="margin-top:6px">
-            <button class="pill" id="dev-shot">Screenshot</button>
-            <button class="pill" id="dev-panel">Dev panel</button>
-            <button class="pill" id="dev-refresh">Refresh list</button>
-            <button class="pill danger" id="dev-unlink" hidden>Unlink this device</button>
+            <button class="pill" id="dev-copy" hidden>Copy for Claude</button>
+            <button class="pill" id="dev-share" hidden>Share with pictures</button>
+            <button class="pill danger" id="dev-clear" hidden>Clear</button>
           </div>
-          <h4 class="flabel" style="margin:18px 0 0">Your fixes and ideas</h4>
           <div id="dev-fixes"></div>
         </div>
       </div>

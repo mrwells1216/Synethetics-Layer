@@ -106,7 +106,7 @@ class _Ctx:
         self.notes: list[str] = []
         self.ann = None
         # ALL CAPS, size, bold, italic and underline per category: the lens defaults, then the reader's own
-        self.look = {c.name: default_look(c) for c in lens.categories if c.layer == "content"}
+        self.look = {c.name: default_look(c) for c in lens.categories if c.layer in ("content", "grammar")}
         for name, v in (look or {}).items():
             self.look.setdefault(name, {}).update(v)
 
@@ -222,10 +222,14 @@ def _restyle_look(sp, ctx: _Ctx, font: str, flags: int, color: int) -> dict:
                 "bg": _rgb(e["bg"]) if "bg" in e else None,
                 "line": (_rgb(e.get("color", "#000000")) if e.get("underline") else None)}
     col = ctx.colors[sp.cat]
-    if sp.layer == "grammar":
-        return {"fam": fam, "bold": bold, "ital": ital, "caps": False, "scale": 1, "ink": _rgb(col), "bg": None, "line": None}
-    cat = ctx.lens.get(sp.cat)
     look = ctx.look.get(sp.cat, {})
+    if sp.layer == "grammar":   # a tint plus the word's own shape: bold, italic, a thin underline
+        g = {"fam": fam, "bold": bold or look.get("bold", False), "ital": ital or look.get("italic", False),
+             "caps": False, "scale": 1, "ink": _rgb(col), "bg": None, "line": None}
+        if look.get("underline", "none") != "none":
+            g.update(line=_rgb(col), lstyle=look["underline"])
+        return g
+    cat = ctx.lens.get(sp.cat)
     if cat.font in ("mono", "serif"):
         fam = cat.font
     out = {"fam": fam, "bold": bold or look.get("bold", False), "ital": ital or look.get("italic", False),
@@ -507,9 +511,15 @@ def _paint_run(run, cat: str, layer: str, ctx: _Ctx):
         _set_rpr(run, "caps", {})
     if layer == "content" and look.get("scale", 1) != 1:
         _set_rpr(run, "sz", {"val": str(round(_size(run) * look["scale"]))})
-    if layer == "grammar":
+    if layer == "grammar":   # a tint plus the word's own shape; underline-only mode leaves grammar plain
         if ctx.mode != "d":
             _set_rpr(run, "color", {"val": col})
+            if look.get("bold"):
+                _set_rpr(run, "b", {})
+            if look.get("italic"):
+                _set_rpr(run, "i", {})
+            if look.get("underline", "none") != "none":
+                _set_rpr(run, "u", {"val": _U.get(look["underline"], "single"), "color": col})
         return
     style, ul = look.get("underline", "none"), (_hex(look["ul"]).upper() if look.get("ul") else None)
     if ctx.mode == "d":
@@ -704,7 +714,7 @@ def _xlsx(data: bytes, ctx: _Ctx, ext: str) -> bytes:
                 e = ctx.entry(s.cat)
                 hexcol = (e.get("color") or e.get("bg") or "#000000") if e else ctx.colors[s.cat]
                 scale = ctx.look.get(s.cat, {}).get("scale", 1) if s.layer == "content" else 1
-                if not e and s.layer == "content":
+                if not e and s.layer in ("content", "grammar"):
                     c, lk = ctx.lens.get(s.cat), ctx.look.get(s.cat, {})
                     e = {k: v for k, v in (("bold", lk.get("bold")), ("italic", lk.get("italic")),
                                            ("underline", xl_under(lk.get("underline")))) if v}

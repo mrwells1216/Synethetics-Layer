@@ -1,7 +1,19 @@
 [
  {
-  "sha": "e508504c6bc8b06b42ea50e6cfdb36bb2c8dc67c",
-  "short": "e508504",
+  "sha": "e4062a706235eb589cacca8bfc0cf6a8896f4eb7",
+  "short": "e4062a7",
+  "date": "2026-11-16T18:18:46-06:00",
+  "title": "One DEV switch at the top; grammar words differ by shape, not only color",
+  "body": "Change developer mode to a single switch in the header. On, you can highlight text to mark it and triple-click for a screenshot; off, none of it runs. Notes need no setup: where the site has no store they are kept on the device, with Copy for Claude and Share with pictures in Settings.\n\nRemove the DEV button, its Live, Fixes and State panel, the request and error recorder, and the linking controls in Settings.\n\nAdd shape to the grammar layer on pages and in kept-layout PDF, Word and Excel files: verbs bold, adjectives italic, adverbs italic with a dotted underline, nouns a plain tint.\n\nThe screenshot frame gets a soft spectrum border and tinted corners.",
+  "tags": [
+   "Added",
+   "Removed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/e4062a706235eb589cacca8bfc0cf6a8896f4eb7"
+ },
+ {
+  "sha": "6d08db389d4c8de7876267bcc666ba91732dc4d4",
+  "short": "6d08db3",
   "date": "2026-11-16T10:26:19-06:00",
   "title": "Highlight notes get Good and Not good; the side strip steps aside for results",
   "body": "Highlighting text in developer mode now offers Good, Not good and Fix/idea, like the screenshot window. Good and Not good can be saved without a note.\n\nFix the phone tab strip covering the Open button in the result view: the strip slides away while a result or the roller is open.\n\nFix screenshots picking up a \"Saved\" toast, and the live panel adding a new listener each time it opened.\n\nThe chat style sheet now names the right place in Claude's settings, uses a sans font for colored words and lists light mode colors.",
@@ -9,7 +21,7 @@
    "Added",
    "Fixed"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/e508504c6bc8b06b42ea50e6cfdb36bb2c8dc67c"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/6d08db389d4c8de7876267bcc666ba91732dc4d4"
  },
  {
   "sha": "715c9c9ec3e3c289325ec8084a50507856b485cf",

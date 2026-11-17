@@ -165,7 +165,9 @@ underline = "none"
 
 # ---------------------------------------------------------------------------
 # Grammar layer (opt-in: --grammar). Muted text tints so they never read as
-# content-type colors. Applied only to words not already styled by content.
+# content-type colors, each with its own letter shape so color is not the only cue:
+# nouns plain, verbs bold, adjectives italic, adverbs italic with a dotted underline.
+# Applied only to words not already styled by content.
 # ---------------------------------------------------------------------------
 
 [[category]]
@@ -189,6 +191,7 @@ dark = "#e0a0a0"
 light = "#9a3f3f"
 cb_dark = "#e0a97a"
 cb_light = "#9a5a1f"
+weight = 700
 
 [[category]]
 name = "adjective"
@@ -200,6 +203,7 @@ dark = "#a9c9a0"
 light = "#3f7a37"
 cb_dark = "#a9c9a0"
 cb_light = "#3f7a37"
+font = "italic"
 
 [[category]]
 name = "adverb"
@@ -211,6 +215,8 @@ dark = "#d8c48f"
 light = "#8a6a1a"
 cb_dark = "#d8c48f"
 cb_light = "#8a6a1a"
+font = "italic"
+underline = "dotted"
 
 # ---------------------------------------------------------------------------
 # Meaning layer (opt-in: --ai). A language model marks these phrases; each is

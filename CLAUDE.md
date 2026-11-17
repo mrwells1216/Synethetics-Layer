@@ -2,7 +2,9 @@
 
 ## Start every fix-or-add task with the owner's fixes
 
-The owner leaves fixes and ideas inside the app (Settings, Developer mode). Before changing anything:
+The owner leaves fixes and ideas inside the app (the DEV switch at the top turns the tools on: highlight text
+to mark it, triple-click for a screenshot). On the hosted site the notes stay on the owner's phone and arrive
+pasted into the chat ("Notes from Synesthetic Layer..."); treat those the same way. Before changing anything:
 
 ```
 .venv\Scripts\python.exe fixes.py list

@@ -110,7 +110,7 @@ UNDERLINES = ("none", "solid", "dotted", "dashed", "double", "wavy")
 
 
 def default_look(c) -> dict:
-    """A content category's look from the lens: ALL CAPS, size, bold, italic and underline style.
+    """A content or grammar category's look from the lens: ALL CAPS, size, bold, italic and underline style.
     The underline color is the text's own color unless a look sets "ul"."""
     return {"case": c.case, "scale": c.scale, "bold": c.weight >= 600, "italic": c.font == "italic",
             "underline": c.underline if c.underline in UNDERLINES else "none"}
@@ -311,7 +311,7 @@ def _cat_css(lens: Lens) -> str:
         "body .c.l-meaning{background:color-mix(in srgb,var(--c) 42%,transparent);color:inherit;"
         "padding:.04em .28em;font-weight:600;box-shadow:none;text-decoration:none}",
         # underline-only mode keeps glyphs neutral: grammar goes plain, meaning becomes a heavy underline
-        ".m-d .c.l-grammar{color:inherit}",
+        ".m-d .c.l-grammar{color:inherit;font-weight:inherit;font-style:inherit}",
         ".m-d .c.l-meaning{background:none;padding:0;text-decoration-line:underline;"
         "text-decoration-color:var(--c);text-decoration-thickness:4px;text-underline-offset:.2em}",
     ]
@@ -328,6 +328,10 @@ def _cat_css(lens: Lens) -> str:
         out.append(f".c-{c.name}{{{';'.join(decl)}}}")
         if c.layer == "content":   # underline in every highlight style, in its own color when one is set
             out.extend(underline_rules(f".c-{c.name}", default_look(c)["underline"]))
+        elif c.layer == "grammar":   # a grammar word's own underline, thin, in every style but underline-only
+            if c.underline in UNDERLINES and c.underline != "none":
+                out.append(f":is(.m-a,.m-b,.m-c) .c.l-grammar.c-{c.name}{{text-decoration:underline {c.underline} "
+                           "var(--c);text-decoration-thickness:1px;text-underline-offset:.2em}")
         elif c.underline and c.underline != "none":
             out.append(
                 f".m-a .c-{c.name},.m-c .c-{c.name}{{text-decoration:underline {c.underline} var(--c);"

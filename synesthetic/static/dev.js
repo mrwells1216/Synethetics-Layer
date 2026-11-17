@@ -1,9 +1,9 @@
-/* Developer mode and the change log, for Settings.
+/* Developer tools and the change log.
  *
- * Developer mode is a layer over the app for fixing it. Highlight text and press Fix/idea; triple-click (or
- * triple-tap) for a screenshot window; the Dev button opens live requests, errors and state. Each note goes to the
- * fixes store (python fixes.py list) for the next Claude session. Off by default; nothing here runs on the page
- * until it is switched on, except a small record of recent requests and errors so the panel has history.
+ * One switch at the top of the page turns the tools on: highlight text to mark it Good, Not good or Fix/idea,
+ * and triple-click (or triple-tap) for a screenshot window. Off, none of it runs. A note goes to the fixes store
+ * (python fixes.py list) when the app runs on the owner's computer or the site has a store and this device is
+ * linked; anywhere else it is kept on this device, to copy into a Claude chat.
  *
  * Builds everything with DOM calls and textContent: no innerHTML, so nothing typed or read can become markup.
  */
@@ -20,54 +20,7 @@
     try { history.replaceState(null, '', location.pathname + location.search + '#settings'); } catch (e) { location.hash = 'settings'; }
   }
 
-  // ================= live record: requests, errors, warnings =================
-  var LOG = [], subs = [], unseen = 0;
-  function push(x){
-    x.t = Date.now(); LOG.push(x); if (LOG.length > 200) LOG.shift();
-    if (x.type === 'error') unseen++;
-    subs.forEach(function(f){ try { f(x); } catch (e) {} });
-  }
-  function shortUrl(u){
-    u = String(u || '');
-    if (/^blob:/.test(u)) return 'blob:...';
-    if (/^data:/.test(u)) return u.slice(0, 22) + '...';
-    try { var x = new URL(u, location.href); return (x.origin === location.origin ? '' : x.origin) + x.pathname + (x.search ? x.search.slice(0, 60) : ''); }
-    catch (e) { return u.slice(0, 120); }
-  }
   var realFetch = window.fetch ? window.fetch.bind(window) : null;
-  if (realFetch) window.fetch = function(input, init){
-    var url = typeof input === 'string' ? input : (input && input.url) || String(input);
-    var method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
-    var body = init && init.body, sent = body ? (body.size || body.byteLength || body.length || 0) : 0;
-    var t0 = performance.now(), rec = {type: 'net', method: method, url: shortUrl(url), sent: sent};
-    return realFetch(input, init).then(function(r){
-      rec.status = r.status; rec.ok = r.ok; rec.ms = Math.round(performance.now() - t0);
-      var len = r.headers.get('Content-Length'); rec.got = len ? +len : null;
-      if (!r.ok) r.clone().text().then(function(t){ rec.note = t.slice(0, 300); push(rec); }, function(){ push(rec); });
-      else push(rec);
-      return r;
-    }, function(e){
-      rec.status = 0; rec.ok = false; rec.ms = Math.round(performance.now() - t0); rec.note = String(e && e.message || e); push(rec);
-      throw e;
-    });
-  };
-  window.addEventListener('error', function(e){
-    var t = e.target;
-    if (t && t !== window && t.tagName){ push({type: 'error', msg: 'Could not load ' + t.tagName.toLowerCase() + ' ' + shortUrl(t.currentSrc || t.src || t.href)}); return; }
-    push({type: 'error', msg: String(e.message || 'Error'), where: (e.filename ? shortUrl(e.filename) : '') + (e.lineno ? ':' + e.lineno + ':' + e.colno : ''),
-      stack: e.error && e.error.stack ? String(e.error.stack).slice(0, 1200) : ''});
-  }, true);
-  window.addEventListener('unhandledrejection', function(e){
-    var r = e.reason; push({type: 'error', msg: 'Not handled: ' + String(r && r.message || r), stack: r && r.stack ? String(r.stack).slice(0, 1200) : ''});
-  });
-  function fmt(a){ if (a instanceof Error) return a.message; if (typeof a === 'object'){ try { return JSON.stringify(a).slice(0, 300); } catch (e) { return String(a); } } return String(a); }
-  ['error', 'warn'].forEach(function(level){
-    var orig = console[level]; if (!orig) return;
-    console[level] = function(){
-      try { push({type: level, msg: Array.prototype.map.call(arguments, fmt).join(' ').slice(0, 600), where: 'console'}); } catch (e) {}
-      return orig.apply(console, arguments);
-    };
-  });
 
   // ================= helpers =================
   var root = document.documentElement, cfg = {}, app = {};
@@ -96,8 +49,6 @@
     var d = new Date(iso); if (isNaN(d)) return iso || '';
     return d.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric'}) + ', ' + d.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
   }
-  function clock(t){ var d = new Date(t); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(function(n){ return (n < 10 ? '0' : '') + n; }).join(':'); }
-  function size(n){ return n == null ? '' : n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; }
 
   function api(route, payload, asBlob){
     var hd = {'Content-Type': 'application/json', 'X-App': '1'}, k = devKey();
@@ -122,36 +73,47 @@
     Object.keys(extra || {}).forEach(function(k){ c[k] = extra[k]; });
     return c;
   }
+  // ================= where notes are kept =================
+  function toStore(){ var d = cfg.dev || {}; return d.store === 'local' || (d.store === 'blob' && d.keyed && !!devKey()); }
+  var idbP = null;
+  function idb(){
+    if (!idbP) idbP = new Promise(function(res, rej){
+      var rq;
+      try { rq = indexedDB.open('synapp-notes', 1); } catch (e) { rej(e); return; }
+      rq.onupgradeneeded = function(){ rq.result.createObjectStore('notes', {keyPath: 'id', autoIncrement: true}); };
+      rq.onsuccess = function(){ res(rq.result); };
+      rq.onerror = function(){ rej(rq.error); };
+    }).catch(function(){ idbP = null; throw new Error('This browser can’t keep notes here.'); });
+    return idbP;
+  }
+  function tx(mode, fn){
+    return idb().then(function(db){ return new Promise(function(res, rej){
+      var t = db.transaction('notes', mode), rq = fn(t.objectStore('notes'));
+      t.oncomplete = function(){ res(rq && rq.result); };
+      t.onerror = t.onabort = function(){ rej(new Error('Could not save on this device.')); };
+    }); });
+  }
+  function keepAdd(entry){ return tx('readwrite', function(st){ return st.add(entry); }); }
+  function keepAll(){ return tx('readonly', function(st){ return st.getAll(); }).then(function(l){ return (l || []).reverse(); }); }
+  function keepClear(){ return tx('readwrite', function(st){ return st.clear(); }); }
+
+  // resolves to where the note went: 'claude' (the fixes store) or 'kept' (this device)
   function send(entry){
     entry.page = location.pathname + (location.hash && !/^#dev=/.test(location.hash) ? location.hash : '');
-    return api('fix-add', entry).then(function(r){ refreshFixes(); return r; });
+    if (toStore()) return api('fix-add', entry).then(function(){ refreshFixes(); return 'claude'; });
+    entry.made = new Date().toISOString(); entry.status = 'kept';
+    return keepAdd(entry).then(function(){ refreshFixes(); return 'kept'; });
+  }
+  function saved(where, pic){
+    if (where === 'claude') toast(pic === false ? 'Saved for Claude, without a picture' : 'Saved for Claude');
+    else if (app.toast) app.toast(pic === false ? 'Saved on this device, without a picture' : 'Saved on this device', 'Copy all', copyNotes);
   }
 
   // ================= styles =================
   var CSS = [
-    '.dv-dock{position:fixed;left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:2147482000;display:inline-flex;gap:7px;align-items:center;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:750 13px/1 var(--font-body);letter-spacing:.08em;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer}',
-    '.dv-dock i{width:9px;height:9px;border-radius:50%;background:var(--spec)}',
-    '.dv-badge{min-width:18px;padding:3px 5px;border-radius:9px;background:var(--c-warning);color:var(--on-warning);font-size:11px;text-align:center;letter-spacing:0}',
-    '.dv-panel{position:fixed;z-index:2147482500;left:0;right:0;bottom:0;max-height:64vh;display:flex;flex-direction:column;background:var(--surface);color:var(--fg);border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.35);font:15px/1.45 var(--font-body);padding-bottom:env(safe-area-inset-bottom)}',
-    '@media (min-width:900px){.dv-panel{left:auto;top:0;width:410px;max-height:none;border-radius:0;border-top:0;border-left:1px solid var(--line)}}',
-    '.dv-head{display:flex;align-items:center;gap:8px;padding:12px 14px 8px}',
-    '.dv-head h2{margin:0;font:650 1.15rem var(--font-head);flex:1}',
-    '.dv-head small{color:var(--muted);font-size:12px}',
-    '.dv-line{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px}',
-    '.dv-body{overflow:auto;padding:4px 14px 16px;flex:1;min-height:0;overscroll-behavior:contain}',
     '.dv-btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--fg);font:650 14px/1.1 var(--font-body);white-space:nowrap}',
     '.dv-btn[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}',
     '.dv-btn:focus-visible,.dv-bar button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}',
-    '.dv-x{margin-left:auto}',
-    '.dv-row{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:start}',
-    '.dv-row time{color:var(--muted);font-variant-numeric:tabular-nums}',
-    '.dv-row .t{word-break:break-word}',
-    '.dv-row.error .t{color:var(--c-warning)}',
-    '.dv-row.warn .t{color:var(--c-date)}',
-    '.dv-row pre{margin:4px 0 0;white-space:pre-wrap;font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--muted)}',
-    '.dv-row .dv-btn{padding:4px 9px;font-size:12px}',
-    '.dv-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 12px;font-size:13px;margin:6px 0 12px}',
-    '.dv-kv dt{color:var(--muted)} .dv-kv dd{margin:0;word-break:break-word}',
     '.dv-empty{color:var(--muted);font-size:14px}',
     '.dv-bar{position:fixed;z-index:2147482600;display:flex;gap:2px;padding:4px;border-radius:999px;background:var(--fg);color:var(--bg);box-shadow:0 6px 18px rgba(0,0,0,.3)}',
     '.dv-bar button{all:unset;cursor:pointer;padding:7px 12px;border-radius:999px;font:750 14px/1 var(--font-body)}',
@@ -159,11 +121,11 @@
     '.dv-bar .dv-barx{margin-left:2px;padding:7px 10px;border-left:1px solid color-mix(in srgb,var(--bg) 30%,transparent);border-radius:0 999px 999px 0;opacity:.75}',
     '.dv-pick{margin:0 0 8px}',
     '.dv-dim{position:fixed;inset:0;z-index:2147482700;pointer-events:none;background:rgba(0,0,0,.5)}',
-    '.dv-frame{position:fixed;z-index:2147482800;border:2px dashed #fff;outline:1px solid rgba(0,0,0,.75);box-shadow:inset 0 0 0 1px rgba(0,0,0,.45);touch-action:none;cursor:move;box-sizing:border-box}',
+    '.dv-frame{position:fixed;z-index:2147482800;border:2px solid;border-image:linear-gradient(100deg,#ff9d9d,#ffc091,#f6d68a,#96e2b3,#84e4e0,#9dcdff,#cdb9ff) 1;outline:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);touch-action:none;cursor:move;box-sizing:border-box}',
     '.dv-h{position:absolute;width:30px;height:30px;touch-action:none}',
-    '.dv-h::after{content:"";position:absolute;left:9px;top:9px;width:12px;height:12px;background:#fff;border:1px solid #000;border-radius:3px}',
-    '.dv-h[data-c=nw]{left:-16px;top:-16px;cursor:nwse-resize}.dv-h[data-c=ne]{right:-16px;top:-16px;cursor:nesw-resize}',
-    '.dv-h[data-c=sw]{left:-16px;bottom:-16px;cursor:nesw-resize}.dv-h[data-c=se]{right:-16px;bottom:-16px;cursor:nwse-resize}',
+    '.dv-h::after{content:"";position:absolute;left:9px;top:9px;width:12px;height:12px;background:var(--hc,#fff);border:1px solid rgba(0,0,0,.7);border-radius:3px}',
+    '.dv-h[data-c=nw]{left:-16px;top:-16px;cursor:nwse-resize;--hc:#ff9d9d}.dv-h[data-c=ne]{right:-16px;top:-16px;cursor:nesw-resize;--hc:#cdb9ff}',
+    '.dv-h[data-c=sw]{left:-16px;bottom:-16px;cursor:nesw-resize;--hc:#f6d68a}.dv-h[data-c=se]{right:-16px;bottom:-16px;cursor:nwse-resize;--hc:#84e4e0}',
     '.dv-shot{position:fixed;z-index:2147482900;width:min(300px,calc(100vw - 16px));box-sizing:border-box;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.4);font:15px/1.45 var(--font-body)}',
     '.dv-shot h3,.dv-note h3{margin:0;font:650 1.1rem var(--font-head);flex:1}',
     '.dv-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}',
@@ -177,7 +139,7 @@
     '.dv-fix{padding:10px 0;border-bottom:1px solid var(--line)} .dv-fix:last-child{border-bottom:0} .dv-fix p{margin:5px 0}',
     '.dv-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}',
     '.dv-chip{padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-weight:750;color:var(--fg)}',
-    '.dv-chip.open{border-color:var(--c-date)} .dv-chip.done{border-color:var(--c-link)} .dv-chip.skipped{border-color:var(--muted);color:var(--muted)}',
+    '.dv-chip.open{border-color:var(--c-date)} .dv-chip.done{border-color:var(--c-link)} .dv-chip.skipped{border-color:var(--muted);color:var(--muted)} .dv-chip.kept{border-color:var(--c-number)}',
     '.dv-review{font-size:14px} .dv-review b{color:var(--c-link)}',
     '.dv-fix img{display:block;max-width:100%;border-radius:8px;border:1px solid var(--line);margin-top:6px}',
     '.dv-link{all:unset;cursor:pointer;color:var(--muted);font-weight:650;text-decoration:underline;text-underline-offset:3px}',
@@ -200,71 +162,63 @@
     settingsCard();
     changelogCard();
     setOn(isOn(), true);
-    if (paired) setTimeout(function(){ toast('This device is linked. Developer mode is on.'); }, 400);
+    if (paired) setTimeout(function(){ toast('This device is linked. The tools are on.'); }, 400);
   });
 
-  var dock = null, panel = null;
   function setOn(on, quiet){
     lsSet(ON_KEY, on ? '1' : '0');
     root.classList.toggle('dev-on', on);
     var sw = $('set-dev'); if (sw) sw.checked = on;
     var more = $('dev-more'); if (more) more.hidden = !on;
-    if (on){ makeDock(); dock.hidden = false; devStatus(); refreshFixes(); }
-    else { if (dock) dock.hidden = true; closePanel(); hideBar(); closeShot(); }
-    if (!quiet) toast(on ? 'Developer mode on' : 'Developer mode off');
+    devStatus();
+    if (on) refreshFixes(); else { hideBar(); closeShot(); if (noteD && noteD.open) noteD.close(); }
+    if (!quiet) toast(on ? 'Tools on: highlight text, or triple-tap for a screenshot' : 'Tools off');
   }
 
-  // ================= Settings: the developer card =================
+  // ================= the switch, and the notes card in Settings =================
   function settingsCard(){
     var sw = $('set-dev'); if (!sw) return;
     sw.addEventListener('change', function(){ setOn(this.checked); });
-    $('dev-shot').addEventListener('click', function(){ openShot(innerWidth / 2, innerHeight / 2); });
-    $('dev-panel').addEventListener('click', function(){ openPanel('live'); });
-    $('dev-refresh').addEventListener('click', refreshFixes);
-    $('dev-unlink').addEventListener('click', function(){
-      lsSet(DEV_KEY, null); devStatus(); toast('This device is no longer linked');
+    $('dev-copy').addEventListener('click', copyNotes);
+    $('dev-share').addEventListener('click', shareNotes);
+    $('dev-clear').addEventListener('click', function(){
+      if (!window.confirm('Remove the notes kept on this device? This can’t be undone.')) return;
+      keepClear().then(function(){ refreshFixes(); toast('Notes cleared'); }, function(e){ toast(e.message); });
     });
   }
   function devStatus(){
     var s = $('dev-status'); if (!s) return;
-    var d = cfg.dev || {}, linked = !!devKey();
-    $('dev-unlink').hidden = !linked;
-    function say(t){ s.textContent = t; }
-    if (d.store === 'local') return say('Fixes save on this computer, in the local data folder. Claude reads them with python fixes.py list.');
-    if (d.store !== 'blob') return say('Fix storage isn’t connected to this site yet, so fixes can’t be saved here.');
-    if (!d.keyed) return say('Developer mode isn’t set up on this site yet (no dev key on the server).');
-    if (!linked) return say('This device isn’t linked. Open your dev link on it once, and fixes will save for Claude.');
-    say('Checking the link...');
-    api('fix-check').then(function(){ say('Linked. Fixes save to the private store, and Claude reads them with python fixes.py list.'); },
-      function(e){ say(e.message); });
+    var how = 'Highlight text to mark it Good, Not good or Fix/idea, or triple-click (triple-tap on a phone) for a screenshot. ';
+    if (!isOn()) s.textContent = 'Turn on the DEV switch at the top of the page. ' + how.replace(/^H/, 'Then h');
+    else s.textContent = how + (toStore() ? 'Notes go straight to Claude’s list.' : 'Notes are kept on this device: press Copy for Claude, then paste into your Claude chat.');
   }
 
-  // ================= fixes list (Settings card and the panel) =================
+  // ================= the notes list =================
   var MARK = {good: '✓ Good', bad: '✕ Not good', fix: 'Fix/idea'};
-  var STATUS = {open: 'Waiting for Claude', done: 'Done', skipped: 'Not done'};
+  var STATUS = {open: 'Waiting for Claude', done: 'Done', skipped: 'Not done', kept: 'On this device'};
+  function acts(list){
+    var any = list.length > 0, pics = list.some(function(e){ return e.image; });
+    $('dev-copy').hidden = !any; $('dev-clear').hidden = !any;
+    $('dev-share').hidden = !(pics && navigator.share && navigator.canShare);
+  }
   function refreshFixes(){
-    var boxes = [$('dev-fixes'), panel && panel.querySelector('[data-fixes]')].filter(Boolean);
-    if (!boxes.length || !isOn()) return;
-    var d = cfg.dev || {};
-    if (d.store === 'none' || (d.store === 'blob' && (!d.keyed || !devKey()))){
-      boxes.forEach(function(b){ b.textContent = ''; });
+    var box = $('dev-fixes'); if (!box || !isOn()) return;
+    function fail(e){ box.textContent = ''; box.append(h('p', {class: 'dv-empty', text: 'Could not load notes: ' + e.message})); }
+    if (!toStore()){
+      keepAll().then(function(list){ acts(list); fillFixes(box, list); }, function(e){ acts([]); fail(e); });
       return;
     }
-    boxes.forEach(function(b){ b.textContent = ''; b.append(h('p', {class: 'dv-empty', text: 'Loading your fixes...'})); });
-    api('fix-list').then(function(res){
-      boxes.forEach(function(b){ fillFixes(b, res.entries || []); });
-    }, function(e){
-      boxes.forEach(function(b){ b.textContent = ''; b.append(h('p', {class: 'dv-empty', text: 'Could not load fixes: ' + e.message})); });
-    });
+    acts([]);
+    api('fix-list').then(function(res){ fillFixes(box, res.entries || []); }, fail);
   }
   function fillFixes(box, list){
     box.textContent = '';
-    if (!list.length){ box.append(h('p', {class: 'dv-empty', text: 'Nothing yet. Highlight text and mark it, or triple-click for a screenshot.'})); return; }
-    var open = list.filter(function(e){ return e.status === 'open'; }).length;
-    box.append(h('p', {class: 'dv-empty', text: list.length + (list.length === 1 ? ' entry' : ' entries') + ', ' + open + ' waiting for Claude.'}));
+    if (!list.length){ box.append(h('p', {class: 'dv-empty', text: 'No notes yet.'})); return; }
+    var open = list.filter(function(e){ return e.status === 'open'; }).length, n = list.length + (list.length === 1 ? ' note' : ' notes');
+    box.append(h('p', {class: 'dv-empty', text: toStore() ? n + ', ' + open + ' waiting for Claude.' : n + ' kept on this device.'}));
     list.forEach(function(e){
       var row = h('div', {class: 'dv-fix', 'data-plain': ''});
-      var picBtn = e.picture ? h('button', {class: 'dv-link', text: 'Picture', type: 'button'}) : null;
+      var picBtn = (e.picture || e.image) ? h('button', {class: 'dv-link', text: 'Picture', type: 'button'}) : null;
       row.append(h('div', {class: 'dv-chips'}, [
         h('span', {class: 'dv-chip', text: MARK[e.mark] || e.mark}),
         h('span', {class: 'dv-chip ' + e.status, text: STATUS[e.status] || e.status}),
@@ -276,117 +230,46 @@
       if (picBtn) picBtn.addEventListener('click', function(){
         var shown = row.querySelector('img');
         if (shown){ shown.remove(); return; }
+        function show(src){ row.append(h('img', {src: src, alt: 'Screenshot from ' + when(e.made)})); picBtn.textContent = 'Picture'; }
+        if (e.image){ show(e.image); return; }
         picBtn.textContent = 'Loading...';
-        api('fix-image', {ref: e.ref}, true).then(function(b){
-          row.append(h('img', {src: URL.createObjectURL(b), alt: 'Screenshot from ' + when(e.made)})); picBtn.textContent = 'Picture';
-        }, function(err){ picBtn.textContent = 'Picture'; toast(err.message); });
+        api('fix-image', {ref: e.ref}, true).then(function(b){ show(URL.createObjectURL(b)); },
+          function(err){ picBtn.textContent = 'Picture'; toast(err.message); });
       });
       box.append(row);
     });
   }
 
-  // ================= the Dev button and live panel =================
-  function makeDock(){
-    if (dock) return;
-    dock = ui(h('button', {class: 'dv-dock', type: 'button', 'aria-label': 'Developer panel'}, [h('i'), 'DEV', h('span', {class: 'dv-badge', hidden: true})]));
-    dock.addEventListener('click', function(){ if (panel) closePanel(); else openPanel('live'); });
-    document.body.appendChild(dock);
-    subs.push(function(){ badge(); });
-    badge();
+  // ================= notes kept on this device: copy or share them into a Claude chat =================
+  function notesText(list){
+    var out = ['Notes from Synesthetic Layer' + (cfg.build ? ' (build ' + cfg.build + ')' : '') + ':'];
+    list.slice().reverse().forEach(function(e, i){
+      out.push('', (i + 1) + '. [' + (MARK[e.mark] || e.mark).replace(/^[✓✕] /, '') + '] ' + (e.section ? 'on ' + e.section + ', ' : '') + when(e.made) + (e.image ? ' (with a picture)' : ''));
+      if (e.note) out.push('   Note: ' + e.note);
+      if (e.text) out.push('   Text: "' + (e.text.length > 600 ? e.text.slice(0, 600) + '...' : e.text) + '"');
+    });
+    return out.join('\n');
   }
-  function badge(){
-    if (!dock) return;
-    var b = dock.querySelector('.dv-badge');
-    b.hidden = !unseen; b.textContent = unseen > 99 ? '99+' : String(unseen);
+  function copyNotes(){
+    keepAll().then(function(list){
+      if (!list.length) throw new Error('No notes to copy');
+      if (!navigator.clipboard) throw new Error('Could not copy here');
+      return navigator.clipboard.writeText(notesText(list)).then(function(){ toast('Copied. Paste into your Claude chat.'); });
+    }).catch(function(e){ toast(e.message || 'Could not copy here'); });
   }
-  var panelTab = 'live', liveT = null, liveSub = false;
-  function openPanel(tab){
-    panelTab = tab || panelTab;
-    if (!panel){
-      var body = h('div', {class: 'dv-body'});
-      var tabs = h('div', {class: 'dv-line', role: 'tablist'});
-      [['live', 'Live'], ['fixes', 'Fixes'], ['state', 'State']].forEach(function(t){
-        var b = h('button', {class: 'dv-btn', type: 'button', 'data-v': t[0], text: t[1]});
-        b.addEventListener('click', function(){ panelTab = t[0]; drawPanel(); });
-        tabs.append(b);
-      });
-      var shotB = h('button', {class: 'dv-btn', type: 'button', text: 'Screenshot'});
-      shotB.addEventListener('click', function(){ closePanel(); openShot(innerWidth / 2, innerHeight / 2); });
-      var ideaB = h('button', {class: 'dv-btn', type: 'button', text: 'Note an idea'});
-      ideaB.addEventListener('click', function(){ openNote({kind: 'shot', title: 'An idea', section: tabNow(), context: {picture: 'not drawn: idea only'}}); });
-      var x = h('button', {class: 'dv-btn dv-x', type: 'button', 'aria-label': 'Close', text: '✕ Close'});
-      x.addEventListener('click', closePanel);
-      panel = ui(h('div', {class: 'dv-panel', role: 'dialog', 'aria-label': 'Developer'}, [
-        h('div', {class: 'dv-head'}, [h('h2', {text: 'Developer'}), h('small', {text: cfg.build ? 'build ' + cfg.build : ''}), x]),
-        tabs, h('div', {class: 'dv-line'}, [shotB, ideaB]), body]));
-      panel._body = body; panel._tabs = tabs;
-      document.body.appendChild(panel);
-      if (!liveSub){ liveSub = true; subs.push(function(){ if (panel && panelTab === 'live'){ clearTimeout(liveT); liveT = setTimeout(drawPanel, 250); } }); }
-    }
-    drawPanel();
+  function pngFile(dataUrl, name){
+    var bin = atob(dataUrl.slice(dataUrl.indexOf(',') + 1)), buf = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new File([buf], name, {type: 'image/png'});
   }
-  function closePanel(){ if (panel){ panel.remove(); panel = null; } }
-  function drawPanel(){
-    if (!panel) return;
-    panel._tabs.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-v') === panelTab ? 'true' : 'false'); });
-    var body = panel._body; body.textContent = '';
-    if (panelTab === 'live'){
-      unseen = 0; badge();
-      var clearB = h('button', {class: 'dv-btn', type: 'button', text: 'Clear'});
-      clearB.addEventListener('click', function(){ LOG.length = 0; drawPanel(); });
-      body.append(h('div', {class: 'dv-line', style: 'padding:0 0 6px'}, [h('span', {class: 'dv-empty', style: 'flex:1', text: 'Requests, errors and warnings as they happen, newest first.'}), clearB]));
-      if (!LOG.length){ body.append(h('p', {class: 'dv-empty', text: 'Nothing yet. Use the app and it shows up here.'})); return; }
-      LOG.slice().reverse().slice(0, 120).forEach(function(x){ body.append(liveRow(x)); });
-    } else if (panelTab === 'fixes'){
-      var refreshB = h('button', {class: 'dv-btn', type: 'button', text: 'Refresh'});
-      refreshB.addEventListener('click', refreshFixes);
-      body.append(h('div', {class: 'dv-line', style: 'padding:0 0 6px'}, [h('span', {class: 'dv-empty', style: 'flex:1', text: 'What you sent, and what Claude did with it.'}), refreshB]));
-      body.append(h('div', {'data-fixes': ''}));
-      refreshFixes();
-    } else {
-      var st = stateNow(), dl = h('dl', {class: 'dv-kv'});
-      Object.keys(st).forEach(function(k){ dl.append(h('dt', {text: k}), h('dd', {text: typeof st[k] === 'object' ? JSON.stringify(st[k]) : String(st[k])})); });
-      var copyB = h('button', {class: 'dv-btn', type: 'button', text: 'Copy'});
-      copyB.addEventListener('click', function(){
-        var txt = JSON.stringify(stateNow(), null, 2);
-        (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function(){ toast('Copied'); }, function(){ toast('Could not copy here'); });
-      });
-      var noteB = h('button', {class: 'dv-btn', type: 'button', text: 'Send to Claude'});
-      noteB.addEventListener('click', function(){ openNote({kind: 'text', title: 'Send the state', text: JSON.stringify(stateNow(), null, 1), section: tabNow(), context: {picture: 'not drawn: state'}}); });
-      body.append(dl, h('div', {class: 'dv-line', style: 'padding:0'}, [copyB, noteB]));
-    }
-  }
-  function liveRow(x){
-    var text, cls = x.type;
-    if (x.type === 'net'){
-      text = x.method + ' ' + x.url + '  ' + (x.status || 'failed') + ' · ' + x.ms + ' ms' + (x.sent ? ' · sent ' + size(x.sent) : '') + (x.got ? ' · got ' + size(x.got) : '');
-      if (!x.ok) cls = 'error';
-    } else text = x.msg + (x.where ? '  (' + x.where + ')' : '');
-    var mid = h('div', {class: 't'}, [text]);
-    if (x.note) mid.append(h('pre', {text: x.note}));
-    if (x.stack) mid.append(h('pre', {text: x.stack}));
-    var fixB = null;
-    if (cls === 'error' || cls === 'warn'){
-      fixB = h('button', {class: 'dv-btn', type: 'button', text: 'Fix/idea'});
-      fixB.addEventListener('click', function(){ openNote({kind: 'text', title: 'About this error', text: text + (x.note ? '\n' + x.note : '') + (x.stack ? '\n' + x.stack : ''), section: tabNow(), context: {picture: 'not drawn: from the live panel', at: new Date(x.t).toISOString()}}); });
-    }
-    return h('div', {class: 'dv-row ' + cls}, [h('time', {text: clock(x.t)}), mid, fixB]);
-  }
-  function stateNow(){
-    var s = {};
-    s.tab = tabNow(); s.build = cfg.build || '(unknown)';
-    s.viewport = innerWidth + ' × ' + innerHeight + ' at ' + (window.devicePixelRatio || 1) + 'x';
-    s.scroll = Math.round(scrollX) + ', ' + Math.round(scrollY);
-    s.theme = root.getAttribute('data-theme'); s.online = navigator.onLine;
-    s.installed = context().installed;
-    s.storage = (cfg.dev || {}).store + (devKey() ? ', linked' : ', not linked');
-    s.hosted = !!cfg.hosted; s.grammar = !!cfg.grammar;
-    s['max file'] = size(cfg.maxBytes);
-    s.errors = LOG.filter(function(x){ return x.type === 'error'; }).length;
-    s.requests = LOG.filter(function(x){ return x.type === 'net'; }).length;
-    try { var style = JSON.parse(lsGet('synapp.style') || 'null'); if (style) s.style = {mode: style.mode, palette: style.palette, theme: style.theme, body: style.body, heading: style.heading, size: style.size, hl: style.hl, wordbank: style.wordbank ? (style.wordbank.on ? 'on' : 'off') + ', ' + (style.wordbank.words || []).length + ' words' : 'none'}; } catch (e) {}
-    s.browser = navigator.userAgent;
-    return s;
+  function shareNotes(){
+    keepAll().then(function(list){
+      var files = [];
+      list.slice().reverse().forEach(function(e, i){ if (e.image) files.push(pngFile(e.image, 'note-' + (i + 1) + '.png')); });
+      var data = {title: 'Synesthetic Layer notes', text: notesText(list), files: files};
+      if (!navigator.canShare || !navigator.canShare(data)) throw new Error('This browser can’t share pictures.');
+      return navigator.share(data);
+    }).catch(function(e){ if (!e || e.name !== 'AbortError') toast((e && e.message) || 'Could not share'); });
   }
 
   // ================= note dialog =================
@@ -406,7 +289,7 @@
       }));
       noteD = ui(h('dialog', {class: 'dv-note', 'aria-label': 'Fix or idea'}, [
         h('div', {class: 'dv-top'}, [h('h3'), x]),
-        h('p', {class: 'hint', text: 'Saved for the next Claude session, which makes the change and reports back here. ' + (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl') + '+Enter saves.'}),
+        h('p', {class: 'hint', text: 'Pick a mark and add a comment for Claude.'}),
         h('blockquote'), pick, ta, h('div', {class: 'dv-marks'}, [save, cancel]), st]));
       document.body.appendChild(noteD);
       noteD._ta = ta; noteD._st = st; noteD._pick = pick;
@@ -439,7 +322,7 @@
     if (!note && (mark === 'fix' || !o.text)){ st.textContent = 'Write what should change, or your idea.'; noteD._ta.focus(); return; }
     st.textContent = 'Saving...';
     send({kind: o.kind, mark: mark, note: note, text: (o.text || '').slice(0, 4000), section: o.section || tabNow(), context: context(o.context)})
-      .then(function(){ noteD.close(); toast('Saved for Claude'); }, function(e){ st.textContent = e.message; });
+      .then(function(w){ noteD.close(); saved(w); }, function(e){ st.textContent = e.message; });
   }
 
   // ================= highlight -> Fix/idea =================
@@ -619,7 +502,7 @@
       .then(function(o){
         if (shot !== s) return;
         s.st.textContent = o.pic ? 'Saved.' : 'Saved without a picture (this browser could not draw it).';
-        toast(o.pic ? 'Saved for Claude' : 'Saved for Claude, without a picture');
+        saved(o.res, o.pic);
         setTimeout(function(){ if (shot === s) closeShot(); }, o.pic ? 600 : 1800);
       }, function(e){ if (shot === s){ s.busy = false; s.st.textContent = e.message; } });
   }
