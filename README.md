@@ -15,7 +15,7 @@ Read `reports/Color styling for reading and retention.md` first: it says what th
 |---|---|
 | `--mode a\|b\|c\|d` | colored text, highlight chips, combined (default), underline only (text stays neutral) |
 | `--theme`, `--palette cb` | dark / light / auto; color-blind-safe palette |
-| `--grammar` | grammar layer (nouns, verbs, adjectives, adverbs), offline, spaCy. Busy: off by default |
+| `--grammar` | grammar layer (nouns, verbs, adjectives, adverbs), offline: spaCy where it is installed, our own word library (`lenses/library.toml`) where it is not. Busy: off by default |
 | `--ai` | meaning layer: Claude marks key terms, definitions, actions, cautions, examples. Sends text to Claude through your `claude` login. Cached. `--ai-model`, `--ai-max-calls` |
 | `--fast` / `--tables` | skip / force PDF table detection (on for one file, off for folders) |
 | `--lens my.toml` | your own categories, colors and patterns |
@@ -51,12 +51,13 @@ The page lives in `synesthetic/templates/app.html`; its look is described in `do
 
 ## Claude chat replies
 
-The mod lives in `chat-mod/synesthetic-chat/` (copy it into `~/.claude/dev-mods/<session id>/` to load it in a session) and draws assistant replies with the same lens (content types only; grammar and meaning need models). Options (style, theme, palette, categories off) are in the mod's config. After editing `lenses/default.toml`, run `.venv\Scripts\python.exe tools\export_lens.py` and `tools\parity.py` to refresh the mod and confirm it still matches.
+The mod lives in `chat-mod/synesthetic-chat/` (copy it into `~/.claude/dev-mods/<session id>/` to load it in a session) and draws assistant replies with the same lens: the content types, plus the grammar looks from our own word library (the meaning layer needs a model, so it is not in chat). Options (style, theme, palette, grammar on or off, categories off) are in the mod's config. After editing `lenses/default.toml` or `lenses/library.toml`, run `.venv\Scripts\python.exe tools\export_lens.py` and `tools\parity.py` to refresh the mod and confirm it still matches.
 
 ## Layout
 
 - `synesthetic/extract/`: one reader per format into a common document model
 - `synesthetic/annotate.py`, `grammar.py`, `meaning.py`, `layers.py`: the three layers and how they combine
+- `synesthetic/library.py` and `lenses/library.toml`: our own word library (small words, verbs, adjectives, adverbs, the owner's pinned words) and the tagger that reads it; `tools/library_check.py` measures it against spaCy
 - `synesthetic/colorcheck.py`: contrast and color-blindness checks (tested)
 - `lenses/default.toml`: the single source of categories, colors, cues
 - `synesthetic/fixes.py` (and `fixes.py` at the top): developer-mode fixes store and CLI; `synesthetic/changelog.py`: the change log

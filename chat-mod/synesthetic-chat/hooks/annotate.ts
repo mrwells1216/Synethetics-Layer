@@ -1,5 +1,6 @@
 // Port of synesthetic/annotate.py: content-type spans, lower priority number wins an overlap.
-import { LENS } from './lens'
+import { tag } from './library'
+import { GRAMMAR, LENS } from './lens'
 import type { LensCategory } from './lens'
 
 export type Span = { start: number; end: number; cat: string }
@@ -55,6 +56,44 @@ export function annotate(text: string, off: ReadonlySet<string> = new Set()): Sp
     if (!free) continue
     for (let i = s; i < e; i++) taken[i] = 1
     out.push({ start: s, end: e, cat: name })
+  }
+  out.sort((a, b) => a.start - b.start)
+  return out
+}
+
+const KIND_CAT = new Map<string, string>(GRAMMAR.map(g => [g.kind, g.name]))
+
+/** Content spans plus the grammar words around them. Grammar never sits under a content span
+ *  or inside a `blocked` range (inline code). Port of synesthetic/layers.py. */
+export function annotateAll(
+  text: string,
+  off: ReadonlySet<string> = new Set(),
+  grammar = true,
+  blocked: ReadonlyArray<readonly [number, number]> = []
+): Span[] {
+  const content = annotate(text, off)
+  if (!grammar || !text) return content
+  const walls: Array<readonly [number, number]> = content.map(s => [s.start, s.end] as const)
+  for (const b of blocked) walls.push(b)
+  const out: Span[] = content.slice()
+  for (const g of tag(text)) {
+    const cat = KIND_CAT.get(g.kind)
+    if (!cat || off.has(cat)) continue
+    let parts: Array<[number, number]> = [[g.start, g.end]]
+    for (const [ws, we] of walls) {
+      const next: Array<[number, number]> = []
+      for (const [s, e] of parts) {
+        if (we <= s || ws >= e) {
+          next.push([s, e])
+          continue
+        }
+        if (s < ws) next.push([s, ws])
+        if (we < e) next.push([we, e])
+      }
+      parts = next
+      if (!parts.length) break
+    }
+    for (const [s, e] of parts) if (e > s) out.push({ start: s, end: e, cat })
   }
   out.sort((a, b) => a.start - b.start)
   return out

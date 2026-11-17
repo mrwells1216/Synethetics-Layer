@@ -30,15 +30,27 @@ def _subtract(spans: list[Span], blockers: list[Span]) -> list[Span]:
     return out
 
 
+def _grammar(texts: list[str], lens: Lens) -> dict[str, list[Span]]:
+    """Grammar spans from the language model where it is installed, else from our own word library.
+    The owner's pinned words (lenses/library.toml, [own]) win either way."""
+    from . import library
+
+    try:
+        from . import grammar as g
+
+        gram = g.tag_texts(texts, lens)
+    except (ImportError, OSError):
+        return library.tag_texts(texts, lens)
+    return {t: library.apply_pins(t, spans, lens) for t, spans in gram.items()}
+
+
 def make_annotator(texts: list[str], lens: Lens, *, grammar: bool = False, ai: dict | None = None,
                    log=print) -> Callable[[str], list[Span]]:
     uniq = list(dict.fromkeys(t for t in texts if t and t.strip()))
     gram: dict[str, list[Span]] = {}
     mean: dict[str, list[Span]] = {}
     if grammar:
-        from . import grammar as g
-
-        gram = g.tag_texts(uniq, lens)
+        gram = _grammar(uniq, lens)
     if ai is not None:
         from . import meaning as m
 

@@ -1,6 +1,6 @@
 import type { Register } from 'claude-code'
 
-import { annotate } from './annotate'
+import { annotateAll } from './annotate'
 import { splitMessage, toRuns } from './markdown'
 import type { Piece, Run } from './markdown'
 import { parseOptions, styleFor } from './style'
@@ -9,7 +9,9 @@ import type { Options } from './style'
 type RowPiece = Extract<Piece, { kind: 'row' }>
 
 function runsOf(p: RowPiece, o: Options): { runs: Run[]; styled: boolean } {
-  const spans = p.row === 'heading' ? [] : annotate(p.text, o.off)
+  // grammar words stay out of inline code: code keeps its own look
+  const code = p.emph.filter(e => e.style === 'code').map(e => [e.start, e.end] as const)
+  const spans = p.row === 'heading' ? [] : annotateAll(p.text, o.off, o.grammar, code)
   const runs = toRuns(p.text, p.emph, spans)
   return { runs, styled: spans.length > 0 }
 }

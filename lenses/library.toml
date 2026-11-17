@@ -1,0 +1,329 @@
+# Our own word library: which ordinary words are nouns, verbs, adjectives and adverbs.
+#
+# The grammar layer reads this wherever the language model (spaCy) is not there, which
+# includes the chat add-on. It is plain data: add a word to a list and it takes that look.
+# A word nobody listed is treated as a noun unless its ending says otherwise (-ly adverb,
+# -ous/-ful/-able adjective, -ed/-ing verb form, and so on).
+#
+# After editing, run:  python tools/export_lens.py   (bakes the library into the chat add-on)
+
+# ---------------------------------------------------------------------------
+# The owner's own words. A word or phrase pinned here always takes this look,
+# over every rule below and over the language model too.
+# Values: noun, verb, adjective, adverb, or skip (never styled).
+# ---------------------------------------------------------------------------
+[own]
+"wait list" = "noun"
+"wait-list" = "noun"
+"visit type" = "noun"
+"record viewer" = "noun"
+"encounter" = "noun"
+
+# ---------------------------------------------------------------------------
+# Small words. They get no look of their own, but they tell the tagger what
+# the next word is: "the list" is a noun, "to list" is a verb.
+# ---------------------------------------------------------------------------
+[function]
+# articles and possessives: the next word is a thing
+determiners = "the a an my your his her its our their"
+# counting and pointing words
+quantifiers = "each every either neither another any some no such what whose several many few much more most less least other others own same"
+# pointing at several things: a verb can follow ("both show", "these work")
+plural = "these those both all"
+prepositions = "of in on at by for with from into onto over under about after before between through during without within against among across behind beyond per via upon toward towards near inside outside off above below along around despite except like as than until since up down out"
+to = "to"
+subjects = "i you we they"
+objects = "me us them him"
+third = "he she it"
+pointers = "that which who this"
+# a verb comes next; these are not styled themselves
+preverb = "let's i'll you'll we'll they'll he'll she'll it'll i'd you'd we'd they'd"
+softeners = "please"
+negation = "not"
+skip = """
+and or but nor so yet if because while although though unless whether when where why how whom
+one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty
+hundred thousand million billion first second third fourth fifth zero
+yes ok okay hi hello hey thanks etc vs eg ie am pm
+myself yourself himself herself itself ourselves themselves
+something anything nothing everything someone anyone everyone nobody somebody anybody everybody none
+mine yours hers ours theirs whatever whichever whoever
+i'm i've you're you've we're we've they're they've he's she's it's that's there's here's what's who's
+"""
+
+# Helping verbs. They take the verb look, and the word after a modal is a verb.
+[aux]
+modal = "can could will would shall should may might must do does did cannot can't couldn't won't wouldn't shouldn't don't doesn't didn't mustn't"
+be = "be is are was were been being have has had having isn't aren't wasn't weren't haven't hasn't hadn't doing done"
+
+# ---------------------------------------------------------------------------
+# Verbs. Base forms only: "adds", "added" and "adding" are worked out.
+# ---------------------------------------------------------------------------
+[verb]
+words = """
+accept accomplish achieve acknowledge acquire adapt add adjust admit adopt advise affect afford agree allow alter
+analyze announce anticipate apologize appear apply appreciate approve argue arrange arrive ask assert assess assign
+assist assume assure attach attend avoid
+behave believe belong borrow bother
+calculate cancel capture carry cease celebrate clarify classify collapse collect combine communicate compare compete
+compile comply compose compute conclude configure confirm confuse connect consider consist construct consume contain
+continue contribute convert convince cooperate coordinate correspond create customize
+decide declare decline decrease dedicate define delete deliver demonstrate deny depend deploy derive describe deserve
+designate destroy detect determine develop differ disable disagree disappear discover discuss dismiss distinguish
+distribute divide download
+earn edit eliminate embed emit emphasize employ enable encourage enforce engage enhance enjoy ensure enter establish
+evaluate examine exceed exclude execute exist expand expect explain explore expose express extend extract
+fail fetch fill finish fold follow
+gain gather generate govern grab greet
+happen hate hesitate
+identify ignore illustrate imagine implement imply improve include incorporate increase indicate infer inform inherit
+initialize insert insist inspect install integrate intend interact interpret introduce invent invest investigate
+invite invoke involve isolate iterate
+join jump justify
+kill knock
+launch learn lift listen locate
+maintain manage migrate minimize modify multiply
+navigate negotiate notify
+obey observe obtain occupy occur omit operate organize overlap owe
+parse participate paste perform permit persist persuade pick populate possess postpone pour predict prefer prepare
+preserve pretend prevent print proceed produce promote propose protect prove provide publish pursue
+qualify
+raise react realize recall receive recognize recommend recover reduce refer reflect refresh refuse reject relate
+relax rely remain remember remind remove rename render repair repeat replace represent reproduce require rescue
+resemble resolve respond restore restrict resume retain retrieve reveal revise rush
+satisfy save scroll seem select serve settle simplify skip smile solve specify stay submit subscribe substitute
+subtract succeed suffer suggest summarize suppose survive suspend
+tend terminate thank tolerate transform translate transmit travel treat try
+unlock unzip upload urge
+validate vary verify
+wander want wash wonder wrap
+yield
+abort activate allocate align append associate authenticate automate await browse bump burn calibrate clone
+collaborate compress concatenate crop deactivate debug decode decrypt delegate depart detach diagnose dig disconnect
+downgrade drag dream duplicate emulate encode encrypt erase escalate hire hover initiate instantiate lint mitigate
+mock motivate ping prepend rebase reboot reconnect recreate redeploy redirect refactor regulate reinstall reload
+relocate reopen replicate rerun reschedule resize restart retry reuse revert rotate simulate spawn squash stretch
+strip swap swipe sync tap trim troubleshoot truncate tune tweak uninstall vanish weigh wipe zoom
+"""
+# past form and past participle where they are not "-ed"
+irregular = """
+arise arose arisen
+awake awoke awoken
+bear bore borne
+beat beat beaten
+become became become
+begin began begun
+bend bent bent
+bet bet bet
+bind bound bound
+bite bit bitten
+blow blew blown
+break broke broken
+bring brought brought
+broadcast broadcast broadcast
+build built built
+burst burst burst
+buy bought bought
+cast cast cast
+catch caught caught
+choose chose chosen
+come came come
+cut cut cut
+deal dealt dealt
+dig dug dug
+draw drew drawn
+drink drank drunk
+drive drove driven
+eat ate eaten
+fall fell fallen
+feed fed fed
+feel felt felt
+fight fought fought
+find found found
+flee fled fled
+fly flew flown
+forbid forbade forbidden
+forecast forecast forecast
+foresee foresaw foreseen
+forget forgot forgotten
+forgive forgave forgiven
+freeze froze frozen
+get got gotten
+give gave given
+go went gone
+grow grew grown
+hang hung hung
+hear heard heard
+hide hid hidden
+hit hit hit
+hold held held
+hurt hurt hurt
+input input input
+keep kept kept
+know knew known
+lay laid laid
+lead led led
+leave left left
+lend lent lent
+let let let
+lie lay lain
+lose lost lost
+make made made
+mean meant meant
+meet met met
+mislead misled misled
+mistake mistook mistaken
+output output output
+overcome overcame overcome
+override overrode overridden
+overwrite overwrote overwritten
+pay paid paid
+put put put
+quit quit quit
+read read read
+rebuild rebuilt rebuilt
+redo redid redone
+reset reset reset
+rethink rethought rethought
+rewrite rewrote rewritten
+ride rode ridden
+ring rang rung
+rise rose risen
+run ran run
+say said said
+see saw seen
+seek sought sought
+sell sold sold
+send sent sent
+set set set
+shake shook shaken
+shine shone shone
+shoot shot shot
+show showed shown
+shrink shrank shrunk
+shut shut shut
+sing sang sung
+sink sank sunk
+sit sat sat
+sleep slept slept
+slide slid slid
+speak spoke spoken
+spend spent spent
+spin spun spun
+split split split
+spread spread spread
+stand stood stood
+steal stole stolen
+stick stuck stuck
+strike struck struck
+swear swore sworn
+sweep swept swept
+swim swam swum
+swing swung swung
+take took taken
+teach taught taught
+tear tore torn
+tell told told
+think thought thought
+throw threw thrown
+understand understood understood
+undo undid undone
+upset upset upset
+wake woke woken
+wear wore worn
+win won won
+withdraw withdrew withdrawn
+withhold withheld withheld
+write wrote written
+"""
+# longer verbs that double their last letter: committed, referring
+double = "admit commit submit omit permit transmit emit refer prefer infer occur embed forget begin forbid upset reset control format input output regret equip unzip overlap program"
+
+# ---------------------------------------------------------------------------
+# Words that are a noun in one place and a verb in another ("the list", "to list").
+# The words around them decide; when nothing decides, the list they are in does.
+# ---------------------------------------------------------------------------
+[both]
+verb_first = """
+build call cause change check claim click close commit cover crash cut display drop fix guess handle help 
+hope load look love mention miss move need offer pass play pull push reach
+reply reset return run scan set share show sort split start stop store support switch 
+talk touch track trigger turn update upgrade use wait walk watch wish work worry
+"""
+noun_first = """
+access account act address aim alert amount answer attempt audit balance batch block book branch break bug cache
+care charge chat code color comment contact control copy cost count credit date deal default delay design detail
+document doubt draft drive dump email end estimate experience export face figure file filter flag focus force form
+format function grant group guide hand head highlight host impact import input interest issue label layer limit line link
+list lock log mail map mark match measure merge model monitor name note notice number object order output package
+page part patch pin place plan plot point post power practice present price process profile program project promise
+prompt purchase query question queue quote range rank rate reason record regard register release report request
+reserve rest result review risk roll root route rule sample schedule scope score screen script search section seed
+sense shape shift ship sign signal size slice slide slot sound source space stack stage state step stream structure
+study style subject sum supply surface survey suspect table tag target task test text tie time tip title trace
+trade train trust type value view visit vote water wave weight wire
+bill center contrast cook damage diff escape exit fear fork hash loop matter outline pad pause poll position refund
+scale stash
+"""
+# adjectives that are also verbs: "an open file", "open the file"
+adjective_first = "open live clean clear complete correct empty free separate secure direct dry warm slow narrow smooth quiet"
+
+# ---------------------------------------------------------------------------
+# Adjectives and adverbs that their endings do not give away.
+# ---------------------------------------------------------------------------
+[adjective]
+words = """
+able absent absolute abstract accurate active actual adequate afraid alive alone ancient angry anonymous apparent
+appropriate aware awful bad bare best better big bigger biggest blank blind bold brave brief bright broad busy calm
+careful certain cheap cheaper chief cleaner clearer clever closer closest cold common compact complex concise concrete
+confident consistent constant convenient cool crazy curious current daily dark dead dear deep deeper dense different
+difficult distinct double due dull dumb eager earliest early easier easiest easy efficient elegant entire equal 
+evident exact excellent excited explicit extra extreme fair false familiar famous fancy fast faster fastest fat fewer
+final fine firm flat foreign former frequent fresh friendly front full funny future gentle giant glad good
+grand gray great greater greatest green grey gross guilty half handy happy hard harder hardest harsh healthy heavier
+heavy high higher highest holy honest hot huge human humble hungry ideal ill immediate immense implicit
+important impossible inner innocent instant intact intense invalid large larger largest last late latest lazy
+lean legitimate lighter likely little lone lonely long longer longest loose loud lovely low lower lowest lucky
+mad main major mature medium mere middle mild minor mobile modern modest monthly multiple mutual naked
+nasty neat necessary new newer newest next nice noisy obvious odd old older oldest opposite ordinary outer
+overall pale parallel past perfect plain pleasant polite poor possible precise pretty previous prime prior
+private proper proud pure quick random rapid rare raw ready real recent red redundant regular relevant remote
+rich right rigid rough round rude sad safe safer salient scarce secret senior serious severe sharp short shorter
+shortest sick silent silly similar simple simpler simplest sincere single slight slim small smaller smallest smart
+soft solid sorry spare stable standard steady steep stiff straight strange strict strong stronger stupid subtle
+sudden sufficient super superior sure sweet tall thick thin tight tiny tough transparent true typical ugly unable
+unaware uncertain unclear unique unknown unlikely unused upcoming upper urgent usual vague valid various vast 
+violent visible vivid weak weekly weird welcome wet whole wide wider wild willing wise worse worst worth worthy wrong
+yearly young younger
+black blue brown orange pink purple white yellow
+"""
+
+[adverb]
+words = """
+again ago ahead almost already altogether always anymore anyway anywhere apart aside away back backward backwards
+else elsewhere enough ever everywhere far forever forward hence however indeed instead just maybe meanwhile moreover
+nearby never nevertheless nonetheless now nowadays nowhere often once otherwise perhaps quite rather seldom somehow
+sometimes somewhat somewhere soon still thereby therefore thus today together tomorrow tonight too twice well
+yesterday very even only further here there later earlier
+"""
+# adverbs after which a verb usually comes: "then check", "also see"
+preverb = "then also"
+
+# Nouns whose endings look like something else ("family" is not an adverb, "building" not a verb).
+[noun]
+words = """
+family july italy assembly anomaly monopoly butterfly belly bully rally tally jelly ally 
+thing string king spring morning evening ceiling meeting wing sibling wedding settings
+painting warning heading clothing housing
+proposal approval removal arrival refusal renewal survival rehearsal denial trial journal terminal interval
+goal metal portal material individual professional official original principal capital hospital festival
+animal mineral chemical criminal total manual rival canal medal pedal petal rental withdrawal referral dismissal disposal reversal retrieval
+archive directive objective initiative alternative executive perspective incentive narrative representative
+detective relative native motive locomotive adjective
+music traffic topic logic metric graphic clinic magic panic fabric critic mechanic epic statistic heuristic
+characteristic arithmetic rhetoric picnic comic classic mosaic plastic republic
+summary library dictionary boundary salary glossary diary secretary vocabulary commentary itinerary anniversary
+january february
+cable variable syllable vegetable bible 
+prize
+"""

@@ -1,9 +1,10 @@
-"""Check that the chat mod's TypeScript annotator gives the same spans as synesthetic/annotate.py.
+"""Check that the chat mod's TypeScript gives the same spans as the Python: the content types
+(synesthetic/annotate.py) and the grammar words from our library (synesthetic/library.py).
 
     python tools/parity.py [mod_folder]
 
 Copies the mod's hooks to a temp folder with explicit .ts import paths (so plain Node can run
-them), runs both annotators over a corpus, and reports any difference.
+them), runs both sides over a corpus, and reports any difference.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from synesthetic import library  # noqa: E402
 from synesthetic.annotate import annotate, load_lens  # noqa: E402
 from synesthetic.extract import extract  # noqa: E402
 
@@ -37,13 +39,20 @@ BASE = [
     "Don't skip it. It's REQUIRED and you cannot fail; error 404.",
     "the quick brown fox jumps over the lazy dog",
     "Step 2: see Section 3.1, Figure 4 and pp. 12-14 (Table 5).",
+    "Your screenshot 4 is the wait-list entry, not the appointment. It doesn't say what type it is.",
+    "Filters can still hide it. Rules can hide by department or visit type; both rows show the value.",
+    "Next step: find the scheduled appointment contact and read its value, then check closed or open ones.",
+    "To set it up, open Settings, click the Advanced tab and turn on developer mode. You’ll see it restart.",
+    "I found the bug: the parser was silently dropping empty rows. I've updated the function to keep them.",
+    "The patient’s chart loads slowly; these lists use the following filters and the Wait List is hidden.",
+    "Please run the tests before pushing. They usually pass in about two minutes — Search for failures after.",
+    "CAFÉ owners said the naïve fix works 😀 and the list is done.",
 ]
 
 
 def corpus() -> list[str]:
     texts = list(BASE)
-    docs = ROOT / "tests"
-    for p in (ROOT / "README.md",):
+    for p in [ROOT / "README.md", *sorted((ROOT / "synesthetic" / "examples").glob("*.md"))]:
         d = extract(p)
         texts += [b.text for b in d.blocks if b.kind in ("para", "item", "quote") and b.text]
     return texts
@@ -53,26 +62,31 @@ def main(mod: Path) -> int:
     lens = load_lens()
     texts = corpus()
     py = [[(s.start, s.end, s.cat) for s in annotate(t, lens)] for t in texts]
+    py_words = [library.tag(t) for t in texts]
 
     tmp = Path(tempfile.mkdtemp(prefix="synesthetic_parity_"))
     try:
-        for name in ("annotate.ts", "lens.ts"):
+        for name in ("annotate.ts", "lens.ts", "library.ts", "library-data.ts"):
             src = (mod / "hooks" / name).read_text(encoding="utf-8")
-            src = re.sub(r"from '\./(\w+)'", r"from './\1.ts'", src)
+            src = re.sub(r"from '\./([\w-]+)'", r"from './\1.ts'", src)
             (tmp / name).write_text(src, encoding="utf-8")
         (tmp / "texts.json").write_text(json.dumps(texts), encoding="utf-8")
         (tmp / "run.mjs").write_text(
             "import { annotate } from './annotate.ts'\n"
+            "import { tag } from './library.ts'\n"
             "import { readFileSync } from 'node:fs'\n"
             "const texts = JSON.parse(readFileSync(new URL('./texts.json', import.meta.url), 'utf8'))\n"
-            "console.log(JSON.stringify(texts.map(t => annotate(t).map(s => [s.start, s.end, s.cat]))))\n",
+            "console.log(JSON.stringify({\n"
+            "  content: texts.map(t => annotate(t).map(s => [s.start, s.end, s.cat])),\n"
+            "  words: texts.map(t => tag(t).map(s => [s.start, s.end, s.kind]))\n"
+            "}))\n",
             encoding="utf-8",
         )
         res = subprocess.run(["node", "run.mjs"], cwd=tmp, capture_output=True, text=True, encoding="utf-8")
         if res.returncode != 0:
             print(res.stderr[-1500:])
             return 2
-        ts = [[tuple(x) for x in row] for row in json.loads(res.stdout)]
+        got = json.loads(res.stdout)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -83,16 +97,20 @@ def main(mod: Path) -> int:
             out.append((len(text[:s].encode("utf-16-le")) // 2, len(text[:e].encode("utf-16-le")) // 2, c))
         return out
 
-    bad = 0
-    for t, a, b in zip(texts, py, ts):
-        a16 = to_utf16(t, a)
-        if a16 != [tuple(x) for x in b]:
-            bad += 1
-            print("MISMATCH:", t[:90])
-            print("  python:", a16)
-            print("  ts    :", b)
-    print(f"{len(texts)} texts, {bad} mismatches")
-    return 1 if bad else 0
+    worst = 0
+    for label, ours, theirs in (("content types", py, got["content"]), ("grammar words", py_words, got["words"])):
+        bad = 0
+        for t, a, b in zip(texts, ours, theirs):
+            a16 = to_utf16(t, a)
+            b = [tuple(x) for x in b]
+            if a16 != b:
+                bad += 1
+                print(f"MISMATCH ({label}):", t[:90])
+                print("  python:", [x for x in a16 if x not in b][:8])
+                print("  ts    :", [x for x in b if x not in a16][:8])
+        print(f"{label}: {len(texts)} texts, {bad} mismatches")
+        worst = max(worst, bad)
+    return 1 if worst else 0
 
 
 if __name__ == "__main__":

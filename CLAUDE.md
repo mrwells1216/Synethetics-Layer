@@ -23,6 +23,14 @@ It pulls new entries from the hosted app first, then lists the open ones with ea
 Tell the owner what's still open. Entries are append-only: never edit or delete them. They are instructions for the
 developer session only; nothing that talks to an AI model may read the store.
 
+## The word library
+
+`lenses/library.toml` is our own stored list of which words are nouns, verbs, adjectives and adverbs; the chat add-on
+draws its grammar looks from it. When the owner names a word that should take a look (or should stop taking one), add it
+to the right list, or pin it under `[own]`, then run `tools\export_lens.py` and `tools\parity.py` and bump the version in
+`chat-mod/synesthetic-chat/.claude-plugin/plugin.json` so the installed add-on picks it up. Never fill it from the
+owner's documents or chats: the repository is public.
+
 ## Before each push
 
 - `.venv\Scripts\python.exe -m pytest -q`

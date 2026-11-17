@@ -1,8 +1,14 @@
 // Turns a category plus the person's options into Text props.
-import { LENS } from './lens'
-import type { LensCategory } from './lens'
+import { GRAMMAR, LENS } from './lens'
+import type { GrammarCategory, LensCategory } from './lens'
 
-export type Options = { mode: 'a' | 'b' | 'c'; theme: 'dark' | 'light'; palette: 'default' | 'cb'; off: Set<string> }
+export type Options = {
+  mode: 'a' | 'b' | 'c'
+  theme: 'dark' | 'light'
+  palette: 'default' | 'cb'
+  grammar: boolean
+  off: Set<string>
+}
 
 export type StyleProps = {
   color?: string
@@ -16,6 +22,7 @@ export type StyleProps = {
 
 const BG = { dark: '#14161b', light: '#fbfbf8' }
 const BY_NAME = new Map<string, LensCategory>(LENS.map(c => [c.name, c]))
+const GRAMMAR_BY_NAME = new Map<string, GrammarCategory>(GRAMMAR.map(c => [c.name, c]))
 
 function rgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -51,14 +58,24 @@ export function tint(hex: string, bg: string, alpha: number): string {
   return toHex([a[0] * alpha + b[0] * (1 - alpha), a[1] * alpha + b[1] * (1 - alpha), a[2] * alpha + b[2] * (1 - alpha)])
 }
 
-export function categoryColor(cat: LensCategory, o: Options): string {
+export function categoryColor(cat: { colors: LensCategory['colors'] }, o: Options): string {
   const key = (o.palette === 'cb' ? (o.theme === 'dark' ? 'cb_dark' : 'cb_light') : o.theme) as keyof LensCategory['colors']
   return cat.colors[key]
 }
 
 export function styleFor(catName: string, o: Options): StyleProps | null {
+  if (o.off.has(catName)) return null
+  const word = GRAMMAR_BY_NAME.get(catName)
+  if (word) {
+    // a grammar word: a muted tint plus its own letter shape, never a fill, in every style
+    const g: StyleProps = { color: categoryColor(word, o) }
+    if (word.weight >= 600) g.weight = 'bold'
+    if (word.font === 'italic') g.italic = true
+    if (word.underline !== 'none') g.underline = true
+    return g
+  }
   const cat = BY_NAME.get(catName)
-  if (!cat || o.off.has(catName)) return null
+  if (!cat) return null
   const color = categoryColor(cat, o)
   const p: StyleProps = {}
   if (o.mode === 'a') {
@@ -86,6 +103,7 @@ export function parseOptions(raw: Record<string, unknown> | undefined): Options 
     mode: pick(raw?.mode, ['a', 'b', 'c'] as const, 'c'),
     theme: pick(raw?.theme, ['dark', 'light'] as const, 'dark'),
     palette: pick(raw?.palette, ['default', 'cb'] as const, 'default'),
+    grammar: pick(raw?.grammar, ['on', 'off'] as const, 'on') === 'on',
     off: new Set(offRaw.split(',').map(s => s.trim()).filter(Boolean))
   }
 }

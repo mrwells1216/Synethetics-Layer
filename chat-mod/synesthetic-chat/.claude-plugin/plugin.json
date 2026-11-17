@@ -1,33 +1,53 @@
 {
   "name": "synesthetic-chat",
-  "version": "0.1.0",
-  "description": "Colors, highlights and weight for numbers, dates, IDs, links, warnings and more in Claude's replies, from the same lens as the Synesthetic Layer tool.",
+  "version": "0.2.0",
+  "description": "Colors, highlights and letter shapes in Claude's replies: numbers, dates, IDs, links and warnings, plus nouns, verbs, adjectives and adverbs from the Synesthetic Layer word library.",
   "userConfig": {
     "mode": {
       "type": "string",
       "title": "Style",
       "description": "a = colored text, b = highlight chips, c = combined",
       "default": "c",
-      "options": ["a", "b", "c"]
+      "options": [
+        "a",
+        "b",
+        "c"
+      ]
     },
     "theme": {
       "type": "string",
       "title": "Theme",
       "description": "Which palette to draw for: dark or light backgrounds",
       "default": "dark",
-      "options": ["dark", "light"]
+      "options": [
+        "dark",
+        "light"
+      ]
     },
     "palette": {
       "type": "string",
       "title": "Palette",
       "description": "default, or cb for the color-blind-safe palette",
       "default": "default",
-      "options": ["default", "cb"]
+      "options": [
+        "default",
+        "cb"
+      ]
+    },
+    "grammar": {
+      "type": "string",
+      "title": "Grammar words",
+      "description": "on = nouns tinted, verbs bold, adjectives italic, adverbs italic and underlined; off = only numbers, dates, IDs and the other pattern types",
+      "default": "on",
+      "options": [
+        "on",
+        "off"
+      ]
     },
     "off": {
       "type": "string",
       "title": "Categories to turn off",
-      "description": "Comma-separated category names to skip, for example: number,name",
+      "description": "Comma-separated category names to skip, for example: number,name,adverb",
       "default": "name"
     }
   }

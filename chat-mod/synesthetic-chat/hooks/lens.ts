@@ -208,3 +208,73 @@ export const LENS: LensCategory[] = [
     "defaultOff": true
   }
 ]
+
+// The grammar looks: tint and letter shape for the words the library names.
+export type GrammarCategory = {
+  name: string
+  label: string
+  kind: string
+  colors: { dark: string; light: string; cb_dark: string; cb_light: string }
+  font: string
+  weight: number
+  underline: string
+}
+
+export const GRAMMAR: GrammarCategory[] = [
+  {
+    "name": "noun",
+    "label": "Nouns",
+    "kind": "noun",
+    "colors": {
+      "dark": "#9db7d5",
+      "light": "#3f648f",
+      "cb_dark": "#9db7d5",
+      "cb_light": "#3f648f"
+    },
+    "font": "normal",
+    "weight": 0,
+    "underline": "none"
+  },
+  {
+    "name": "verb",
+    "label": "Verbs",
+    "kind": "verb",
+    "colors": {
+      "dark": "#e0a0a0",
+      "light": "#9a3f3f",
+      "cb_dark": "#e0a97a",
+      "cb_light": "#9a5a1f"
+    },
+    "font": "normal",
+    "weight": 700,
+    "underline": "none"
+  },
+  {
+    "name": "adjective",
+    "label": "Adjectives",
+    "kind": "adjective",
+    "colors": {
+      "dark": "#a9c9a0",
+      "light": "#3f7a37",
+      "cb_dark": "#a9c9a0",
+      "cb_light": "#3f7a37"
+    },
+    "font": "italic",
+    "weight": 0,
+    "underline": "none"
+  },
+  {
+    "name": "adverb",
+    "label": "Adverbs",
+    "kind": "adverb",
+    "colors": {
+      "dark": "#d8c48f",
+      "light": "#8a6a1a",
+      "cb_dark": "#d8c48f",
+      "cb_light": "#8a6a1a"
+    },
+    "font": "italic",
+    "weight": 300,
+    "underline": "dotted"
+  }
+]
