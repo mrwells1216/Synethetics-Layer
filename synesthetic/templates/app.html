@@ -51,6 +51,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .devsw input:focus-visible+span{outline:2px solid var(--fg);outline-offset:2px}
 .mark{margin:0;font-family:var(--font-head);font-weight:650;font-size:clamp(2.1rem,10vw,2.9rem);line-height:.95;letter-spacing:-.02em}
 .mark .ch{display:inline-block;transition:color .4s var(--ease)}
+/* the logo: an S as one ribbon in the seven category colors, as tall as the name and its "layer" line */
+.glyph{flex:none;height:clamp(2.7rem,12.5vw,3.6rem);width:auto;aspect-ratio:110/186;margin:0 .55rem 0 0}
+.glyph path{transition:stroke .4s var(--ease)}
 .mark .lyr{display:block;font-family:var(--font-body);font-size:.8rem;font-weight:700;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);margin:.7em 0 0 .15em}
 
 /* Tabs: one per color bar */
@@ -481,6 +484,7 @@ body.dragging #dropall{display:grid}
 <div class="wrap" id="wrap">
   <header class="top">
     <div class="brand">
+      <svg class="glyph" id="glyph" viewBox="45 11 110 186" aria-hidden="true"><g fill="none" stroke-width="26"><path data-i="0" d="M132.91 47 A38 38 0 0 0 94.34 28.43" stroke="#ff6b6b" stroke-linecap="round"/><path data-i="6" d="M105.66 179.57 A38 38 0 0 1 67.09 161" stroke="#b394ff" stroke-linecap="round"/><path data-i="1" d="M94.34 28.43 A38 38 0 0 0 62.95 57.54" stroke="#ff9f5a"/><path data-i="2" d="M62.95 57.54 A38 38 0 0 0 78.59 97.4" stroke="#f2c14e"/><path data-i="3" d="M78.59 97.4 A38 38 0 0 0 100 104 A38 38 0 0 1 121.41 110.6" stroke="#5fd38d"/><path data-i="4" d="M121.41 110.6 A38 38 0 0 1 137.05 150.46" stroke="#3dd6d0"/><path data-i="5" d="M137.05 150.46 A38 38 0 0 1 105.66 179.57" stroke="#6cb4ff"/></g></svg>
       <h1 class="mark" id="mark" aria-label="Synesthetic Layer"></h1>
       <button class="plus" id="vplus" type="button" aria-label="Tab strip" aria-pressed="true" aria-controls="vbar"><span aria-hidden="true">+</span></button>
     </div>
@@ -975,6 +979,7 @@ body.dragging #dropall{display:grid}
     var letters = $('mark').querySelectorAll('.ch');
     for (var i = 0; i < letters.length; i++) letters[i].style.color = spec[i % spec.length];
     $('vplus').style.color = spec[letters.length % spec.length];   // the + carries on the name's colors
+    [].forEach.call($('glyph').querySelectorAll('path'), function(p){ if (spec.length) p.style.stroke = spec[p.dataset.i % spec.length]; });   // so does the logo
     wrap.className = 'wrap m-' + st.mode;   // the app's own colored text follows the highlight style
     $('fr').classList.remove('m-a','m-b','m-c','m-d'); $('fr').classList.add('m-' + st.mode);
     syncEditor(); syncSettings(); syncLook(); howLegend();

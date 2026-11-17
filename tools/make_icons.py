@@ -1,6 +1,7 @@
 """Draw the app icons into synesthetic/static/ (run again after changing the colors below).
 
-The icon is the upload card: a page whose lines are partly lettered in the category colors.
+The icon is the Ribbon S: an S drawn as one thick ribbon in seven color segments, the same
+shape the page header draws next to the name.
 `.venv\\Scripts\\python.exe tools\\make_icons.py`
 """
 from pathlib import Path
@@ -8,45 +9,44 @@ from pathlib import Path
 import pymupdf
 
 OUT = Path(__file__).resolve().parent.parent / "synesthetic" / "static"
-BG, CARD, EDGE, INK, GRAY = "#0e1014", "#1b1f27", "#2b303b", "#eceef2", "#3b414d"
-NUMBER, DATE, WARNING, REFERENCE, LINK = "#6cb4ff", "#f2c14e", "#ff6b6b", "#b394ff", "#5fd38d"
+BG = "#0e1014"
 
-# rows of (width, color) inside a 256-wide line, 12 apart
-ROWS = [
-    (160, 34, [(150, INK)]),
-    (226, 26, [(48, GRAY), (60, NUMBER), (44, GRAY), (68, DATE)]),
-    (274, 26, [(80, GRAY), (72, WARNING), (80, GRAY)]),
-    (322, 26, [(92, REFERENCE), (64, GRAY), (76, LINK)]),
+# The S inside a 200 x 200 box: two arcs of radius 38 cut into seven equal pieces, top to bottom.
+# (path, color, round ends). The two end pieces come first so the middle ones cover their inner caps.
+RIBBON = [
+    ("M132.91 47 A38 38 0 0 0 94.34 28.43", "#ff6b6b", True),
+    ("M105.66 179.57 A38 38 0 0 1 67.09 161", "#b394ff", True),
+    ("M94.34 28.43 A38 38 0 0 0 62.95 57.54", "#ff9f5a", False),
+    ("M62.95 57.54 A38 38 0 0 0 78.59 97.4", "#f2c14e", False),
+    ("M78.59 97.4 A38 38 0 0 0 100 104 A38 38 0 0 1 121.41 110.6", "#5fd38d", False),
+    ("M121.41 110.6 A38 38 0 0 1 137.05 150.46", "#3dd6d0", False),
+    ("M137.05 150.46 A38 38 0 0 1 105.66 179.57", "#6cb4ff", False),
 ]
+CENTER = (100, 104)  # the middle of the S in that box
 
 
-def sheet() -> str:
-    parts = [f'<rect x="96" y="122" width="320" height="268" rx="36" fill="{CARD}" stroke="{EDGE}" stroke-width="4"/>']
-    for y, h, bars in ROWS:
-        x = 128
-        for w, c in bars:
-            parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{h / 2}" fill="{c}"/>')
-            x += w + 12
-    return "".join(parts)
+def ribbon(size: float, scale: float) -> str:
+    """The S centered in a size x size square, drawn at `scale` times its 200-box size."""
+    dx, dy = size / 2 - CENTER[0] * scale, size / 2 - CENTER[1] * scale
+    parts = [
+        f'<path d="{d}" stroke="{c}"' + (' stroke-linecap="round"' if cap else "") + "/>"
+        for d, c, cap in RIBBON
+    ]
+    return (f'<g transform="translate({dx:.2f} {dy:.2f}) scale({scale})" fill="none" stroke-width="26">'
+            + "".join(parts) + "</g>")
 
 
 def icon(maskable=False) -> str:
-    # maskable: full-bleed background; the card's corners stay inside the safe circle (radius 204.8)
+    # maskable: full-bleed background; the S stays inside the safe circle (radius 204.8)
     bg = f'<rect width="512" height="512" fill="{BG}"/>' if maskable else f'<rect width="512" height="512" rx="112" fill="{BG}"/>'
-    body = f'<g transform="translate(15.36 15.36) scale(.94)">{sheet()}</g>' if maskable else sheet()
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">{bg}{body}</svg>'
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">{bg}'
+            f'{ribbon(512, 1.7 if maskable else 2.0)}</svg>')
 
 
 def small() -> str:
-    """Favicon: the same idea with three thick lines, readable at 16-32 px."""
-    bars = [(14, [(30, INK)]), (28, [(16, NUMBER), (20, DATE)]), (42, [(22, REFERENCE), (14, WARNING)])]
-    parts = [f'<rect width="64" height="64" rx="14" fill="{BG}"/>']
-    for y, row in bars:
-        x = 12
-        for w, c in row:
-            parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="9" rx="4.5" fill="{c}"/>')
-            x += w + 4
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">{"".join(parts)}</svg>'
+    """Favicon: the same S, filling more of the square so it reads at 16-32 px."""
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">'
+            f'<rect width="64" height="64" rx="14" fill="{BG}"/>{ribbon(64, 0.3)}</svg>')
 
 
 def png(svg: str, size: int, path: Path, alpha=True):

@@ -1,14 +1,25 @@
 [
  {
-  "sha": "caa889f9bfbe6786cf3508fc46f0e20a7e5e3c79",
-  "short": "caa889f",
-  "date": "2026-11-16T21:46:44-06:00",
+  "sha": "76c6cefabdadf5bed91110773ba885c27122819b",
+  "short": "76c6cef",
+  "date": "2026-11-16T23:41:28-06:00",
+  "title": "The Ribbon S is the logo: app icon, browser tab and header",
+  "body": "The owner picked option 12 from the logo board: an S drawn as one thick ribbon in seven color segments. It replaces the page-with-lines icon on the home screen and in the browser tab, and now sits beside the name at the top of the app, where it follows the colors chosen in Editor.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/76c6cefabdadf5bed91110773ba885c27122819b"
+ },
+ {
+  "sha": "41ad8ff20a949ffc8afd2f57d22f0e6abb08b30e",
+  "short": "41ad8ff",
+  "date": "2026-11-16T21:46:45-06:00",
   "title": "Make the chat add-on installable in one step",
   "body": "The add-on that colors Claude's replies was only ever attached to the session that wrote it, so no other chat loaded it. The repository now lists it as a plugin, which Claude Code can install for every session:\n\nclaude plugin install synesthetic-chat --marketplace mrwells1216/Synethetics-Layer",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/caa889f9bfbe6786cf3508fc46f0e20a7e5e3c79"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/41ad8ff20a949ffc8afd2f57d22f0e6abb08b30e"
  },
  {
   "sha": "0342f4d4278b8fcb4c4fa70d89e16c8cc38a9b6a",
