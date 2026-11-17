@@ -1,14 +1,25 @@
 [
  {
-  "sha": "7f76655a50c51a71db8500fc37438ce242569450",
-  "short": "7f76655",
+  "sha": "84a6f7ea82f749a1712350205b032f20ea295fae",
+  "short": "84a6f7e",
+  "date": "2026-11-17T09:53:42-06:00",
+  "title": "The Bookshelf is the logo: app icon, browser tab and header",
+  "body": "The owner picked option 35 from the logo board: seven book spines in the seven category colors standing on a shelf, the last one leaning. It replaces the Ribbon S on the home screen and in the browser tab, and sits beside the name at the top of the app, where the books follow the colors chosen in Editor.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/84a6f7ea82f749a1712350205b032f20ea295fae"
+ },
+ {
+  "sha": "319ded6132a13235b9b59c4f26105dea3f69d410",
+  "short": "319ded6",
   "date": "2026-11-16T23:48:13-06:00",
   "title": "Our own word library: grammar looks in Claude's replies",
   "body": "Ordinary words in a chat reply stayed plain, because the chat add-on only knew the pattern types (numbers, dates, IDs, links, quotes). The grammar layer needed a language model the add-on cannot carry.\n\nlenses/library.toml is now our own stored library: small words, verbs (other forms are worked out), adjectives, adverbs, words that are a noun in one place and a verb in another, and the owner's own pinned words. A small tagger reads it and uses the words around each word to decide, so \"the list\" is a noun and \"to list\" a verb. It agrees with the language model on about 90% of words in the example texts.\n\n- The chat add-on (0.2.0) draws nouns tinted, verbs bold, adjectives italic and adverbs italic and underlined, beside the existing effects. A new \"Grammar words\" option turns it off; inline code is left alone. - The app uses the library wherever the language model is missing, and the owner's pinned words win over the model too. - tools/parity.py checks the add-on's tagger against the Python one; tools/library_check.py measures the library against the model.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/7f76655a50c51a71db8500fc37438ce242569450"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/319ded6132a13235b9b59c4f26105dea3f69d410"
  },
  {
   "sha": "03bcc771806f95fc584fe2f54f873ee4b0fd6377",

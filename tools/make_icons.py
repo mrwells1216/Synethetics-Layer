@@ -1,7 +1,7 @@
 """Draw the app icons into synesthetic/static/ (run again after changing the colors below).
 
-The icon is the Ribbon S: an S drawn as one thick ribbon in seven color segments, the same
-shape the page header draws next to the name.
+The icon is the Bookshelf: seven book spines in the seven category colors standing on a shelf,
+the last one leaning. The page header draws the same shape next to the name.
 `.venv\\Scripts\\python.exe tools\\make_icons.py`
 """
 from pathlib import Path
@@ -10,43 +10,47 @@ import pymupdf
 
 OUT = Path(__file__).resolve().parent.parent / "synesthetic" / "static"
 BG = "#0e1014"
+SHELF = "#eceef2"
 
-# The S inside a 200 x 200 box: two arcs of radius 38 cut into seven equal pieces, top to bottom.
-# (path, color, round ends). The two end pieces come first so the middle ones cover their inner caps.
-RIBBON = [
-    ("M132.91 47 A38 38 0 0 0 94.34 28.43", "#ff6b6b", True),
-    ("M105.66 179.57 A38 38 0 0 1 67.09 161", "#b394ff", True),
-    ("M94.34 28.43 A38 38 0 0 0 62.95 57.54", "#ff9f5a", False),
-    ("M62.95 57.54 A38 38 0 0 0 78.59 97.4", "#f2c14e", False),
-    ("M78.59 97.4 A38 38 0 0 0 100 104 A38 38 0 0 1 121.41 110.6", "#5fd38d", False),
-    ("M121.41 110.6 A38 38 0 0 1 137.05 150.46", "#3dd6d0", False),
-    ("M137.05 150.46 A38 38 0 0 1 105.66 179.57", "#6cb4ff", False),
+# The books inside a 200 x 200 box, all standing on y = 168: (x, top, width, color).
+# The leaning one is drawn first so its neighbor covers the corner it tips into.
+LEANING = (170, 56, 20, "#b394ff")   # turned 12 degrees about its bottom right corner
+BOOKS = [
+    (22, 50, 20, "#ff6b6b"),
+    (44, 72, 18, "#ff9f5a"),
+    (64, 40, 24, "#f2c14e"),
+    (90, 64, 18, "#5fd38d"),
+    (110, 48, 22, "#3dd6d0"),
+    (134, 78, 18, "#6cb4ff"),
 ]
-CENTER = (100, 104)  # the middle of the S in that box
+CENTER = (102, 108.5)  # the middle of the drawing in that box (it spans x 10-194, y 40-177)
 
 
-def ribbon(size: float, scale: float) -> str:
-    """The S centered in a size x size square, drawn at `scale` times its 200-box size."""
+def book(x, top, w, color, extra="") -> str:
+    return f'<rect x="{x}" y="{top}" width="{w}" height="{168 - top}" rx="5" fill="{color}"{extra}/>'
+
+
+def shelf(size: float, scale: float) -> str:
+    """The bookshelf centered in a size x size square, drawn at `scale` times its 200-box size."""
     dx, dy = size / 2 - CENTER[0] * scale, size / 2 - CENTER[1] * scale
-    parts = [
-        f'<path d="{d}" stroke="{c}"' + (' stroke-linecap="round"' if cap else "") + "/>"
-        for d, c, cap in RIBBON
-    ]
-    return (f'<g transform="translate({dx:.2f} {dy:.2f}) scale({scale})" fill="none" stroke-width="26">'
-            + "".join(parts) + "</g>")
+    x, top, w, color = LEANING
+    parts = [book(x, top, w, color, f' transform="rotate(-12 {x + w} 168)"')]
+    parts += [book(*b) for b in BOOKS]
+    parts.append(f'<rect x="10" y="166" width="184" height="11" rx="5.5" fill="{SHELF}"/>')
+    return f'<g transform="translate({dx:.2f} {dy:.2f}) scale({scale})">' + "".join(parts) + "</g>"
 
 
 def icon(maskable=False) -> str:
-    # maskable: full-bleed background; the S stays inside the safe circle (radius 204.8)
+    # maskable: full-bleed background; the shelf stays inside the safe circle (radius 204.8)
     bg = f'<rect width="512" height="512" fill="{BG}"/>' if maskable else f'<rect width="512" height="512" rx="112" fill="{BG}"/>'
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">{bg}'
-            f'{ribbon(512, 1.7 if maskable else 2.0)}</svg>')
+            f'{shelf(512, 1.6 if maskable else 2.1)}</svg>')
 
 
 def small() -> str:
-    """Favicon: the same S, filling more of the square so it reads at 16-32 px."""
+    """Favicon: the same shelf, filling more of the square so it reads at 16-32 px."""
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">'
-            f'<rect width="64" height="64" rx="14" fill="{BG}"/>{ribbon(64, 0.3)}</svg>')
+            f'<rect width="64" height="64" rx="14" fill="{BG}"/>{shelf(64, 0.3)}</svg>')
 
 
 def png(svg: str, size: int, path: Path, alpha=True):
