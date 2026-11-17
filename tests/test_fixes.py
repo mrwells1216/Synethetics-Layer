@@ -29,9 +29,9 @@ def data(tmp_path, monkeypatch):
 
 # ---------------------------------------------------------------- what an entry must be
 
-def test_highlight_needs_text_and_note():
-    with pytest.raises(fx.FixError):
-        fx.clean_entry({"kind": "text", "text": "Some words"})
+def test_highlight_needs_text_but_not_a_note():
+    e, _ = fx.clean_entry({"kind": "text", "text": "Some words"})   # Skip: a fix with no comment
+    assert e["mark"] == "fix" and e["note"] == ""
     with pytest.raises(fx.FixError):
         fx.clean_entry({"kind": "text", "note": "Change this"})
     e, png = fx.clean_entry({"kind": "text", "text": "Some words", "note": "Change this", "section": "how"})
@@ -229,8 +229,8 @@ def test_endpoint_round_trip_on_this_computer(data):
             call(base, "fix-review", {"ref": ref, "status": "done", "review": "Again"})
         assert e.value.code == 400
         with pytest.raises(urllib.error.HTTPError) as e:
-            call(base, "fix-add", {"kind": "text", "text": "only text"})
-        assert e.value.code == 400 and b"note" in e.value.read()
+            call(base, "fix-add", {"kind": "text", "note": "no text marked"})
+        assert e.value.code == 400 and b"highlighted text" in e.value.read()
     finally:
         srv.shutdown()
 

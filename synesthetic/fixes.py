@@ -107,9 +107,9 @@ def clean_entry(data) -> tuple[dict, bytes | None]:
         raise FixError("Mark must be good, bad or fix.")
     text, note = _short(data.get("text"), TEXT_MAX), _short(data.get("note"), NOTE_MAX)
     png = decode_png(data.get("image"))
-    # Good and Not good say enough by themselves; a fix or idea needs words
-    if kind == "text" and not (text and (note or mark != "fix")):
-        raise FixError("A highlight needs the highlighted text, and a fix or idea needs a note.")
+    # the marked text says enough by itself; the comment is optional (the page offers Submit or Skip)
+    if kind == "text" and not text:
+        raise FixError("A highlight needs the highlighted text.")
     if kind == "shot" and not (png or text or note):
         raise FixError("A screenshot needs a picture, some text or a note.")
     if kind == "text" and png:

@@ -21,7 +21,7 @@
 :root{
   --bg:#0e1014;--surface:#15181e;--raised:#1c2028;--fg:#eceef2;--muted:#8d95a3;--line:#272c36;
   --doc-bg:#14161b;--r-sm:10px;--r-md:14px;--r-lg:22px;
-  --font-body:'Atkinson Hyperlegible',system-ui,sans-serif;--font-head:Fraunces,Georgia,serif;
+  --font-body:'Atkinson Hyperlegible Next','Atkinson Hyperlegible',system-ui,sans-serif;--font-head:Fraunces,Georgia,serif;
   --spec:linear-gradient(100deg,#ff6b6b,#ff9f5a,#f2c14e,#5fd38d,#3dd6d0,#6cb4ff,#b394ff);--on-spec:#0e1014;
   --ease:cubic-bezier(.2,.7,.2,1);--tabh:64px;color-scheme:dark}
 :root[data-theme=light]{
@@ -40,12 +40,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* Header: the wordmark is lettered in your own category colors */
 .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 /* the one switch for the mark-up tools: off, none of them run */
-.devsw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font:750 11px/1 var(--font-body);letter-spacing:.1em}
-.devsw input{appearance:none;-webkit-appearance:none;flex:none;margin:0;width:36px;height:20px;border-radius:10px;background:var(--raised);border:1px solid var(--line);position:relative;cursor:pointer;transition:background .2s}
-.devsw input::before{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .2s var(--ease),background .2s}
-.devsw input:checked{background:var(--c-link)}
-.devsw input:checked::before{transform:translateX(16px);background:var(--on-link)}
-.devsw input:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+/* DEV sits under the green bar, the one bar with no page of its own: a pill that fills while the tools are on */
+.devsw{position:relative;display:inline-flex;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.devsw input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.devsw span{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--k) 50%,var(--line));color:var(--k);font:750 11px/1 var(--font-body);letter-spacing:.12em;transition:background .2s,color .2s,box-shadow .2s,border-color .2s}
+.devsw span::before{content:"";box-sizing:border-box;width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;transition:background .2s}
+.devsw:hover span{border-color:var(--k)}
+.devsw input:checked+span{background:var(--k);border-color:var(--k);color:var(--ok,var(--bg));box-shadow:0 0 14px -2px color-mix(in srgb,var(--k) 70%,transparent)}
+.devsw input:checked+span::before{background:currentColor}
+.devsw input:focus-visible+span{outline:2px solid var(--fg);outline-offset:2px}
 .mark{margin:0;font-family:var(--font-head);font-weight:650;font-size:clamp(2.1rem,10vw,2.9rem);line-height:.95;letter-spacing:-.02em}
 .mark .ch{display:inline-block;transition:color .4s var(--ease)}
 .mark .lyr{display:block;font-family:var(--font-body);font-size:.8rem;font-weight:700;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);margin:.7em 0 0 .15em}
@@ -59,8 +62,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tab[aria-selected=true] i{opacity:1;transform:scaleY(1.4)}
 .tab:focus-visible{outline:2px solid var(--fg);outline-offset:2px;border-radius:6px}
 /* the center bar is a color only, not a tab */
-.tabgap{display:grid;align-content:start;padding:0 0 10px}
-.tabgap i{display:block;width:100%;height:6px;border-radius:3px;background:var(--k);opacity:.38}
+.tabgap{display:grid;gap:7px;align-content:start;justify-items:center;padding:0 0 8px}
+.tabgap i{display:block;width:100%;height:6px;border-radius:3px;background:var(--k);opacity:.38;transition:opacity .2s,transform .2s var(--ease)}
+:root.dev-on .tabgap i{opacity:1;transform:scaleY(1.4)}
 /* tab names (Settings, Tab names): in their bar's color, or highlighted in it with page-colored letters */
 .tab{overflow-wrap:normal}
 .tab span{max-width:100%}
@@ -86,6 +90,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 @media (max-width:599px){
   .tab span{display:none}
   .tab{min-height:0;padding-bottom:12px}
+  .devsw span{padding:4px 8px;font-size:10px;letter-spacing:.08em}
+  .devsw span::before{display:none}
   /* the color bars stay pinned at the top only while the side strip is away (then they're the way around) */
   :root:not(.vfolded) .tabbar{position:relative}
   .vbar{display:flex;flex-direction:column;position:fixed;z-index:25;top:0;right:0;bottom:0;width:34px;
@@ -94,11 +100,15 @@ button,input,select,textarea{font:inherit;color:inherit}
   .vtab,.vgap{all:unset;box-sizing:border-box;flex:1 1 0;min-height:0;display:grid;place-items:center;position:relative;
     background:var(--k);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:margin .25s var(--ease),filter .2s}
   .vtab{filter:saturate(.75) brightness(.78)}
-  .vtab span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;color:var(--bg);
+  .vtab span,.vgap span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;color:var(--bg);
     font:750 clamp(11px,1.7vh,13.5px)/1 var(--font-body);letter-spacing:.03em}
   .vtab[aria-current=page]{filter:none;margin-left:-8px;border-radius:9px 0 0 9px;box-shadow:-4px 0 12px rgba(0,0,0,.35);z-index:1}
   .vtab:focus-visible{outline:2px solid var(--fg);outline-offset:-3px}
-  .vgap{cursor:default;filter:saturate(.75) brightness(.6)}
+  /* the green slot is the DEV button: dim while the tools are off, lit with a dot while they're on */
+  .vgap{filter:saturate(.75) brightness(.6)}
+  :root.dev-on .vgap{filter:none}
+  :root.dev-on .vgap span::after{content:" \25CF"}
+  .vgap:focus-visible{outline:2px solid var(--fg);outline-offset:-3px}
   /* hiding is showing in reverse: the same sideways slide, off the right edge (past the open tab's tongue) */
   :root.vfolded .vbar{transform:translateX(calc(100% + 24px));pointer-events:none}
   /* a full-screen result or roller has its own buttons along that edge, so the strip steps aside for it */
@@ -212,16 +222,31 @@ input[type=search]{width:100%;padding:11px 14px;border-radius:999px;border:1px s
 .lg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 16px}
 .lg-grid div{display:grid;gap:2px;padding:8px 0;border-bottom:1px solid var(--line)}
 .lg-grid b{font-size:14px}
-.lg-grid .c{justify-self:start;font-size:15px}
+.lg-grid b small{margin-left:8px;font-size:12px;font-weight:500;color:var(--muted)}
+.lg-grid h4{grid-column:1/-1;margin:12px 0 0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+/* each example the way it lands in real text: only the matched words carry the look */
+.lg-ex{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:15px}
+.lg-ex .c.l-grammar{background:none;box-shadow:none;padding:0;color:var(--c)}
 .show{display:grid;gap:14px}
 .show-pick{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 8px;margin:0 -16px;padding-left:16px;padding-right:16px}
 .show-pick h4{display:none}
 .sp-btn{all:unset;box-sizing:border-box;cursor:pointer;flex:none;scroll-snap-align:start;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:14px;font-weight:650;white-space:nowrap}
 .sp-btn small{display:none}
 .sp-btn[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.show-ctl{display:grid;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px}
-.show-ctl .field{margin:0}
-.show-ctl .sws{display:flex;flex-wrap:wrap;gap:10px 22px}
+/* the example's controls: one compact tool bar, each group a row of joined buttons */
+.show-ctl{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:8px 10px}
+.sc-g{display:flex;align-items:center;gap:7px;min-width:0;max-width:100%}
+.sc-l{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.show-ctl .seg{flex-wrap:nowrap;gap:0;min-width:0;overflow-x:auto;scrollbar-width:none;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.show-ctl .seg::-webkit-scrollbar{display:none}
+.show-ctl .seg button,.sc-t span{all:unset;box-sizing:border-box;cursor:pointer;flex:none;padding:5px 9px;font-size:12.5px;font-weight:650;line-height:1.2;white-space:nowrap;color:var(--muted);border-left:1px solid var(--line)}
+.show-ctl .seg>:first-child,.show-ctl .seg>:first-child span{border-left:0}
+.show-ctl .seg button:hover,.sc-t:hover span{color:var(--fg)}
+.show-ctl .seg button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.show-ctl .seg button:focus-visible,.sc-t input:focus-visible+span{outline:2px solid var(--fg);outline-offset:-2px}
+.sc-t{position:relative;display:flex;flex:none;cursor:pointer}
+.sc-t input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.sc-t input:checked+span{background:var(--c-link);color:var(--on-link)}
 .paper{border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);background:var(--doc-bg);box-shadow:0 18px 50px -24px rgba(0,0,0,.6)}
 #show-frame{display:block;width:100%;height:520px;border:0}
 .show-leg{display:flex;flex-wrap:wrap;gap:6px}
@@ -408,7 +433,7 @@ body.dragging #dropall{display:grid}
 .ro-more{max-width:900px;margin:0 auto;color:var(--muted);text-align:center;font-size:14px}
 
 /* Wider screens */
-@media (min-width:600px){.tab{font-size:14px}}
+@media (min-width:600px){.tab{font-size:14px}.devsw span{font-size:12px;padding:6px 14px 6px 11px}}
 @media (min-width:960px){
   .wrap{width:min(1180px,100%);padding:36px 40px 56px}
   .mark{font-size:3.4rem}
@@ -448,7 +473,7 @@ body.dragging #dropall{display:grid}
   <button class="vtab" type="button" data-tab="how" style="--k:var(--c-warning)"><span>How it works</span></button>
   <button class="vtab" type="button" data-tab="layer" style="--k:var(--c-quote)"><span>Synesthesize</span></button>
   <button class="vtab" type="button" data-tab="free" style="--k:var(--c-date)"><span>Free Rain</span></button>
-  <span class="vgap" aria-hidden="true" style="--k:var(--c-link)"></span>
+  <button class="vgap" id="vdev" type="button" aria-pressed="false" aria-label="Developer tools" style="--k:var(--c-link)"><span>DEV</span></button>
   <button class="vtab" type="button" data-tab="editor" style="--k:var(--c-id)"><span>Editor</span></button>
   <button class="vtab" type="button" data-tab="saved" style="--k:var(--c-number)"><span>Saved</span></button>
   <button class="vtab" type="button" data-tab="settings" style="--k:var(--c-reference)"><span>Settings</span></button>
@@ -460,7 +485,6 @@ body.dragging #dropall{display:grid}
       <button class="plus" id="vplus" type="button" aria-label="Tab strip" aria-pressed="true" aria-controls="vbar"><span aria-hidden="true">+</span></button>
     </div>
     <div class="top-acts">
-      <label class="devsw" title="Tools: mark text and take screenshots"><span>DEV</span><input type="checkbox" role="switch" id="set-dev" aria-label="Developer tools"></label>
       <button class="pill" id="install" hidden>Install app</button>
     </div>
   </header>
@@ -469,7 +493,7 @@ body.dragging #dropall{display:grid}
     <button class="tab" role="tab" id="t-how" data-tab="how" aria-controls="v-how" style="--k:var(--c-warning);--ok:var(--on-warning)"><i></i><span><b>How it works</b></span></button>
     <button class="tab" role="tab" id="t-layer" data-tab="layer" aria-controls="v-layer" style="--k:var(--c-quote);--ok:var(--on-quote)"><i></i><span><b>Synes&shy;thesize</b></span></button>
     <button class="tab" role="tab" id="t-free" data-tab="free" aria-controls="v-free" style="--k:var(--c-date);--ok:var(--on-date)"><i></i><span><b>Free Rain</b></span></button>
-    <span class="tabgap" aria-hidden="true" style="--k:var(--c-link)"><i></i></span>
+    <span class="tabgap" style="--k:var(--c-link);--ok:var(--on-link)"><i aria-hidden="true"></i><label class="devsw" data-plain title="Tools: highlight text to mark it, triple-click for a screenshot"><input type="checkbox" role="switch" id="set-dev" aria-label="Developer tools"><span>DEV</span></label></span>
     <button class="tab" role="tab" id="t-editor" data-tab="editor" aria-controls="v-editor" style="--k:var(--c-id);--ok:var(--on-id)"><i></i><span><b>Editor</b></span></button>
     <button class="tab" role="tab" id="t-saved" data-tab="saved" aria-controls="v-saved" style="--k:var(--c-number);--ok:var(--on-number)"><i></i><span><b>Saved</b></span></button>
     <button class="tab" role="tab" id="t-settings" data-tab="settings" aria-controls="v-settings" style="--k:var(--c-reference);--ok:var(--on-reference)"><i></i><span><b>Settings</b></span></button>
@@ -501,19 +525,18 @@ body.dragging #dropall{display:grid}
     <div class="show">
       <div class="show-pick" id="show-pick" role="group" aria-label="Examples"></div>
       <div style="display:grid;gap:12px;min-width:0">
-        <div class="show-ctl">
-          <div class="field"><span class="flabel">Highlight style</span>
+        <div class="show-ctl" role="toolbar" aria-label="Example look" data-plain>
+          <div class="sc-g"><span class="sc-l">Style</span>
             <div class="seg" data-show="mode"><button data-v="c">Combined</button><button data-v="b">Highlights</button><button data-v="a">Colored text</button><button data-v="d">Underline</button></div></div>
-          <div class="field"><span class="flabel">Colors</span>
+          <div class="sc-g"><span class="sc-l">Colors</span>
             <div class="seg" data-show="scheme" id="show-schemes"></div></div>
-          <div class="sws">
-            <label class="sw-row"><input type="checkbox" role="switch" id="show-grammar"><span>Grammar layer<small>Nouns tinted, verbs bold, adjectives italic, adverbs italic and underlined</small></span></label>
-            <label class="sw-row"><input type="checkbox" role="switch" id="show-cb"><span>Color-blind safe<small>Okabe-Ito based colors</small></span></label>
-          </div>
-          <div class="sws">
-            <div class="field"><span class="flabel">Theme</span><div class="seg" data-show="theme"><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
-            <div class="field"><span class="flabel">Spacing</span><div class="seg" data-show="sp"><button data-v="normal">Normal</button><button data-v="roomy">Roomy</button></div></div>
-          </div>
+          <div class="sc-g"><span class="sc-l">Layers</span>
+            <div class="seg">
+              <label class="sc-t" title="Grammar layer: nouns tinted, verbs bold, adjectives italic, adverbs thin italic with a dotted underline"><input type="checkbox" role="switch" id="show-grammar"><span>Grammar</span></label>
+              <label class="sc-t" title="Color-blind safe: Okabe-Ito based colors"><input type="checkbox" role="switch" id="show-cb"><span>Color-blind safe</span></label>
+            </div></div>
+          <div class="sc-g"><span class="sc-l">Theme</span><div class="seg" data-show="theme"><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
+          <div class="sc-g"><span class="sc-l">Spacing</span><div class="seg" data-show="sp"><button data-v="normal">Normal</button><button data-v="roomy">Roomy</button></div></div>
         </div>
         <div class="paper"><iframe id="show-frame" title="Example document"></iframe></div>
         <div class="show-leg" id="show-leg" aria-label="Categories in this example: tap to hide or show"></div>
@@ -954,7 +977,7 @@ body.dragging #dropall{display:grid}
     $('vplus').style.color = spec[letters.length % spec.length];   // the + carries on the name's colors
     wrap.className = 'wrap m-' + st.mode;   // the app's own colored text follows the highlight style
     $('fr').classList.remove('m-a','m-b','m-c','m-d'); $('fr').classList.add('m-' + st.mode);
-    syncEditor(); syncSettings(); syncLook();
+    syncEditor(); syncSettings(); syncLook(); howLegend();
     if (show.key) paintShow();
     frPaint();
     if (uiOn){ document.querySelectorAll('span[data-ui]').forEach(unwrap); paint(wrap); }
@@ -1362,9 +1385,39 @@ body.dragging #dropall{display:grid}
   window.addEventListener('resize', measureTabs);
 
   // ================= How it works =================
-  $('how-legend').innerHTML = CONTENT.filter(function(c){ return !c.off; }).map(function(c){
-    return '<div><b>' + esc(c.label) + '</b><span class="c c-' + c.name + '">' + esc(c.example) + '</span></div>';
-  }).join('');
+  // Formula: each kind shown the way it lands in real text (the same detection every document gets, so only
+  // the matched words carry the look), with the look spelled out beside its name. The grammar layer's four
+  // shapes follow.
+  function lookWords(c){
+    var g = c.layer === 'grammar', l = g ? lookDef(c) : lookOf(c), w = g ? ['tint'] : [];
+    if (l['case'] === 'upper') w.push('ALL CAPS');
+    if (l.bold) w.push('bold');
+    if (c.thin && !l.bold) w.push('thin');
+    if (l.italic) w.push('italic');
+    if (l.scale > 1) w.push('larger');
+    if (l.underline !== 'none') w.push(l.underline + ' underline');
+    return w.join(', ') || 'color';
+  }
+  function exampleHtml(c){
+    return c.example.split(/\s+or\s+|,\s+|\s{2,}/).filter(Boolean).map(function(p){
+      if (c.layer === 'grammar'){
+        var l = lookDef(c), css = 'font-weight:' + (l.bold ? 700 : c.thin ? 300 : 'inherit') + ';font-style:' + (l.italic ? 'italic' : 'normal') +
+          (l.underline !== 'none' ? ';text-decoration:underline ' + l.underline + ' 1px var(--c);text-underline-offset:.2em' : ';text-decoration:none');
+        return '<span class="c l-grammar c-' + c.name + '" style="' + css + '">' + esc(p) + '</span>';
+      }
+      var out = '', at = 0;
+      spans(p).forEach(function(s){ out += esc(p.slice(at, s.start)) + '<span class="c c-' + s.cat + '">' + esc(p.slice(s.start, s.end)) + '</span>'; at = s.end; });
+      return '<span>' + out + esc(p.slice(at)) + '</span>';
+    }).join('');
+  }
+  function howLegend(){
+    var rows = CONTENT.filter(function(c){ return !c.off; }).concat(CATS.filter(function(c){ return c.layer === 'grammar'; }));
+    $('how-legend').innerHTML = rows.map(function(c, i){
+      var head = c.layer === 'grammar' && (!i || rows[i - 1].layer !== 'grammar') ? '<h4>Grammar layer</h4>' : '';
+      return head + '<div data-plain><b>' + esc(c.label) + '<small>' + esc(lookWords(c)) + '</small></b><span class="lg-ex">' + exampleHtml(c) + '</span></div>';
+    }).join('');
+  }
+  howLegend();
   var SHOWDATA = null, show = {key: null, mode: null, scheme: 'yours', grammar: true, cb: false, theme: null, sp: 'normal', off: {}};
   var sframe = $('show-frame');
   $('show-schemes').innerHTML = '<button data-v="yours">Yours</button><button data-v="standard">Standard</button>' +

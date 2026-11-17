@@ -1,7 +1,8 @@
 /* Developer tools and the change log.
  *
- * One switch at the top of the page turns the tools on: highlight text to mark it Good, Not good or Fix/idea,
- * and triple-click (or triple-tap) for a screenshot window. Off, none of it runs. A note goes to the fixes store
+ * The DEV button under the green bar turns the tools on: highlight text, or triple-click (triple-tap) for a
+ * screenshot frame. Either way the marks come up first (Good, Not good, Fix/idea); picking one opens the
+ * comment window, with Submit and Skip. Off, none of it runs. A note goes to the fixes store
  * (python fixes.py list) when the app runs on the owner's computer or the site has a store and this device is
  * linked; anywhere else it is kept on this device, to copy into a Claude chat.
  *
@@ -119,7 +120,8 @@
     '.dv-bar button{all:unset;cursor:pointer;padding:7px 12px;border-radius:999px;font:750 14px/1 var(--font-body)}',
     '.dv-bar button:hover{background:color-mix(in srgb,var(--bg) 18%,transparent)}',
     '.dv-bar .dv-barx{margin-left:2px;padding:7px 10px;border-left:1px solid color-mix(in srgb,var(--bg) 30%,transparent);border-radius:0 999px 999px 0;opacity:.75}',
-    '.dv-pick{margin:0 0 8px}',
+    '.dv-shot.pick{width:auto;padding:6px;border-radius:999px}',
+    '.dv-shot.pick .dv-marks{margin:0;flex-wrap:nowrap}',
     '.dv-dim{position:fixed;inset:0;z-index:2147482700;pointer-events:none;background:rgba(0,0,0,.5)}',
     '.dv-frame{position:fixed;z-index:2147482800;border:2px solid;border-image:linear-gradient(100deg,#ff9d9d,#ffc091,#f6d68a,#96e2b3,#84e4e0,#9dcdff,#cdb9ff) 1;outline:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);touch-action:none;cursor:move;box-sizing:border-box}',
     '.dv-h{position:absolute;width:30px;height:30px;touch-action:none}',
@@ -169,6 +171,7 @@
     lsSet(ON_KEY, on ? '1' : '0');
     root.classList.toggle('dev-on', on);
     var sw = $('set-dev'); if (sw) sw.checked = on;
+    var vd = $('vdev'); if (vd) vd.setAttribute('aria-pressed', on ? 'true' : 'false');
     var more = $('dev-more'); if (more) more.hidden = !on;
     devStatus();
     if (on) refreshFixes(); else { hideBar(); closeShot(); if (noteD && noteD.open) noteD.close(); }
@@ -179,6 +182,8 @@
   function settingsCard(){
     var sw = $('set-dev'); if (!sw) return;
     sw.addEventListener('change', function(){ setOn(this.checked); });
+    var vd = $('vdev'); if (vd) vd.addEventListener('click', function(){ setOn(!isOn()); });
+    Array.prototype.forEach.call(document.querySelectorAll('iframe'), function(f){ if (!f.closest('#roller')) hookFrame(f); });
     $('dev-copy').addEventListener('click', copyNotes);
     $('dev-share').addEventListener('click', shareNotes);
     $('dev-clear').addEventListener('click', function(){
@@ -188,8 +193,8 @@
   }
   function devStatus(){
     var s = $('dev-status'); if (!s) return;
-    var how = 'Highlight text to mark it Good, Not good or Fix/idea, or triple-click (triple-tap on a phone) for a screenshot. ';
-    if (!isOn()) s.textContent = 'Turn on the DEV switch at the top of the page. ' + how.replace(/^H/, 'Then h');
+    var how = 'Highlight text, or triple-click (triple-tap on a phone) for a screenshot, then pick Good, Not good or Fix/idea. ';
+    if (!isOn()) s.textContent = 'Press DEV under the green bar at the top of the page. ' + how.replace(/^H/, 'Then h');
     else s.textContent = how + (toStore() ? 'Notes go straight to Claude’s list.' : 'Notes are kept on this device: press Copy for Claude, then paste into your Claude chat.');
   }
 
@@ -272,56 +277,44 @@
     }).catch(function(e){ if (!e || e.name !== 'AbortError') toast((e && e.message) || 'Could not share'); });
   }
 
-  // ================= note dialog =================
+  // ================= comment window (after a mark is picked on highlighted text) =================
+  var NOTE_HINT = {good: 'What works here (optional)', bad: 'What is off (optional)', fix: 'What should change, or your idea (optional)'};
   var noteD = null, noteOpts = null;
   function openNote(opts){
     noteOpts = opts;
     if (!noteD){
-      var ta = h('textarea', {placeholder: 'What should change, or your idea', 'aria-label': 'Your note', rows: '4'});
+      var ta = h('textarea', {'aria-label': 'Your comment', rows: '4'});
       var st = h('p', {class: 'dv-st', role: 'status'});
-      var save = h('button', {class: 'dv-btn', type: 'button', text: 'Save'});
-      var cancel = h('button', {class: 'dv-btn', type: 'button', text: 'Cancel'});
-      var x = h('button', {class: 'dv-btn', type: 'button', 'aria-label': 'Close', text: '✕'});
-      var pick = h('div', {class: 'dv-marks dv-pick', role: 'group', 'aria-label': 'Mark'}, Object.keys(MARK).map(function(m){
-        var b = h('button', {class: 'dv-btn', type: 'button', 'data-m': m, text: MARK[m]});
-        b.addEventListener('click', function(){ setMark(m); noteD._ta.focus(); });
-        return b;
-      }));
-      noteD = ui(h('dialog', {class: 'dv-note', 'aria-label': 'Fix or idea'}, [
+      var save = h('button', {class: 'dv-btn', type: 'button', 'aria-pressed': 'true', text: 'Submit'});
+      var skip = h('button', {class: 'dv-btn', type: 'button', text: 'Skip', title: 'Save the mark without a comment'});
+      var x = h('button', {class: 'dv-btn', type: 'button', 'aria-label': 'Close without saving', text: '✕'});
+      noteD = ui(h('dialog', {class: 'dv-note', 'aria-label': 'Comment'}, [
         h('div', {class: 'dv-top'}, [h('h3'), x]),
-        h('p', {class: 'hint', text: 'Pick a mark and add a comment for Claude.'}),
-        h('blockquote'), pick, ta, h('div', {class: 'dv-marks'}, [save, cancel]), st]));
+        h('blockquote'), ta, h('div', {class: 'dv-marks'}, [save, skip]), st]));
       document.body.appendChild(noteD);
-      noteD._ta = ta; noteD._st = st; noteD._pick = pick;
-      function close(){ noteD.close(); }
-      x.addEventListener('click', close); cancel.addEventListener('click', close);
-      save.addEventListener('click', saveNote);
+      noteD._ta = ta; noteD._st = st;
+      x.addEventListener('click', function(){ noteD.close(); });
+      save.addEventListener('click', function(){ saveNote(false); });
+      skip.addEventListener('click', function(){ saveNote(true); });
       noteD.addEventListener('keydown', function(e){
         if (e.key === 'Escape'){ e.stopPropagation(); }
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); saveNote(); }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); saveNote(false); }
       });
     }
-    noteD.querySelector('h3').textContent = opts.title || 'Fix or idea';
+    var mark = opts.mark || 'fix';
+    noteD.querySelector('h3').textContent = MARK[mark] || mark;
     var q = noteD.querySelector('blockquote');
     q.hidden = !opts.text; q.textContent = opts.text ? (opts.text.length > 900 ? opts.text.slice(0, 900) + '...' : opts.text) : '';
     noteD._ta.value = ''; noteD._st.textContent = '';
-    noteD._pick.hidden = !opts.marks;
-    setMark(opts.mark || 'fix');
+    noteD._ta.placeholder = NOTE_HINT[mark] || NOTE_HINT.fix;
     if (!noteD.open) noteD.showModal();
     noteD._ta.focus();
   }
-  // Good and Not good can be saved bare; a fix or idea needs words
-  var NOTE_HINT = {good: 'What works here (optional)', bad: 'What is off (optional)', fix: 'What should change, or your idea'};
-  function setMark(m){
-    noteOpts.mark = m;
-    noteD._ta.placeholder = NOTE_HINT[m] || NOTE_HINT.fix;
-    noteD._pick.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-m') === m ? 'true' : 'false'); });
-  }
-  function saveNote(){
-    var o = noteOpts, note = noteD._ta.value.trim(), st = noteD._st, mark = o.mark || 'fix';
-    if (!note && (mark === 'fix' || !o.text)){ st.textContent = 'Write what should change, or your idea.'; noteD._ta.focus(); return; }
+  function saveNote(skip){
+    var o = noteOpts, note = skip ? '' : noteD._ta.value.trim(), st = noteD._st;
+    if (!note && !o.text){ st.textContent = 'Write a comment first.'; noteD._ta.focus(); return; }
     st.textContent = 'Saving...';
-    send({kind: o.kind, mark: mark, note: note, text: (o.text || '').slice(0, 4000), section: o.section || tabNow(), context: context(o.context)})
+    send({kind: o.kind, mark: o.mark || 'fix', note: note, text: (o.text || '').slice(0, 4000), section: o.section || tabNow(), context: context(o.context)})
       .then(function(w){ noteD.close(); saved(w); }, function(e){ st.textContent = e.message; });
   }
 
@@ -330,21 +323,22 @@
   function hideBar(){ if (bar) bar.hidden = true; barSel = null; }
   function checkSel(){
     if (!isOn() || shot || (noteD && noteD.open)) return hideBar();
-    var s = window.getSelection();
-    if (!s || s.isCollapsed || !s.rangeCount) return hideBar();
-    var txt = s.toString().trim();
+    var cur = selNow();
+    if (!cur) return hideBar();
+    var s = cur.s, txt = s.toString().trim();
     if (txt.length < 2 || txt === dismissed) return hideBar();
     var r = s.getRangeAt(0), n = r.commonAncestorContainer, e = n.nodeType === 1 ? n : n.parentElement;
     if (!e || e.closest('[data-devui],input,textarea,select,[contenteditable]:not([contenteditable=false]),#ro-stage')) return hideBar();
-    var rect = r.getBoundingClientRect();
-    if (!rect.width && !rect.height) return hideBar();
+    var rr = r.getBoundingClientRect();
+    if (!rr.width && !rr.height) return hideBar();
+    var rect = {left: rr.left + cur.dx, top: rr.top + cur.dy, bottom: rr.bottom + cur.dy, width: rr.width};
     if (!bar){
       var closeB = h('button', {type: 'button', class: 'dv-barx', 'aria-label': 'Close', text: '✕'});
       var markBs = [['good', 'Good'], ['bad', 'Not good'], ['fix', 'Fix/idea']].map(function(m){
         var b = h('button', {type: 'button', text: m[1]});
         b.addEventListener('click', function(){
           var sel = barSel; hideBar(); if (!sel) return;
-          openNote({kind: 'text', title: 'About this text', marks: true, mark: m[0], text: sel.text, section: sel.section, context: {picture: 'not drawn: highlight'}});
+          openNote({kind: 'text', mark: m[0], text: sel.text, section: sel.section, context: {picture: 'not drawn: highlight'}});
         });
         return b;
       });
@@ -354,7 +348,7 @@
       closeB.addEventListener('click', function(){ dismissed = barSel ? barSel.text : ''; hideBar(); });
       document.body.appendChild(bar);
     }
-    barSel = {text: txt.slice(0, 4000), section: sectionOf(e)};
+    barSel = {text: txt.slice(0, 4000), section: sectionOf(cur.host || e)};
     bar.hidden = false;
     var bw = bar.offsetWidth || 150, bh = bar.offsetHeight || 40;
     // phones show their own Copy menu above a selection, so there the bar goes below it
@@ -365,7 +359,50 @@
     bar.style.left = clamp(rect.left + rect.width / 2 - bw / 2, 8, innerWidth - bw - 8) + 'px';
   }
   var selT = null;
-  document.addEventListener('selectionchange', function(){ if (!isOn()) return; clearTimeout(selT); selT = setTimeout(checkSel, 220); });
+  function onSel(){ if (!isOn()) return; clearTimeout(selT); selT = setTimeout(checkSel, 220); }
+  document.addEventListener('selectionchange', onSel);
+
+  // A frame of the app's own (the example document) is a page of its own: its selection and its clicks never
+  // reach this one. So each is wired the same way, and its positions are moved by where the frame sits.
+  var frames = [];
+  function frameAt(f){ var r = f.getBoundingClientRect(); return {dx: r.left + f.clientLeft, dy: r.top + f.clientTop}; }
+  function selNow(){
+    var s = window.getSelection();
+    if (s && !s.isCollapsed && s.rangeCount) return {s: s, dx: 0, dy: 0, host: null};
+    for (var i = 0; i < frames.length; i++){
+      var f = frames[i], d = null;
+      try { d = f.isConnected && f.getClientRects().length && f.contentDocument; } catch (e) {}
+      var fs = d && d.getSelection && d.getSelection();
+      if (fs && !fs.isCollapsed && fs.rangeCount){ var o = frameAt(f); return {s: fs, dx: o.dx, dy: o.dy, host: f}; }
+    }
+    return null;
+  }
+  function clearSel(doc){ try { var s = (doc || document).getSelection(); if (s) s.removeAllRanges(); } catch (e) {} }
+  function hookFrame(f){
+    if (frames.indexOf(f) < 0) frames.push(f);
+    function wire(){
+      var d = null;
+      try { d = f.contentDocument; } catch (e) {}
+      if (!d || d._dv) return;
+      d._dv = true;
+      d.addEventListener('selectionchange', onSel);
+      d.addEventListener('mousedown', function(e){
+        if (!isOn() || shot || e.button !== 0 || e.detail !== 3) return;
+        if (e.target.closest && e.target.closest(SKIP)) return;
+        e.preventDefault(); clearSel(d);
+        var o = frameAt(f); openShot(e.clientX + o.dx, e.clientY + o.dy);
+      }, true);
+      var ft = [];
+      d.addEventListener('pointerup', function(e){
+        if (!isOn() || shot || e.pointerType !== 'touch') return;
+        if (e.target.closest && e.target.closest(SKIP)){ ft = []; return; }
+        ft = tapped(ft, e);
+        if (ft.length >= 3){ ft = []; clearSel(d); var o = frameAt(f); openShot(e.clientX + o.dx, e.clientY + o.dy); }
+      }, true);
+    }
+    f.addEventListener('load', wire);
+    wire();
+  }
   window.addEventListener('scroll', function(){ if (bar && !bar.hidden){ clearTimeout(selT); selT = setTimeout(checkSel, 60); } }, {passive: true, capture: true});
 
   // ================= triple-click / triple-tap -> screenshot =================
@@ -381,11 +418,15 @@
   document.addEventListener('pointerup', function(e){
     if (!isOn() || shot || e.pointerType !== 'touch') return;
     if (e.target.closest && e.target.closest(SKIP)){ taps = []; return; }
-    var now = Date.now();
-    taps = taps.filter(function(t){ return now - t.t < 900 && Math.abs(t.x - e.clientX) < 30 && Math.abs(t.y - e.clientY) < 30; });
-    taps.push({t: now, x: e.clientX, y: e.clientY});
-    if (taps.length >= 3){ taps = []; var s = window.getSelection(); if (s) s.removeAllRanges(); openShot(e.clientX, e.clientY); }
+    taps = tapped(taps, e);
+    if (taps.length >= 3){ taps = []; clearSel(); openShot(e.clientX, e.clientY); }
   }, true);
+  function tapped(list, e){   // the taps so far that are close to this one in time and place, plus this one
+    var now = Date.now();
+    list = list.filter(function(t){ return now - t.t < 900 && Math.abs(t.x - e.clientX) < 30 && Math.abs(t.y - e.clientY) < 30; });
+    list.push({t: now, x: e.clientX, y: e.clientY});
+    return list;
+  }
 
   var shot = null;
   function vw(){ return document.documentElement.clientWidth || innerWidth; }
@@ -398,23 +439,35 @@
     shot.dim = ui(h('div', {class: 'dv-dim', 'aria-hidden': 'true'}));
     shot.frame = ui(h('div', {class: 'dv-frame', 'aria-label': 'Screenshot frame. Drag to move, corners to resize.'},
       ['nw', 'ne', 'sw', 'se'].map(function(c){ return h('div', {class: 'dv-h', 'data-c': c}); })));
-    var ta = h('textarea', {placeholder: 'Comment (optional)', 'aria-label': 'Comment', rows: '3'});
-    var st = h('p', {class: 'dv-st', role: 'status'});
     var x = h('button', {class: 'dv-btn', type: 'button', 'aria-label': 'Close without saving', text: '✕'});
     x.addEventListener('click', closeShot);
-    var marks = h('div', {class: 'dv-marks'}, [['good', '✓ Good'], ['bad', '✕ Not good'], ['fix', 'Fix/idea']].map(function(m){
-      var b = h('button', {class: 'dv-btn', type: 'button', text: m[1], title: {good: 'Keep it like this', bad: 'Not good', fix: 'Something to change, or an idea'}[m[0]]});
-      b.addEventListener('click', function(){ saveShot(m[0]); });
+    var marks = h('div', {class: 'dv-marks'}, Object.keys(MARK).map(function(m){
+      var b = h('button', {class: 'dv-btn', type: 'button', text: MARK[m], title: {good: 'Keep it like this', bad: 'Not good', fix: 'Something to change, or an idea'}[m]});
+      b.addEventListener('click', function(){ pickShot(m); });
       return b;
-    }));
-    shot.panel = ui(h('div', {class: 'dv-shot', role: 'dialog', 'aria-label': 'Screenshot'}, [
-      h('div', {class: 'dv-top'}, [h('h3', {text: 'Screenshot'}), x]),
-      h('p', {class: 'hint', text: 'Drag the frame, or a corner to resize it. The page still scrolls. Pressing a mark saves.'}),
-      ta, marks, st]));
-    shot.ta = ta; shot.st = st;
+    }).concat([x]));
+    shot.panel = ui(h('div', {class: 'dv-shot pick', role: 'dialog', 'aria-label': 'Screenshot: pick a mark. Drag the frame, or a corner to resize it.'}, [marks]));
     [shot.dim, shot.frame, shot.panel].forEach(function(e){ document.body.appendChild(e); });
     dragging(shot.frame);
     layout();
+  }
+  function pickShot(mark){
+    if (!shot || shot.busy) return;
+    var s = shot, p = s.panel;
+    var ta = h('textarea', {placeholder: NOTE_HINT[mark], 'aria-label': 'Comment', rows: '3'});
+    var st = h('p', {class: 'dv-st', role: 'status'});
+    var x = h('button', {class: 'dv-btn', type: 'button', 'aria-label': 'Close without saving', text: '✕'});
+    var save = h('button', {class: 'dv-btn', type: 'button', 'aria-pressed': 'true', text: 'Submit'});
+    var skip = h('button', {class: 'dv-btn', type: 'button', text: 'Skip', title: 'Save the picture and the mark without a comment'});
+    x.addEventListener('click', closeShot);
+    save.addEventListener('click', function(){ saveShot(mark); });
+    skip.addEventListener('click', function(){ ta.value = ''; saveShot(mark); });
+    ta.addEventListener('keydown', function(e){ if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); saveShot(mark); } });
+    p.textContent = ''; p.classList.remove('pick'); p.setAttribute('aria-label', 'Screenshot comment');
+    p.append(h('div', {class: 'dv-top'}, [h('h3', {text: MARK[mark]}), x]), ta, h('div', {class: 'dv-marks'}, [save, skip]), st);
+    s.ta = ta; s.st = st;
+    layout();
+    ta.focus();
   }
   function closeShot(){
     if (!shot) return;
@@ -483,6 +536,14 @@
     var text = '', section = tabNow();
     try {
       text = textUnder(document, region);
+      frames.forEach(function(f){   // and the words of an example document showing under the frame
+        var d = null;
+        try { d = f.getClientRects().length && f.contentDocument; } catch (e) {}
+        if (!d || !d.body) return;
+        var o = frameAt(f), t = textUnder(d, {x: region.x - o.dx, y: region.y - o.dy, w: region.w, h: region.h}, f.clientWidth, f.clientHeight);
+        if (t) text = (text ? text + ' ' : '') + t;
+      });
+      text = text.slice(0, 4000);
       section = sectionOf(document.elementFromPoint(region.x + region.w / 2, region.y + region.h / 2));
     } catch (e) {}
     uiQuiet(false);
@@ -508,14 +569,14 @@
   }
 
   // the visible text under the frame: only text whose own element is what's actually showing there
-  function textUnder(doc, region){
+  function textUnder(doc, region, fw, fh){
     var out = [], walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {acceptNode: function(n){
       if (!n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
       var p = n.parentElement;
       if (!p || p.closest('script,style,noscript,[data-devui],#toast')) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     }});
-    var range = doc.createRange(), n, total = 0, W = vw(), H = vh();
+    var range = doc.createRange(), n, total = 0, W = fw || vw(), H = fh || vh();
     while ((n = walker.nextNode()) && total < 4000){
       range.selectNodeContents(n);
       var rects = range.getClientRects();

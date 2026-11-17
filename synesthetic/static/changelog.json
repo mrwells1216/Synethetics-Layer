@@ -1,14 +1,25 @@
 [
  {
-  "sha": "626a1eaebd7fba16e3c19a64c3180f0f5aac61bc",
-  "short": "626a1ea",
-  "date": "2026-11-16T18:25:38-06:00",
+  "sha": "260e7c6d12d55d3a58bc89e9ab66e04a5b4d3987",
+  "short": "260e7c6",
+  "date": "2026-11-16T21:01:34-06:00",
+  "title": "Owner's notes: marks first, DEV under the green bar, a tool bar, an honest Formula",
+  "body": "From five notes left in the app:\n\n- Screenshots and highlights now show only the marks first (Good, Not good, Fix/idea). Picking one opens the comment window, with Submit and Skip. A comment is optional for every mark. - Text in the example document can be highlighted and triple-clicked. It lives in a frame of its own, which the tools never listened to. - The Formula shows each kind the way it lands in real text: only the matched words carry the look, and each look is named beside its kind. The link example used a web address the app would not have matched. The grammar layer's four shapes are listed too. - Adverbs are thin italic. The fonts that have a thin face now load it. - The example's controls are one compact tool bar of joined buttons. - DEV is a pill under the green bar, and the green slot of the phone strip. The bar lights up while the tools are on.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/260e7c6d12d55d3a58bc89e9ab66e04a5b4d3987"
+ },
+ {
+  "sha": "31a6208324abd876fa599cbe437fff141a3ef114",
+  "short": "31a6208",
+  "date": "2026-11-16T18:25:39-06:00",
   "title": "Fix the hosted app failing to start: pin the lighter PDF library",
   "body": "pymupdf 2.1 pulls in onnxruntime, networkx and two layout packages that the app never uses. Installing them when the hosted function starts filled its temporary disk, and every page returned a server error. pymupdf 1.28.2 has no extra dependencies and passes the same tests.",
   "tags": [
    "Fixed"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/626a1eaebd7fba16e3c19a64c3180f0f5aac61bc"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/31a6208324abd876fa599cbe437fff141a3ef114"
  },
  {
   "sha": "9697ea25acdf1b428d17b273e671476df9e5d0dc",

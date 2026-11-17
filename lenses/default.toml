@@ -24,7 +24,7 @@ underline = "none"
 [[category]]
 name = "link"
 label = "Links, contacts, file paths"
-example = "https://…, name@site.com, 555-123-4567, C:\\folder\\file"
+example = "https://site.com, name@site.com, 555-123-4567, C:\\folder\\file"
 priority = 2
 patterns = [
   '(?<![\w.])(?:\+?1[ .-])?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}(?![\w])',
@@ -166,7 +166,7 @@ underline = "none"
 # ---------------------------------------------------------------------------
 # Grammar layer (opt-in: --grammar). Muted text tints so they never read as
 # content-type colors, each with its own letter shape so color is not the only cue:
-# nouns plain, verbs bold, adjectives italic, adverbs italic with a dotted underline.
+# nouns plain, verbs bold, adjectives italic, adverbs thin italic with a dotted underline.
 # Applied only to words not already styled by content.
 # ---------------------------------------------------------------------------
 
@@ -216,6 +216,7 @@ light = "#8a6a1a"
 cb_dark = "#d8c48f"
 cb_light = "#8a6a1a"
 font = "italic"
+weight = 300  # thin, where the font has a thin face
 underline = "dotted"
 
 # ---------------------------------------------------------------------------
