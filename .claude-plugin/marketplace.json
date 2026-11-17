@@ -1,0 +1,11 @@
+{
+  "name": "synesthetic-layer",
+  "owner": { "name": "mrwells1216" },
+  "plugins": [
+    {
+      "name": "synesthetic-chat",
+      "source": "./chat-mod/synesthetic-chat",
+      "description": "Colors, highlights and weight for numbers, dates, IDs, links, warnings and more in Claude's replies, from the same lens as the Synesthetic Layer app."
+    }
+  ]
+}

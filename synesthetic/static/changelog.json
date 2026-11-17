@@ -1,14 +1,25 @@
 [
  {
-  "sha": "260e7c6d12d55d3a58bc89e9ab66e04a5b4d3987",
-  "short": "260e7c6",
-  "date": "2026-11-16T21:01:34-06:00",
+  "sha": "caa889f9bfbe6786cf3508fc46f0e20a7e5e3c79",
+  "short": "caa889f",
+  "date": "2026-11-16T21:46:44-06:00",
+  "title": "Make the chat add-on installable in one step",
+  "body": "The add-on that colors Claude's replies was only ever attached to the session that wrote it, so no other chat loaded it. The repository now lists it as a plugin, which Claude Code can install for every session:\n\nclaude plugin install synesthetic-chat --marketplace mrwells1216/Synethetics-Layer",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/caa889f9bfbe6786cf3508fc46f0e20a7e5e3c79"
+ },
+ {
+  "sha": "0342f4d4278b8fcb4c4fa70d89e16c8cc38a9b6a",
+  "short": "0342f4d",
+  "date": "2026-11-16T21:01:36-06:00",
   "title": "Owner's notes: marks first, DEV under the green bar, a tool bar, an honest Formula",
   "body": "From five notes left in the app:\n\n- Screenshots and highlights now show only the marks first (Good, Not good, Fix/idea). Picking one opens the comment window, with Submit and Skip. A comment is optional for every mark. - Text in the example document can be highlighted and triple-clicked. It lives in a frame of its own, which the tools never listened to. - The Formula shows each kind the way it lands in real text: only the matched words carry the look, and each look is named beside its kind. The link example used a web address the app would not have matched. The grammar layer's four shapes are listed too. - Adverbs are thin italic. The fonts that have a thin face now load it. - The example's controls are one compact tool bar of joined buttons. - DEV is a pill under the green bar, and the green slot of the phone strip. The bar lights up while the tools are on.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/260e7c6d12d55d3a58bc89e9ab66e04a5b4d3987"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/0342f4d4278b8fcb4c4fa70d89e16c8cc38a9b6a"
  },
  {
   "sha": "31a6208324abd876fa599cbe437fff141a3ef114",
