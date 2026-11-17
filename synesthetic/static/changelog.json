@@ -1,7 +1,18 @@
 [
  {
-  "sha": "e4062a706235eb589cacca8bfc0cf6a8896f4eb7",
-  "short": "e4062a7",
+  "sha": "626a1eaebd7fba16e3c19a64c3180f0f5aac61bc",
+  "short": "626a1ea",
+  "date": "2026-11-16T18:25:38-06:00",
+  "title": "Fix the hosted app failing to start: pin the lighter PDF library",
+  "body": "pymupdf 2.1 pulls in onnxruntime, networkx and two layout packages that the app never uses. Installing them when the hosted function starts filled its temporary disk, and every page returned a server error. pymupdf 1.28.2 has no extra dependencies and passes the same tests.",
+  "tags": [
+   "Fixed"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/626a1eaebd7fba16e3c19a64c3180f0f5aac61bc"
+ },
+ {
+  "sha": "9697ea25acdf1b428d17b273e671476df9e5d0dc",
+  "short": "9697ea2",
   "date": "2026-11-16T18:18:46-06:00",
   "title": "One DEV switch at the top; grammar words differ by shape, not only color",
   "body": "Change developer mode to a single switch in the header. On, you can highlight text to mark it and triple-click for a screenshot; off, none of it runs. Notes need no setup: where the site has no store they are kept on the device, with Copy for Claude and Share with pictures in Settings.\n\nRemove the DEV button, its Live, Fixes and State panel, the request and error recorder, and the linking controls in Settings.\n\nAdd shape to the grammar layer on pages and in kept-layout PDF, Word and Excel files: verbs bold, adjectives italic, adverbs italic with a dotted underline, nouns a plain tint.\n\nThe screenshot frame gets a soft spectrum border and tinted corners.",
@@ -9,7 +20,7 @@
    "Added",
    "Removed"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/e4062a706235eb589cacca8bfc0cf6a8896f4eb7"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/9697ea25acdf1b428d17b273e671476df9e5d0dc"
  },
  {
   "sha": "6d08db389d4c8de7876267bcc666ba91732dc4d4",
