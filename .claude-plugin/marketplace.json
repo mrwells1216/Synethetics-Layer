@@ -5,7 +5,7 @@
     {
       "name": "synesthetic-chat",
       "source": "./chat-mod/synesthetic-chat",
-      "description": "Colors, highlights and letter shapes in Claude's replies: numbers, dates, IDs, links and warnings, plus nouns, verbs, adjectives and adverbs from the Synesthetic Layer word library."
+      "description": "Colors, highlights and letter shapes in Claude's replies, following the looks set in the Synesthetic Layer app's Editor: numbers, dates, IDs, links, warnings, grammar words and your Word Bank."
     }
   ]
 }

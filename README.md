@@ -51,7 +51,7 @@ The page lives in `synesthetic/templates/app.html`; its look is described in `do
 
 ## Claude chat replies
 
-The mod lives in `chat-mod/synesthetic-chat/` (copy it into `~/.claude/dev-mods/<session id>/` to load it in a session) and draws assistant replies with the same lens: the content types, plus the grammar looks from our own word library (the meaning layer needs a model, so it is not in chat). Options (style, theme, palette, grammar on or off, categories off) are in the mod's config. After editing `lenses/default.toml` or `lenses/library.toml`, run `.venv\Scripts\python.exe tools\export_lens.py` and `tools\parity.py` to refresh the mod and confirm it still matches.
+The mod lives in `chat-mod/synesthetic-chat/` (copy it into `~/.claude/dev-mods/<session id>/` to load it in a session) and draws assistant replies with the same lens: the content types, plus the grammar looks from our own word library (the meaning layer needs a model, so it is not in chat). It follows the looks set in the app's Editor: the app sends them to its store (`/api/style-put`; on the hosted site the device needs the dev link), and the mod reads them at session start from this computer's app folder (`style.json`) or the hosted site (`remote.json` holds its address and key), keeping the last ones seen for sessions offline. Options (style, theme, palette, grammar on or off, categories off) are in the mod's config and apply until the Editor's looks arrive. After editing `lenses/default.toml` or `lenses/library.toml`, run `.venv\Scripts\python.exe tools\export_lens.py` and `tools\parity.py` to refresh the mod and confirm it still matches.
 
 ## Layout
 

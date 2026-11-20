@@ -39,6 +39,7 @@ PNG_MAX = 3_000_000  # decoded; the hosted request limit is 4.5 MB and base64 ad
 PNG_SIG = b"\x89PNG\r\n\x1a\n"
 DATA_URL = "data:image/png;base64,"
 BLOB_ENTRIES, BLOB_IMAGES, BLOB_REVIEWS = "fixes/entries/", "fixes/images/", "fixes/reviews/"
+BLOB_STYLE = "fixes/style.json"   # the Editor's looks for the chat add-on: one document, overwritten
 
 
 class FixError(ValueError):
@@ -204,6 +205,16 @@ class LocalStore:
         r = self.db.execute(f"SELECT {','.join(COLS)} FROM fixes WHERE id=?", (fid,)).fetchone()
         return self._row(r) if r else None
 
+    # the Editor's looks for the chat add-on, which reads the same file on this computer
+    def put_style(self, style: dict) -> None:
+        (self.root.parent / "style.json").write_text(json.dumps(style), encoding="utf-8")
+
+    def style(self) -> dict | None:
+        try:
+            return json.loads((self.root.parent / "style.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+
     def by_remote(self, key: str) -> dict | None:
         r = self.db.execute(f"SELECT {','.join(COLS)} FROM fixes WHERE remote=?", (key,)).fetchone()
         return self._row(r) if r else None
@@ -292,6 +303,16 @@ class BlobStore:
         self._put(f"{BLOB_ENTRIES}{key}.json", json.dumps({**entry, "image": bool(png)}).encode(),
                   "application/json")
         return key
+
+    def put_style(self, style: dict) -> None:
+        self.api.put_blob(BLOB_STYLE, json.dumps(style).encode(), access="private", content_type="application/json",
+                          add_random_suffix=False, allow_overwrite=True)
+
+    def style(self) -> dict | None:
+        try:
+            return json.loads(self.api.get_blob(BLOB_STYLE, access="private").body)
+        except Exception:
+            return None
 
     def _keys(self, prefix: str) -> list[str]:
         return sorted((b.pathname[len(prefix):].rsplit(".", 1)[0] for b in self.api.query_blobs(prefix=prefix)),

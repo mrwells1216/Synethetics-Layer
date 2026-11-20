@@ -1,12 +1,12 @@
 {
   "name": "synesthetic-chat",
-  "version": "0.2.0",
-  "description": "Colors, highlights and letter shapes in Claude's replies: numbers, dates, IDs, links and warnings, plus nouns, verbs, adjectives and adverbs from the Synesthetic Layer word library.",
+  "version": "0.3.0",
+  "description": "Colors, highlights and letter shapes in Claude's replies, following the looks you set in the Synesthetic Layer app's Editor: numbers, dates, IDs, links and warnings, nouns, verbs, adjectives and adverbs, and your Word Bank.",
   "userConfig": {
     "mode": {
       "type": "string",
       "title": "Style",
-      "description": "a = colored text, b = highlight chips, c = combined",
+      "description": "a = colored text, b = highlight chips, c = combined (the app's Editor overrides this once its looks are synced)",
       "default": "c",
       "options": [
         "a",
@@ -17,7 +17,7 @@
     "theme": {
       "type": "string",
       "title": "Theme",
-      "description": "Which palette to draw for: dark or light backgrounds",
+      "description": "Which palette to draw for: dark or light backgrounds (the app's Editor overrides this once its looks are synced)",
       "default": "dark",
       "options": [
         "dark",
@@ -27,7 +27,7 @@
     "palette": {
       "type": "string",
       "title": "Palette",
-      "description": "default, or cb for the color-blind-safe palette",
+      "description": "default, or cb for the color-blind-safe palette (the app's Editor overrides this once its looks are synced)",
       "default": "default",
       "options": [
         "default",

@@ -36,7 +36,8 @@ def main(out: Path) -> None:
     grammar = []
     for c in data["category"]:
         layer = c.get("layer", "content")
-        cues = {"font": c.get("font", "normal"), "weight": c.get("weight", 0), "underline": c.get("underline", "none")}
+        cues = {"font": c.get("font", "normal"), "weight": c.get("weight", 0), "underline": c.get("underline", "none"),
+                "case": "upper" if c.get("case") == "upper" else "normal"}
         if layer == "grammar":
             kinds = [k for k, pos in library.KIND_POS.items() if pos in c.get("pos", ())]
             if kinds:  # drawn in chat from the word library, with no language model
@@ -62,13 +63,13 @@ def main(out: Path) -> None:
         "export type LensCategory = {\n"
         "  name: string\n  label: string\n  priority: number\n  flags: string\n  patterns: string[]\n"
         "  colors: { dark: string; light: string; cb_dark: string; cb_light: string }\n"
-        "  font: string\n  weight: number\n  underline: string\n  defaultOff: boolean\n}\n\n"
+        "  font: string\n  weight: number\n  underline: string\n  case: string\n  defaultOff: boolean\n}\n\n"
         f"export const LENS: LensCategory[] = {json.dumps(cats, indent=2, ensure_ascii=False)}\n\n"
         "// The grammar looks: tint and letter shape for the words the library names.\n"
         "export type GrammarCategory = {\n"
         "  name: string\n  label: string\n  kind: string\n"
         "  colors: { dark: string; light: string; cb_dark: string; cb_light: string }\n"
-        "  font: string\n  weight: number\n  underline: string\n}\n\n"
+        "  font: string\n  weight: number\n  underline: string\n  case: string\n}\n\n"
         f"export const GRAMMAR: GrammarCategory[] = {json.dumps(grammar, indent=2, ensure_ascii=False)}\n"
     )
     out.parent.mkdir(parents=True, exist_ok=True)

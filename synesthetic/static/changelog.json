@@ -1,14 +1,25 @@
 [
  {
-  "sha": "717db50203318460e884bce6a510c9a812dedeb4",
-  "short": "717db50",
+  "sha": "b221a3d5a00cbdfd313f5b27071420c10173ccc5",
+  "short": "b221a3d",
+  "date": "2026-11-19T21:10:50-06:00",
+  "title": "The chat add-on follows the Editor's looks",
+  "body": "The add-on drew the lens as shipped; the owner's colors, looks, switches and Word Bank never reached it.\n\n- The app sends the Editor's looks to its store after every change (/api/style-put; on the hosted site the device needs the dev link), and the Editor says whether that worked. - The add-on (0.3.0) reads them at session start: this computer's app folder, then the hosted site with the paired key from remote.json; newest wins, and the last ones seen are kept for sessions offline. - It draws colors, bold/thin/italic/caps/underline per category, the highlight style, the categories switched off, and Word Bank words, including ones that count as a category. - The examples tab no longer fails when the Editor loaded the examples first.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/b221a3d5a00cbdfd313f5b27071420c10173ccc5"
+ },
+ {
+  "sha": "ead64a13274fda616086347a2a3a97194fdaf91a",
+  "short": "ead64a1",
   "date": "2026-11-19T20:50:20-06:00",
   "title": "Editor with full control: switches, looks, custom words and specialties",
   "body": "The Editor showed a fixed sample and let only the content categories be changed; the owner wants every effect decided on real text, with nothing hidden.\n\n- A passage strip: the everyday examples, or the owner's own pasted text, colored once on the server and kept on the device. Every change redraws it at once. - A rail of every content and grammar category, each with a switch (off everywhere, including converted files and pages) and a count of hits in the passage. Tapping a name opens its look: colors, normal/bold/thin, italic, ALL CAPS, size, underline style and color. Grammar words can be changed now too. - Selecting words in the passage offers a custom look: a Word Bank entry, which can also count as a category (\"treat encounter as a noun\"). - Specialties: Core, plus named sets such as Analyst that lay changes over Core for one kind of reading. The active one is what conversions and the examples use; a specialty keeps only what differs from Core. - Server side: looks for grammar categories, a thin weight, categories switched off, and \"treat as\" Word Bank entries.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/717db50203318460e884bce6a510c9a812dedeb4"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/ead64a13274fda616086347a2a3a97194fdaf91a"
  },
  {
   "sha": "8cb88ec637df891e3c235dd16fe44ce9ae2e4eac",

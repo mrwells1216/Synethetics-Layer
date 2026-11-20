@@ -9,6 +9,7 @@ export type LensCategory = {
   font: string
   weight: number
   underline: string
+  case: string
   defaultOff: boolean
 }
 
@@ -31,6 +32,7 @@ export const LENS: LensCategory[] = [
     "font": "italic",
     "weight": 0,
     "underline": "none",
+    "case": "normal",
     "defaultOff": false
   },
   {
@@ -56,6 +58,7 @@ export const LENS: LensCategory[] = [
     "font": "normal",
     "weight": 0,
     "underline": "solid",
+    "case": "normal",
     "defaultOff": false
   },
   {
@@ -79,6 +82,7 @@ export const LENS: LensCategory[] = [
     "font": "tabular",
     "weight": 0,
     "underline": "dotted",
+    "case": "normal",
     "defaultOff": false
   },
   {
@@ -101,6 +105,7 @@ export const LENS: LensCategory[] = [
     "font": "mono",
     "weight": 0,
     "underline": "none",
+    "case": "normal",
     "defaultOff": false
   },
   {
@@ -121,6 +126,7 @@ export const LENS: LensCategory[] = [
     "font": "normal",
     "weight": 0,
     "underline": "dashed",
+    "case": "normal",
     "defaultOff": false
   },
   {
@@ -142,6 +148,7 @@ export const LENS: LensCategory[] = [
     "font": "normal",
     "weight": 700,
     "underline": "wavy",
+    "case": "upper",
     "defaultOff": false
   },
   {
@@ -162,6 +169,7 @@ export const LENS: LensCategory[] = [
     "font": "normal",
     "weight": 700,
     "underline": "double",
+    "case": "normal",
     "defaultOff": false
   },
   {
@@ -186,6 +194,7 @@ export const LENS: LensCategory[] = [
     "font": "tabular",
     "weight": 0,
     "underline": "none",
+    "case": "normal",
     "defaultOff": false
   },
   {
@@ -205,6 +214,7 @@ export const LENS: LensCategory[] = [
     "font": "normal",
     "weight": 0,
     "underline": "none",
+    "case": "normal",
     "defaultOff": true
   }
 ]
@@ -218,6 +228,7 @@ export type GrammarCategory = {
   font: string
   weight: number
   underline: string
+  case: string
 }
 
 export const GRAMMAR: GrammarCategory[] = [
@@ -233,7 +244,8 @@ export const GRAMMAR: GrammarCategory[] = [
     },
     "font": "normal",
     "weight": 0,
-    "underline": "none"
+    "underline": "none",
+    "case": "normal"
   },
   {
     "name": "verb",
@@ -247,7 +259,8 @@ export const GRAMMAR: GrammarCategory[] = [
     },
     "font": "normal",
     "weight": 700,
-    "underline": "none"
+    "underline": "none",
+    "case": "normal"
   },
   {
     "name": "adjective",
@@ -261,7 +274,8 @@ export const GRAMMAR: GrammarCategory[] = [
     },
     "font": "italic",
     "weight": 0,
-    "underline": "none"
+    "underline": "none",
+    "case": "normal"
   },
   {
     "name": "adverb",
@@ -275,6 +289,7 @@ export const GRAMMAR: GrammarCategory[] = [
     },
     "font": "italic",
     "weight": 300,
-    "underline": "dotted"
+    "underline": "dotted",
+    "case": "normal"
   }
 ]

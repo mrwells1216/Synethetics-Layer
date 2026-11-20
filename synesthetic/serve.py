@@ -24,7 +24,7 @@ from . import fixes as fixmod
 from .annotate import load_lens
 from .extract import SUPPORTED, UnsupportedFile, extract
 from .overlay import OVERLAY_TYPES, OverlayError, layout_units, overlay, parse_only
-from .render import FONT_CHOICES, HL_SIZES, STYLE_DEFAULTS, clean_style, render_document
+from .render import FONT_CHOICES, HL_SIZES, STYLE_DEFAULTS, chat_style, clean_style, render_document
 from .thumb import thumbnail
 
 MAX_BYTES = 60 * 1024 * 1024
@@ -199,7 +199,7 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                 return self._send(403, "Cross-site upload refused.", "text/plain; charset=utf-8")
             q = parse_qs(url.query)
             route = ((q.get("_p") or [""])[0] or url.path).rstrip("/").rsplit("/", 1)[-1]
-            if route.startswith("fix-"):
+            if route.startswith("fix-") or route in ("style-put", "style-get"):
                 return self._fix(route, body)
             # the page sends the name in a header so it stays out of URLs and request logs
             name = unquote(self.headers.get("X-File-Name", "")) or (q.get("name") or ["upload"])[0]
@@ -306,6 +306,12 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                     if not hosted:
                         return ok({"entries": []})  # the CLI reads the local store directly
                     return ok({"entries": store.entries(limit=500)})
+                if route == "style-put":   # the Editor's looks, for the chat add-on
+                    st = chat_style(data.get("style"), lens)
+                    store.put_style(st)
+                    return ok({"updated": st["updated"]})
+                if route == "style-get":
+                    return ok({"style": store.style()})
             except fixmod.FixError as e:
                 return self._send(400, str(e), text)
             except Exception as e:  # storage trouble: say so, plainly

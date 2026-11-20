@@ -1,6 +1,8 @@
-// Turns a category plus the person's options into Text props.
+// Turns a category plus the person's options into Text props. With the Editor's looks loaded
+// (remote.ts), those decide colors, cues, the highlight style and which categories are off.
 import { GRAMMAR, LENS } from './lens'
 import type { GrammarCategory, LensCategory } from './lens'
+import type { BankWord, ChatStyle, Look } from './remote'
 
 export type Options = {
   mode: 'a' | 'b' | 'c'
@@ -14,6 +16,7 @@ export type StyleProps = {
   color?: string
   backgroundColor?: string
   weight?: 'bold'
+  dimColor?: boolean
   italic?: boolean
   underline?: boolean
   mono?: boolean
@@ -23,6 +26,17 @@ export type StyleProps = {
 const BG = { dark: '#14161b', light: '#fbfbf8' }
 const BY_NAME = new Map<string, LensCategory>(LENS.map(c => [c.name, c]))
 const GRAMMAR_BY_NAME = new Map<string, GrammarCategory>(GRAMMAR.map(c => [c.name, c]))
+
+let STYLE: ChatStyle | null = null
+
+/** The Editor's looks to draw with from now on (null: the lens as shipped). */
+export function setStyle(s: ChatStyle | null): void {
+  STYLE = s
+}
+
+export function currentStyle(): ChatStyle | null {
+  return STYLE
+}
 
 function rgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -58,9 +72,42 @@ export function tint(hex: string, bg: string, alpha: number): string {
   return toHex([a[0] * alpha + b[0] * (1 - alpha), a[1] * alpha + b[1] * (1 - alpha), a[2] * alpha + b[2] * (1 - alpha)])
 }
 
-export function categoryColor(cat: { colors: LensCategory['colors'] }, o: Options): string {
-  const key = (o.palette === 'cb' ? (o.theme === 'dark' ? 'cb_dark' : 'cb_light') : o.theme) as keyof LensCategory['colors']
-  return cat.colors[key]
+/** The options as the Editor's looks adjust them: its theme, palette, highlight style and switches. */
+export function effectiveOptions(o: Options): Options {
+  if (!STYLE) return o
+  const out: Options = { ...o, off: new Set(o.off) }
+  if (STYLE.theme === 'dark' || STYLE.theme === 'light') out.theme = STYLE.theme
+  if (STYLE.palette === 'default' || STYLE.palette === 'cb') out.palette = STYLE.palette
+  if (STYLE.mode === 'a' || STYLE.mode === 'b' || STYLE.mode === 'c') out.mode = STYLE.mode
+  else if (STYLE.mode === 'd') out.mode = 'a' // underline-only: colored text with its underline
+  // the Editor's switches decide: a category it left on is on, even one the lens starts off
+  for (const c of LENS) if (c.defaultOff && STYLE.off.indexOf(c.name) < 0) out.off.delete(c.name)
+  for (const n of STYLE.off) out.off.add(n)
+  return out
+}
+
+export function categoryColor(cat: { name: string; colors: LensCategory['colors'] }, o: Options): string {
+  if (o.palette === 'cb') return cat.colors[o.theme === 'dark' ? 'cb_dark' : 'cb_light']
+  const own = STYLE && STYLE.colors[cat.name] && STYLE.colors[cat.name][o.theme]
+  return own || cat.colors[o.theme]
+}
+
+type Cues = { bold: boolean; thin: boolean; italic: boolean; underline: boolean; caps: boolean }
+
+function cues(cat: { name: string; font: string; weight: number; underline: string; case: string }): Cues {
+  const l: Look = (STYLE && STYLE.look[cat.name]) || {}
+  const bold = l.bold !== undefined ? l.bold : cat.weight >= 600
+  const thin = !bold && (l.thin !== undefined ? l.thin : cat.weight > 0 && cat.weight <= 300)
+  const italic = l.italic !== undefined ? l.italic : cat.font === 'italic'
+  const underline = (l.underline !== undefined ? l.underline : cat.underline) !== 'none'
+  const caps = (l.case !== undefined ? l.case : cat.case) === 'upper'
+  return { bold, thin, italic, underline, caps }
+}
+
+/** Whether a category's words are drawn in ALL CAPS (the Editor's choice, else the lens's). */
+export function capsFor(catName: string): boolean {
+  const cat = BY_NAME.get(catName) || GRAMMAR_BY_NAME.get(catName)
+  return cat ? cues(cat).caps : false
 }
 
 export function styleFor(catName: string, o: Options): StyleProps | null {
@@ -68,15 +115,18 @@ export function styleFor(catName: string, o: Options): StyleProps | null {
   const word = GRAMMAR_BY_NAME.get(catName)
   if (word) {
     // a grammar word: a muted tint plus its own letter shape, never a fill, in every style
+    const k = cues(word)
     const g: StyleProps = { color: categoryColor(word, o) }
-    if (word.weight >= 600) g.weight = 'bold'
-    if (word.font === 'italic') g.italic = true
-    if (word.underline !== 'none') g.underline = true
+    if (k.bold) g.weight = 'bold'
+    if (k.thin) g.dimColor = true
+    if (k.italic) g.italic = true
+    if (k.underline) g.underline = true
     return g
   }
   const cat = BY_NAME.get(catName)
   if (!cat) return null
   const color = categoryColor(cat, o)
+  const k = cues(cat)
   const p: StyleProps = {}
   if (o.mode === 'a') {
     p.color = color
@@ -87,11 +137,27 @@ export function styleFor(catName: string, o: Options): StyleProps | null {
     p.color = color
     p.backgroundColor = tint(color, BG[o.theme], 0.24)
   }
-  if (cat.weight >= 600) p.weight = 'bold'
-  if (cat.font === 'italic') p.italic = true
+  if (k.bold) p.weight = 'bold'
+  if (k.thin) p.dimColor = true
+  if (k.italic) p.italic = true
   if (cat.font === 'mono') p.mono = true
   if (cat.font === 'tabular') p.tabular = true
-  if (cat.underline !== 'none' && o.mode !== 'b') p.underline = true
+  if (k.underline && o.mode !== 'b') p.underline = true
+  return p
+}
+
+/** A Word Bank entry's own look (an entry that counts as a category is drawn as that category). */
+export function bankStyle(w: BankWord, o: Options): StyleProps | null {
+  if (w.cat) return styleFor(w.cat, o)
+  const p: StyleProps = {}
+  if (w.color) p.color = w.color
+  if (w.bg) {
+    p.backgroundColor = w.bg
+    if (!w.color) p.color = onColor(w.bg)
+  }
+  if (w.bold) p.weight = 'bold'
+  if (w.italic) p.italic = true
+  if (w.underline) p.underline = true
   return p
 }
 

@@ -662,7 +662,7 @@ body.dragging #dropall{display:grid}
     <p class="hint" id="ed-cbnote" hidden>Color-blind safe colors are on in Settings, so the colors below are paused until you turn that off.</p>
     <div class="field"><span class="flabel">Editing</span>
       <div class="prof-row"><div class="seg" id="ed-prof"></div><div class="seg" id="ed-prof-acts" hidden><button id="ed-prof-rename">Rename</button><button id="ed-prof-del">Delete</button></div></div>
-      <p class="hint" id="ed-prof-note"></p></div>
+      <p class="hint" id="ed-prof-note"></p><p class="hint" id="ed-chat"></p></div>
     <div class="ed-grid">
       <div class="st-side">
         <div class="field"><span class="flabel">Passage</span><div class="seg" id="ed-pass"></div></div>
@@ -998,6 +998,22 @@ body.dragging #dropall{display:grid}
     EF = effective();
     lsSet('synapp.style', JSON.stringify(st)); lsSet('syn.mode', st.mode); lsSet('syn.theme', st.theme); lsSet('syn.pal', st.palette);
     lsSet('syn.off', JSON.stringify(Object.keys(EF.off)));   // colored pages read the same key
+    pushStyleSoon();
+  }
+  // the chat add-on follows these looks: they go to the app's store (the hosted site needs the dev link on this device)
+  var pushT = null, pushed = '';
+  function pushStyleSoon(){ clearTimeout(pushT); pushT = setTimeout(pushStyle, 1500); }
+  function chatNote(t){ var e = $('ed-chat'); if (e) e.textContent = t; }
+  function pushStyle(){
+    var key = lsGet('synapp.devkey');
+    if (cfg.hosted && !key){ chatNote('The chat add-on cannot see these looks from this device yet: open your dev link here once.'); return; }
+    var body = JSON.stringify({style: styleForServer()});
+    if (body === pushed) return;
+    var hd = {'Content-Type': 'application/json', 'X-App': '1'}; if (key) hd['X-Dev-Key'] = key;
+    fetch('/api/style-put', {method: 'POST', body: body, headers: hd}).then(function(r){
+      if (r.ok){ pushed = body; chatNote('The chat add-on follows these looks: synced just now. New Code sessions pick them up.'); }
+      else chatNote('The chat add-on could not be updated (error ' + r.status + ').');
+    }).catch(function(){ chatNote('The chat add-on could not be updated: no connection.'); });
   }
 
   // ---- color math (same as the converter's contrast check) ----
@@ -1543,9 +1559,9 @@ body.dragging #dropall{display:grid}
     return showP;
   }
   function initShow(){
+    if (!show.theme){ show.mode = st.mode; show.cb = st.palette === 'cb'; show.theme = theme(); }   // the Editor may have loaded the examples first
     if (SHOWDATA){ if (!show.key) openExample(SHOWDATA[0].key); return; }
     if (!cfg.showcase){ $('show-msg').textContent = 'The examples are not available here.'; return; }
-    show.mode = st.mode; show.cb = st.palette === 'cb'; show.theme = theme();
     loadShow().then(function(){
       var pick = $('show-pick'), groups = {famous: 'Famous writing', everyday: 'Everyday'};
       Object.keys(groups).forEach(function(g){
@@ -2842,7 +2858,7 @@ body.dragging #dropall{display:grid}
   function initEditor(){
     if (edInit){ editorSync(); return; }
     edInit = true;
-    drawRail(); wbFill(null); wbList(); drawProfiles();
+    drawRail(); wbFill(null); wbList(); drawProfiles(); pushStyle();
     (cfg.showcase ? loadShow() : Promise.resolve([])).catch(function(){ return []; }).then(function(){ openPass(edPass); drawProfiles(); });
   }
   window.addEventListener('resize', function(){ if (cur === 'editor') $('ed-custom').hidden = true; });

@@ -116,6 +116,21 @@ def clean_style(style, lens: Lens) -> dict:
 UNDERLINES = ("none", "solid", "dotted", "dashed", "double", "wavy")
 
 
+def chat_style(style, lens: Lens) -> dict:
+    """The Editor's looks as the chat add-on reads them: colors per category and theme, the highlight
+    style, theme and palette, each category's look, the categories switched off and the Word Bank."""
+    from datetime import datetime, timezone
+
+    st = clean_style(style, lens)
+    colors: dict = {}
+    for theme in ("dark", "light"):
+        for name, c in st[theme].items():
+            colors.setdefault(name, {})[theme] = c
+    return {"colors": colors, "mode": st.get("mode", "c"), "theme": st.get("theme", "dark"),
+            "palette": st.get("palette", "default"), "look": st.get("look", {}), "off": st.get("off", []),
+            "words": st.get("wordbank", []), "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
 def default_look(c) -> dict:
     """A content or grammar category's look from the lens: ALL CAPS, size, bold, italic and underline style.
     The underline color is the text's own color unless a look sets "ul"."""

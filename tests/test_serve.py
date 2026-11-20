@@ -193,3 +193,30 @@ def test_vercel_entry_point_imports():
 def test_path_traversal_name_is_flattened(server):
     r = post(server, "..%2F..%2Fevil.md", b"# hi\n")
     assert r.status == 200
+
+
+def test_chat_style_round_trip(server, tmp_path, monkeypatch):
+    """The Editor's looks go to the app's store and come back for the chat add-on."""
+    import json
+    import urllib.request
+
+    from synesthetic import fixes
+
+    monkeypatch.setenv("SYNESTHETIC_DATA", str(tmp_path))
+    style = {"colors": {"number": {"dark": "#ABCDEF"}}, "mode": "b", "look": {"verb": {"bold": False}, "number": {"thin": True}},
+             "off": {"adverb": True}, "wordbank": {"on": True, "words": [{"word": "encounter", "cat": "noun"}, {"word": "yell", "caps": True}]}}
+
+    def call(route, payload):
+        req = urllib.request.Request(server + "/api/" + route, data=json.dumps(payload).encode(), method="POST",
+                                     headers={"Content-Type": "application/json", "X-App": "1"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read())
+
+    put = call("style-put", {"style": style})
+    assert put["ok"] and put["updated"].endswith("Z")
+    got = call("style-get", {})["style"]
+    assert got["colors"] == {"number": {"dark": "#abcdef"}} and got["mode"] == "b"
+    assert got["look"] == {"verb": {"bold": False}, "number": {"thin": True}} and got["off"] == ["adverb"]
+    assert got["words"] == [{"word": "encounter", "cat": "noun"}, {"word": "yell", "caps": True}]
+    assert got["updated"] == put["updated"]
+    assert json.loads((fixes.data_dir() / "style.json").read_text(encoding="utf-8"))["mode"] == "b"

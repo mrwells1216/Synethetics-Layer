@@ -63,22 +63,44 @@ export function annotate(text: string, off: ReadonlySet<string> = new Set()): Sp
 
 const KIND_CAT = new Map<string, string>(GRAMMAR.map(g => [g.kind, g.name]))
 
-/** Content spans plus the grammar words around them. Grammar never sits under a content span
- *  or inside a `blocked` range (inline code). Port of synesthetic/layers.py. */
-export function annotateAll(
-  text: string,
-  off: ReadonlySet<string> = new Set(),
-  grammar = true,
-  blocked: ReadonlyArray<readonly [number, number]> = []
-): Span[] {
-  const content = annotate(text, off)
-  if (!grammar || !text) return content
-  const walls: Array<readonly [number, number]> = content.map(s => [s.start, s.end] as const)
-  for (const b of blocked) walls.push(b)
-  const out: Span[] = content.slice()
-  for (const g of tag(text)) {
-    const cat = KIND_CAT.get(g.kind)
-    if (!cat || off.has(cat)) continue
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** Word Bank hits: whole words, any case, earlier entries win (render.py bank_spans). The span's
+ *  cat is the entry's category, or `wb-N` for an entry with its own look. */
+export function bankSpans(text: string, words: ReadonlyArray<{ word: string; cat?: string }>): Span[] {
+  const taken = new Uint8Array(text.length)
+  const out: Span[] = []
+  words.forEach((w, i) => {
+    if (!w.word) return
+    let re: RegExp
+    try {
+      re = new RegExp('(?<![\\p{L}\\p{N}_])' + escapeRe(w.word) + '(?![\\p{L}\\p{N}_])', 'giu')
+    } catch {
+      re = new RegExp(escapeRe(w.word), 'gi')
+    }
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) {
+      if (!m[0].length) {
+        re.lastIndex += 1
+        continue
+      }
+      const s = m.index
+      const e = s + m[0].length
+      let free = true
+      for (let k = s; k < e; k++) if (taken[k]) free = false
+      if (!free) continue
+      for (let k = s; k < e; k++) taken[k] = 1
+      out.push({ start: s, end: e, cat: w.cat || 'wb-' + i })
+    }
+  })
+  return out.sort((a, b) => a.start - b.start)
+}
+
+function cut(text: string, spans: Span[], walls: ReadonlyArray<readonly [number, number]>): Span[] {
+  const out: Span[] = []
+  for (const g of spans) {
     let parts: Array<[number, number]> = [[g.start, g.end]]
     for (const [ws, we] of walls) {
       const next: Array<[number, number]> = []
@@ -93,8 +115,40 @@ export function annotateAll(
       parts = next
       if (!parts.length) break
     }
-    for (const [s, e] of parts) if (e > s) out.push({ start: s, end: e, cat })
+    for (let [s, e] of parts) {
+      while (s < e && /\s/.test(text[s])) s++ // a cut edge sheds its blank
+      while (e > s && /\s/.test(text[e - 1])) e--
+      if (e > s) out.push({ start: s, end: e, cat: g.cat })
+    }
   }
-  out.sort((a, b) => a.start - b.start)
   return out
+}
+
+/** The Word Bank, then content spans, then the grammar words around them. A content span never
+ *  sits under a Word Bank hit; grammar never under either, nor inside a `blocked` range (inline
+ *  code). Port of synesthetic/layers.py with render.py's with_bank. */
+export function annotateAll(
+  text: string,
+  off: ReadonlySet<string> = new Set(),
+  grammar = true,
+  blocked: ReadonlyArray<readonly [number, number]> = [],
+  words: ReadonlyArray<{ word: string; cat?: string }> = []
+): Span[] {
+  if (!text) return []
+  const bank = words.length ? bankSpans(text, words).filter(s => !off.has(s.cat)) : []
+  const bankWalls = bank.map(s => [s.start, s.end] as const)
+  // a content span touching a Word Bank hit gives way to it, whole (render.py with_bank)
+  const content = annotate(text, off).filter(s => !bankWalls.some(([ws, we]) => s.start < we && ws < s.end))
+  const out: Span[] = bank.concat(content)
+  if (!grammar) return out.sort((a, b) => a.start - b.start)
+  const walls: Array<readonly [number, number]> = out.map(s => [s.start, s.end] as const)
+  for (const b of blocked) walls.push(b)
+  const gram: Span[] = []
+  for (const g of tag(text)) {
+    const cat = KIND_CAT.get(g.kind)
+    if (!cat || off.has(cat)) continue
+    gram.push({ start: g.start, end: g.end, cat })
+  }
+  for (const s of cut(text, gram, walls)) out.push(s)
+  return out.sort((a, b) => a.start - b.start)
 }
