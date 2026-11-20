@@ -88,7 +88,7 @@ def overlay(name: str, data: bytes, lens: Lens, *, style=None, palette: str = "d
                            "Other types get the styled page.")
     st = clean_style(style, lens)
     ctx = _Ctx(lens, _palette(lens, style, palette), st.get("mode", "c"), grammar, log,
-               bank=st.get("wordbank", []), look=st.get("look", {}), only=only)
+               bank=st.get("wordbank", []), look=st.get("look", {}), only=only, off=st.get("off", []))
     ctx.pdf = st.get("pdf", "restyle")
     fn = {".pdf": _pdf, ".docx": _docx, ".xlsx": _xlsx, ".xlsm": _xlsx}[ext]
     out = fn(data, ctx, ext)
@@ -98,9 +98,10 @@ def overlay(name: str, data: bytes, lens: Lens, *, style=None, palette: str = "d
 
 
 class _Ctx:
-    def __init__(self, lens, colors, mode, grammar, log, bank=(), look=None, only=None):
+    def __init__(self, lens, colors, mode, grammar, log, bank=(), look=None, only=None, off=()):
         self.lens, self.colors, self.mode, self.grammar, self.log = lens, colors, mode, grammar, log
         self.bank, self.only = list(bank), only
+        self.off = set(off)   # categories the reader switched off in the Editor
         self.pdf = "restyle"   # PDF words: "restyle" (new letters in place) or "notes" (highlight notes on top)
         self.counts: Counter = Counter()
         self.notes: list[str] = []
@@ -119,8 +120,10 @@ class _Ctx:
     def spans(self, text, unit=None):
         out = [s for s in self.ann(text) if s.layer != "meaning"]
         if self.bank:
-            out = with_bank(out, bank_spans(text, self.bank))
+            out = with_bank(out, bank_spans(text, self.bank, self.lens))
         out = [s for s in out if s.layer == "bank" or not (self.lens.get(s.cat) and self.lens.get(s.cat).default_off)]
+        if self.off:
+            out = [s for s in out if s.cat not in self.off]
         if self.only is not None:
             rs = self.only.get(unit, [])
             out = [s for s in out if any(s.start < b and s.end > a for a, b in rs)]

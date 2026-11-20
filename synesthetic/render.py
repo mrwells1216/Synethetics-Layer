@@ -78,20 +78,22 @@ def clean_style(style, lens: Lens) -> dict:
     if style.get("pdf") in ("restyle", "notes"):
         out["pdf"] = style["pdf"]
     look = style.get("look")
-    if isinstance(look, dict):  # per category: ALL CAPS, size, bold, italic, underline and its color
+    if isinstance(look, dict):  # per category: ALL CAPS, size, bold or thin, italic, underline and its color
         clean = {}
         for name, v in look.items():
             c = lens.get(name)
-            if not c or c.layer != "content" or not isinstance(v, dict):
+            if not c or c.layer not in ("content", "grammar") or not isinstance(v, dict):
                 continue
             item = {}
             if v.get("case") in ("upper", "normal"):
                 item["case"] = v["case"]
             if _num(v.get("scale"), 0.8, 2.0):
                 item["scale"] = round(float(v["scale"]), 2)
-            for k in ("bold", "italic"):
+            for k in ("bold", "thin", "italic"):
                 if isinstance(v.get(k), bool):
                     item[k] = v[k]
+            if item.get("bold") and item.get("thin"):
+                del item["thin"]
             if v.get("underline") in UNDERLINES:
                 item["underline"] = v["underline"]
             if isinstance(v.get("ul"), str) and _HEX.match(v["ul"]):
@@ -100,7 +102,12 @@ def clean_style(style, lens: Lens) -> dict:
                 clean[name] = item
         if clean:
             out["look"] = clean
-    bank = clean_bank(style.get("wordbank"))
+    off = style.get("off")
+    if isinstance(off, dict):   # categories the reader switched off everywhere
+        names = [n for n, v in off.items() if v is True and lens.get(n) and lens.get(n).layer in ("content", "grammar")]
+        if names:
+            out["off"] = sorted(names)
+    bank = clean_bank(style.get("wordbank"), lens)
     if bank:
         out["wordbank"] = bank
     return out
@@ -112,8 +119,8 @@ UNDERLINES = ("none", "solid", "dotted", "dashed", "double", "wavy")
 def default_look(c) -> dict:
     """A content or grammar category's look from the lens: ALL CAPS, size, bold, italic and underline style.
     The underline color is the text's own color unless a look sets "ul"."""
-    return {"case": c.case, "scale": c.scale, "bold": c.weight >= 600, "italic": c.font == "italic",
-            "underline": c.underline if c.underline in UNDERLINES else "none"}
+    return {"case": c.case, "scale": c.scale, "bold": c.weight >= 600, "thin": 0 < c.weight <= 300,
+            "italic": c.font == "italic", "underline": c.underline if c.underline in UNDERLINES else "none"}
 
 
 def look_for(c, user: dict | None) -> dict:
@@ -133,12 +140,14 @@ def underline_rules(sel: str, style: str) -> list[str]:
             f".m-d {sel}{{text-decoration-style:{style}}}"]
 
 
-def look_rules(name: str, lk: dict) -> list[str]:
-    """The whole look of a content category as CSS (the app's lookCss writes the same rules)."""
-    sel = f".c-{name}"
+def look_rules(name: str, lk: dict, layer: str = "content") -> list[str]:
+    """The whole look of a content or grammar category as CSS (the app's lookCss writes the same rules).
+    A grammar rule names the layer too, so it outranks the page's own grammar rules; none of them
+    applies while the category is switched off (body.off-NAME)."""
+    sel = (f".c.l-grammar.c-{name}" if layer == "grammar" else f".c-{name}") + f":not(.off-{name} *)"
     d = ["text-transform:" + ("uppercase" if lk.get("case") == "upper" else "none"),
          f"font-size:{float(lk.get('scale', 1)):g}em",
-         "font-weight:" + ("700" if lk.get("bold") else "inherit"),
+         "font-weight:" + ("700" if lk.get("bold") else "300" if lk.get("thin") else "inherit"),
          "font-style:" + ("italic" if lk.get("italic") else "inherit")]
     if lk.get("ul"):
         d.append(f"--ul:{lk['ul']}")
@@ -149,8 +158,9 @@ def _num(v, lo, hi) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and lo <= v <= hi
 
 
-def clean_bank(bank) -> list[dict]:
+def clean_bank(bank, lens: Lens | None = None) -> list[dict]:
     """The Word Bank: your own words, each with its own look, used in every document while it is on.
+    An entry with "cat" takes that category's look instead ("treat encounter as a noun").
     Returns the usable entries (an empty list when the bank is off)."""
     if not isinstance(bank, dict) or not bank.get("on") or not isinstance(bank.get("words"), list):
         return []
@@ -172,12 +182,16 @@ def clean_bank(bank) -> list[dict]:
         for k in ("caps", "bold", "italic", "underline"):
             if w.get(k) is True:
                 e[k] = True
+        cat = w.get("cat")
+        if lens is not None and isinstance(cat, str) and lens.get(cat) and lens.get(cat).layer in ("content", "grammar"):
+            e = {"word": e["word"], "cat": cat}
         out.append(e)
     return out
 
 
-def bank_spans(text: str, bank: list[dict]) -> list[Span]:
-    """Whole-word, case-insensitive matches of the Word Bank. Earlier words win an overlap."""
+def bank_spans(text: str, bank: list[dict], lens: Lens | None = None) -> list[Span]:
+    """Whole-word, case-insensitive matches of the Word Bank. Earlier words win an overlap.
+    A "treat as" entry becomes a span of that category."""
     taken = bytearray(len(text))
     out = []
     for i, e in enumerate(bank):
@@ -185,7 +199,11 @@ def bank_spans(text: str, bank: list[dict]) -> list[Span]:
             a, b = m.span()
             if b > a and not any(taken[a:b]):
                 taken[a:b] = b"\x01" * (b - a)
-                out.append(Span(a, b, f"wb-{i}", "bank"))
+                if e.get("cat"):
+                    c = lens.get(e["cat"]) if lens else None
+                    out.append(Span(a, b, e["cat"], c.layer if c else "content"))
+                else:
+                    out.append(Span(a, b, f"wb-{i}", "bank"))
     return sorted(out, key=lambda sp: sp.start)
 
 
@@ -201,6 +219,8 @@ def with_bank(spans: list[Span], bank_hits: list[Span]) -> list[Span]:
 def bank_css(bank: list[dict]) -> str:
     rules = []
     for i, e in enumerate(bank):
+        if "cat" in e:
+            continue   # drawn as its category
         d = []
         if "color" in e:
             d.append(f"color:{e['color']}")
@@ -256,7 +276,7 @@ def _custom_css(st: dict, lens: Lens | None = None) -> tuple[str, str]:
     for name, v in st.get("look", {}).items():
         c = lens.get(name) if lens else None
         if c:
-            css.extend(look_rules(name, look_for(c, v)))
+            css.extend(look_rules(name, look_for(c, v), c.layer))
     bank_fonts = set()
     if st.get("wordbank"):
         css.append(bank_css(st["wordbank"]))
@@ -499,7 +519,7 @@ def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palett
     ann = make_annotator(_doc_texts(doc), lens, grammar=grammar, ai=ai, log=log)
     if st.get("wordbank"):
         base, bank = ann, st["wordbank"]
-        ann = lambda text: with_bank(base(text), bank_spans(text, bank))  # noqa: E731
+        ann = lambda text: with_bank(base(text), bank_spans(text, bank, lens))  # noqa: E731
     body = "\n".join(_block(b, lens, counts, ann) for b in doc.blocks)
     legend = _legend(lens, counts)
     notes = "".join(f'<div class="note">{_esc(n)}</div>' for n in doc.notes)
@@ -520,7 +540,7 @@ def render_document(doc: Document, lens: Lens, *, mode="c", theme="auto", palett
                 "mode": mode,
                 "theme": theme,
                 "palette": palette,
-                "off": [c.name for c in lens.categories if c.default_off],
+                "off": sorted({c.name for c in lens.categories if c.default_off} | set(st.get("off", []))),
             }
         ),
     }

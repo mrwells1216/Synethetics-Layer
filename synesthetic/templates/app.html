@@ -306,9 +306,34 @@ input[type=search]{width:100%;padding:11px 14px;border-radius:999px;border:1px s
 .fr-foot{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px;margin-top:8px}
 
 /* Editor */
-.st-side .pv{background:var(--doc-bg);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;line-height:1.65}
-.pv h4{font-family:var(--font-head);font-size:1.35em;margin:0 0 .3em;line-height:1.2}
-.pv p{margin:0}
+.prof-row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+#ed-prof-acts button,#ed-prof-acts{font-size:13px}
+.ed-frame-wrap{position:relative;background:var(--doc-bg);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+#ed-frame{display:block;width:100%;height:420px;border:0}
+#ed-custom{position:absolute;z-index:2;box-shadow:0 6px 20px -6px rgba(0,0,0,.5);background:var(--fg);color:var(--bg);border-color:var(--fg);max-width:calc(100% - 20px)}
+#ed-custom b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14ch}
+.rail-h{margin:12px 0 2px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.rail-h:first-child{margin-top:0}
+.rc{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.rc:last-child{border-bottom:0}
+.rc.off .rname{opacity:.45}
+.rsw{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;border-radius:11px;background:var(--raised);border:1px solid var(--line);position:relative;cursor:pointer;margin:0}
+.rsw::before{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--fg);transition:transform .2s}
+.rsw:checked{background:var(--c-link)}
+.rsw:checked::before{transform:translateX(16px);background:var(--on-link)}
+.rname{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:4px 8px;margin:-4px -8px;border-radius:10px;min-width:0}
+.rname:hover{background:var(--raised)}
+.rname[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.rname[aria-pressed=true] .rex{color:var(--bg)}
+.rname i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}
+.rname b{font-size:15px;font-weight:650}
+.rname .rn{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rname[aria-pressed=true] .rn{color:color-mix(in srgb,var(--bg) 70%,transparent)}
+.rname .rex{grid-column:2/-1;font-size:14px;color:var(--c);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rname .rex .c{background:none;box-shadow:none;padding:0;color:var(--c)}
+.lk-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;margin-bottom:10px}
+.lk-cols{display:flex;gap:10px}
+.thin{font-weight:300}
 .schemes{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
 .scheme{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:8px;padding:12px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface)}
 .scheme[aria-pressed=true]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
@@ -457,7 +482,7 @@ body.dragging #dropall{display:grid}
   .thumbs{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:18px}
   .ed-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:48px;align-items:start}
   .st-side{position:sticky;top:calc(var(--tabh) + 16px)}
-  .st-side .pv{font-size:19px;padding:22px 24px}
+  #ed-frame{height:min(640px,calc(100vh - var(--tabh) - 150px))}
   .cex{max-width:34ch}
   .fr-page{max-width:900px}
   .set-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
@@ -633,38 +658,64 @@ body.dragging #dropall{display:grid}
   <!-- ============ Editor ============ -->
   <section class="view" id="v-editor" role="tabpanel" aria-labelledby="t-editor" hidden>
     <h2 class="vh">Editor</h2>
-    <p class="sub">Your colors, fonts and highlight look. Used everywhere: colored files, colored pages, Free Rain and this app.</p>
+    <p class="sub">Every look is decided here, on real text. Used everywhere: colored files, colored pages, Free Rain and this app.</p>
     <p class="hint" id="ed-cbnote" hidden>Color-blind safe colors are on in Settings, so the colors below are paused until you turn that off.</p>
+    <div class="field"><span class="flabel">Editing</span>
+      <div class="prof-row"><div class="seg" id="ed-prof"></div><div class="seg" id="ed-prof-acts" hidden><button id="ed-prof-rename">Rename</button><button id="ed-prof-del">Delete</button></div></div>
+      <p class="hint" id="ed-prof-note"></p></div>
     <div class="ed-grid">
       <div class="st-side">
-        <div class="pv m-c" id="pv">
-          <h4>Quarterly plan</h4>
-          <p>Pay <span class="c c-number">$1,250</span> by <span class="c c-date">Aug 14, 2026</span>. <span class="c c-warning">Do not</span> exceed <span class="c c-number">15%</span>; <span class="c c-reference">see Section 3</span>. <span class="c c-term">Owner:</span> Dana, <span class="c c-link">help@site.com</span>, ticket <span class="c c-id">INV-20481</span>, who said <span class="c c-quote">"ship it"</span>.</p>
-        </div>
-        <p class="hint">Preview</p>
+        <div class="field"><span class="flabel">Passage</span><div class="seg" id="ed-pass"></div></div>
+        <div class="ed-frame-wrap" id="ed-wrap"><iframe id="ed-frame" title="Passage preview"></iframe>
+          <button class="pill" id="ed-custom" hidden>Custom look for <b id="ed-custom-w"></b></button></div>
+        <p class="hint">Tap a category to edit it and its words light up here. Select any word or phrase for a custom look.</p>
+        <details class="more"><summary>Add your own passage</summary>
+          <div class="card">
+            <p class="hint">A few paragraphs of the kind of text you read. It is colored once and kept on this device.</p>
+            <div class="field"><span class="flabel">Title</span><input class="wb-text" id="ed-ptitle" maxlength="60" placeholder="Shift notes" autocomplete="off"></div>
+            <div class="field"><span class="flabel">Text</span><textarea class="wb-text" id="ed-ptext" rows="6" maxlength="8000" placeholder="Paste the text here"></textarea></div>
+            <div class="actions"><button class="pill" id="ed-padd">Add passage</button><button class="pill danger" id="ed-pdel" hidden>Remove this passage</button></div>
+            <div class="msg" id="ed-pmsg" role="status"></div>
+          </div></details>
       </div>
       <div>
+        <h3 class="sec">Categories</h3>
+        <p class="hint">Each switch turns a category off everywhere. Tap a name to change its look.</p>
+        <div class="card" id="ed-rail"></div>
+        <div class="card" id="ed-look" hidden>
+          <div class="lk-head"><div><h3 id="ed-look-t"></h3><span class="cex" id="ed-look-ex"></span><span class="warn" id="ed-look-warn" hidden></span></div>
+            <div class="lk-cols"><label class="pick" data-t="dark"><input type="color" id="ed-col-dark" aria-label="Dark theme color"><span>Dark</span></label>
+            <label class="pick" data-t="light"><input type="color" id="ed-col-light" aria-label="Light theme color"><span>Light</span></label></div></div>
+          <div class="clook" id="ed-look-box">
+            <div class="seg" data-look="weight"><button data-v="normal">Normal</button><button data-v="bold"><b>Bold</b></button><button data-v="thin"><span class="thin">Thin</span></button></div>
+            <div class="seg" data-look="fx"><button data-k="italic"><i>Italic</i></button></div>
+            <div class="seg" data-look="case"><button data-v="normal">Aa</button><button data-v="upper">ALL CAPS</button></div>
+            <select data-look="scale" aria-label="Size"><option value="1">Same size</option><option value="1.12">Larger</option><option value="1.25">Larger still</option><option value="1.4">Largest</option></select>
+            <select data-look="underline" aria-label="Underline"></select>
+            <label class="ulc"><input type="color" data-look="ul" aria-label="Underline color"><span>Underline color</span></label>
+            <button class="link" data-look="ulreset">Same as text</button>
+          </div>
+          <div class="actions"><button class="pill" id="ed-look-reset">Back to the default</button><button class="pill" id="ed-look-close">Done</button></div>
+        </div>
+        <h3 class="sec">Page</h3>
         <div class="field"><span class="flabel">Color scheme</span><div class="schemes" id="schemes"></div></div>
         <div class="field"><span class="flabel">Highlight style</span>
           <div class="seg" data-k="mode"><button data-v="c">Combined</button><button data-v="b">Highlights</button><button data-v="a">Colored text</button><button data-v="d">Underline</button></div></div>
         <div class="field"><span class="flabel">Highlight size</span>
           <div class="seg" data-k="hl"><button data-v="sm">Small</button><button data-v="md">Medium</button><button data-v="lg">Large</button></div></div>
-        <h3 class="sec">Fonts</h3>
         <label class="field"><span class="flabel">Body text</span><select id="f-body"></select></label>
         <label class="field"><span class="flabel">Headings</span><select id="f-heading"></select></label>
         <label class="field"><span class="flabel">Text size <output id="sz-o"></output></span><input type="range" id="f-size" min="80" max="150" step="5"></label>
-        <h3 class="sec">Colors</h3>
-        <p class="hint">Each category has a color for the dark theme and one for the light theme. A color under 3:1 contrast gets a note, but it's still allowed.</p>
-        <div class="card" id="c-content"></div>
-        <details class="more"><summary>Grammar layer colors</summary><div class="card" id="c-grammar"></div></details>
         <details class="more"><summary>AI meaning colors (command line only)</summary><div class="card" id="c-meaning"></div></details>
 
         <h3 class="sec" id="wordbank">Word Bank</h3>
-        <p class="hint">Your own words, each with its own look. They are found in every document: colored files, colored pages, Free Rain and the examples. A Word Bank word wins over its category.</p>
+        <p class="hint">Your own words and phrases. Each gets its own look, or counts as a category of your choosing. A Word Bank word wins over what the detector found.</p>
         <label class="sw-row" style="margin:6px 0 12px"><input type="checkbox" role="switch" id="wb-on"><span>Use the Word Bank<small>Turn it off to set your words aside without losing them.</small></span></label>
         <div class="card">
           <h3 id="wb-form-t">Add a word</h3>
           <div class="field"><span class="flabel">Word or phrase</span><input class="wb-text" id="wb-word" maxlength="80" placeholder="yell" autocomplete="off" spellcheck="false"></div>
+          <label class="field"><span class="flabel">Treat it as</span><select id="wb-cat"></select></label>
+          <div id="wb-own">
           <div class="wb-grid">
             <div class="field"><span class="flabel">Font color</span><span class="wb-col"><input type="checkbox" id="wb-hascolor" aria-label="Use a font color"><input type="color" id="wb-color" value="#d32f2f" aria-label="Font color"></span></div>
             <div class="field"><span class="flabel">Highlight</span><span class="wb-col"><input type="checkbox" id="wb-hasbg" aria-label="Use a highlight"><input type="color" id="wb-bg" value="#ffe14d" aria-label="Highlight color"></span></div>
@@ -672,8 +723,9 @@ body.dragging #dropall{display:grid}
             <label class="field"><span class="flabel">Size <output id="wb-size-o"></output></span><input type="range" id="wb-size" min="0.8" max="2.5" step="0.05" value="1"></label>
           </div>
           <div class="field"><span class="flabel">Style</span><div class="wb-flags" id="wb-flags"><button data-f="caps">ALL CAPS</button><button data-f="bold"><b>Bold</b></button><button data-f="italic"><i>Italic</i></button><button data-f="underline"><u>Underline</u></button></div></div>
+          </div>
           <div class="wb-pv" id="wb-pv" data-plain></div>
-          <div class="actions"><button class="pill" id="wb-add" aria-pressed="true">Add to Word Bank</button><button class="pill" id="wb-cancel" hidden>Cancel</button></div>
+          <div class="actions"><button class="pill" id="wb-add" aria-pressed="true">Add everywhere</button><button class="pill" id="wb-add-prof" hidden></button><button class="pill" id="wb-cancel" hidden>Cancel</button></div>
         </div>
         <div class="card" id="wb-list"></div>
 
@@ -845,10 +897,13 @@ body.dragging #dropall{display:grid}
   // ---- storage (never required to work) ----
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
-  function blank(){ return {colors:{}, body:DEF.body, heading:DEF.heading, size:DEF.size, mode:DEF.mode, theme:DEF.theme, palette:'default', hl:'md', look:{}, wordbank:{on:true, words:[]}}; }
+  var GRAMMAR = CATS.filter(function(c){ return c.layer === 'grammar'; }), LOOKABLE = CONTENT.concat(GRAMMAR);
+  function blank(){ return {colors:{}, body:DEF.body, heading:DEF.heading, size:DEF.size, mode:DEF.mode, theme:DEF.theme, palette:'default', hl:'md', look:{}, off:{}, wordbank:{on:true, words:[]}, passages:[], profiles:{}, profile:'core'}; }
+  function blankProfile(label){ return {label: label, colors:{}, look:{}, off:{}, wordbank:{words:[]}}; }
   function cleanWord(w){
     if (!w || typeof w.word !== 'string' || !w.word.trim()) return null;
     var e = {id: w.id || newId(), word: w.word.trim().slice(0, 80)};
+    if (typeof w.cat === 'string' && cat(w.cat) && cat(w.cat).layer !== 'meaning'){ e.cat = w.cat; if (w.off === true) e.off = true; return e; }   // counts as that category
     ['color','bg'].forEach(function(k){ if (/^#[0-9a-f]{6}$/i.test(w[k] || '')) e[k] = w[k].toLowerCase(); });
     if (FONTS[w.font]) e.font = w.font;
     if (typeof w.size === 'number' && w.size >= .8 && w.size <= 2.5) e.size = Math.round(w.size * 100) / 100;
@@ -865,11 +920,35 @@ body.dragging #dropall{display:grid}
     if (/^(default|cb)$/.test(p || '')) s.palette = p;
     return s;
   }
-  function merge(s, src){
-    if (src.colors && typeof src.colors === 'object') CATS.forEach(function(c){
-      var p = src.colors[c.name]; if (!p) return;
-      ['dark','light'].forEach(function(t){ if (/^#[0-9a-f]{6}$/i.test(p[t] || '')) (s.colors[c.name] = s.colors[c.name] || {})[t] = p[t].toLowerCase(); });
+  function mergeColors(dst, src){
+    if (!src || typeof src !== 'object') return;
+    CATS.forEach(function(c){
+      var p = src[c.name]; if (!p) return;
+      ['dark','light'].forEach(function(t){ if (/^#[0-9a-f]{6}$/i.test(p[t] || '')) (dst[c.name] = dst[c.name] || {})[t] = p[t].toLowerCase(); });
     });
+  }
+  function mergeLook(dst, src){
+    if (!src || typeof src !== 'object') return;
+    LOOKABLE.forEach(function(c){
+      var v = src[c.name]; if (!v || typeof v !== 'object') return;
+      var o = {};
+      if (v['case'] === 'upper' || v['case'] === 'normal') o['case'] = v['case'];
+      if (typeof v.scale === 'number' && v.scale >= .8 && v.scale <= 2) o.scale = v.scale;
+      if (typeof v.bold === 'boolean') o.bold = v.bold;
+      if (typeof v.thin === 'boolean') o.thin = v.thin;
+      if (o.bold && o.thin) delete o.thin;
+      if (typeof v.italic === 'boolean') o.italic = v.italic;
+      if (UNDERLINES.indexOf(v.underline) >= 0) o.underline = v.underline;
+      if (/^#[0-9a-f]{6}$/i.test(v.ul || '')) o.ul = v.ul.toLowerCase();
+      if (Object.keys(o).length) dst[c.name] = o;
+    });
+  }
+  function mergeOff(dst, src){   // true: off; false: on (over a category that starts off, or over the core)
+    if (!src || typeof src !== 'object') return;
+    LOOKABLE.forEach(function(c){ if (typeof src[c.name] === 'boolean') dst[c.name] = src[c.name]; });
+  }
+  function merge(s, src){
+    mergeColors(s.colors, src.colors);
     if (FONTS[src.body]) s.body = src.body;
     if (FONTS[src.heading]) s.heading = src.heading;
     if (src.size >= 80 && src.size <= 150) s.size = Math.round(src.size);
@@ -877,22 +956,49 @@ body.dragging #dropall{display:grid}
     if (/^(auto|dark|light)$/.test(src.theme || '')) s.theme = src.theme;
     if (/^(default|cb)$/.test(src.palette || '')) s.palette = src.palette;
     if (HLCSS[src.hl] != null) s.hl = src.hl;
-    if (src.look && typeof src.look === 'object') CONTENT.forEach(function(c){
-      var v = src.look[c.name]; if (!v || typeof v !== 'object') return;
-      var o = {};
-      if (v['case'] === 'upper' || v['case'] === 'normal') o['case'] = v['case'];
-      if (typeof v.scale === 'number' && v.scale >= .8 && v.scale <= 2) o.scale = v.scale;
-      if (typeof v.bold === 'boolean') o.bold = v.bold;
-      if (typeof v.italic === 'boolean') o.italic = v.italic;
-      if (UNDERLINES.indexOf(v.underline) >= 0) o.underline = v.underline;
-      if (/^#[0-9a-f]{6}$/i.test(v.ul || '')) o.ul = v.ul.toLowerCase();
-      if (Object.keys(o).length) s.look[c.name] = o;
-    });
+    mergeLook(s.look, src.look);
+    mergeOff(s.off, src.off);
     if (src.wordbank && Array.isArray(src.wordbank.words))
       s.wordbank = {on: src.wordbank.on !== false, words: src.wordbank.words.map(cleanWord).filter(Boolean).slice(0, 200)};
+    if (Array.isArray(src.passages)) s.passages = src.passages.map(function(p){
+      if (!p || typeof p.text !== 'string' || !p.text.trim() || typeof p.html !== 'string' || p.html.length > 600000) return null;
+      return {id: p.id || newId(), title: String(p.title || '').slice(0, 60) || 'Passage', text: p.text.slice(0, 8000), html: p.html};
+    }).filter(Boolean).slice(0, 12);
+    if (src.profiles && typeof src.profiles === 'object') Object.keys(src.profiles).slice(0, 12).forEach(function(k){
+      var p = src.profiles[k]; if (!/^[a-z0-9-]{1,24}$/.test(k) || !p || typeof p !== 'object') return;
+      var o = blankProfile(String(p.label || k).slice(0, 30));
+      mergeColors(o.colors, p.colors); mergeLook(o.look, p.look); mergeOff(o.off, p.off);
+      if (p.wordbank && Array.isArray(p.wordbank.words)) o.wordbank.words = p.wordbank.words.map(cleanWord).filter(Boolean).slice(0, 200);
+      s.profiles[k] = o;
+    });
+    if (typeof src.profile === 'string' && (src.profile === 'core' || s.profiles[src.profile])) s.profile = src.profile;
   }
   var st = load();
-  function save(){ lsSet('synapp.style', JSON.stringify(st)); lsSet('syn.mode', st.mode); lsSet('syn.theme', st.theme); lsSet('syn.pal', st.palette); }
+  // the core settings with the active specialty laid over them: what every drawing reads
+  var EF = null;
+  function prof(){ return st.profile !== 'core' && st.profiles[st.profile] ? st.profiles[st.profile] : null; }
+  function tg(){ return prof() || st; }   // where an edit goes
+  function effective(){
+    var p = prof(), e = {colors: {}, look: {}, off: {}, words: []};
+    CATS.forEach(function(c){
+      var n = c.name, a = st.colors[n], b = p && p.colors[n];
+      if (a || b) e.colors[n] = Object.assign({}, a || {}, b || {});
+      var l = Object.assign({}, st.look[n] || {}, p && p.look[n] || {});
+      if (Object.keys(l).length) e.look[n] = l;
+      var off = !!c.off;   // a category that starts off, then the core's say, then the specialty's
+      if (typeof st.off[n] === 'boolean') off = st.off[n];
+      if (p && typeof p.off[n] === 'boolean') off = p.off[n];
+      if (off && c.layer !== 'meaning') e.off[n] = true;
+    });
+    e.words = (p ? p.wordbank.words : []).concat(st.wordbank.words);   // the specialty's words win
+    return e;
+  }
+  EF = effective();
+  function save(){
+    EF = effective();
+    lsSet('synapp.style', JSON.stringify(st)); lsSet('syn.mode', st.mode); lsSet('syn.theme', st.theme); lsSet('syn.pal', st.palette);
+    lsSet('syn.off', JSON.stringify(Object.keys(EF.off)));   // colored pages read the same key
+  }
 
   // ---- color math (same as the converter's contrast check) ----
   function lum(h){ var v = [1,3,5].map(function(i){ var c = parseInt(h.substr(i,2),16)/255; return c <= .03928 ? c/12.92 : Math.pow((c+.055)/1.055, 2.4); }); return .2126*v[0] + .7152*v[1] + .0722*v[2]; }
@@ -900,7 +1006,7 @@ body.dragging #dropall{display:grid}
   function onColor(h){ return contrast(h,'#101216') >= contrast(h,'#ffffff') ? '#101216' : '#ffffff'; }
   function theme(){ return st.theme === 'auto' ? (mq && mq.matches ? 'light' : 'dark') : st.theme; }
   function cbCol(c, t){ return t === 'light' ? c.cbLight : c.cbDark; }
-  function own(c, t){ return (st.colors[c.name] && st.colors[c.name][t]) || c[t]; }
+  function own(c, t){ return (EF.colors[c.name] && EF.colors[c.name][t]) || c[t]; }
   function col(c, t){ return st.palette === 'cb' ? cbCol(c, t) : own(c, t); }
 
   // Color schemes for the content categories (grammar and meaning keep their own colors)
@@ -949,6 +1055,7 @@ body.dragging #dropall{display:grid}
     return 'color:' + c + ';background-color:color-mix(in srgb,' + c + ' 22%,transparent)';
   }
   function apply(){
+    EF = effective();
     buildBank();
     var t = theme();
     root.setAttribute('data-theme', t);
@@ -964,6 +1071,7 @@ body.dragging #dropall{display:grid}
     CONTENT.forEach(function(c){ css.push('::highlight(ly-' + c.name + '){' + lyRule('var(--c-' + c.name + ')', st.mode) + hlUl(c, st.mode) + '}'); });
     BANK.forEach(function(b){
       var w = b.w, c = w.bg || w.color || '#ffd400';
+      if (w.cat) return;
       css.push('::highlight(fr-wb-' + b.i + '){' + (w.color ? 'color:' + w.color + ';' : '') + 'background-color:' + (w.bg || 'color-mix(in srgb,' + c + ' 22%,transparent)') + (w.underline ? ';text-decoration:underline 2px ' + c : '') + '}');
       css.push('::highlight(ly-wb-' + b.i + '){background-color:color-mix(in srgb,' + c + ' 55%,transparent)' + (w.underline ? ';text-decoration:underline 3px ' + c : '') + '}');
       if (w.font) useFont(w.font);
@@ -1003,35 +1111,35 @@ body.dragging #dropall{display:grid}
   var BANK = [];
   function escRe(x){ return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
   function buildBank(){
-    var words = st.wordbank && st.wordbank.on ? st.wordbank.words.filter(function(w){ return !w.off && w.word; }) : [];
+    var words = st.wordbank && st.wordbank.on ? EF.words.filter(function(w){ return !w.off && w.word; }) : [];
     BANK = words.map(function(w, i){
       var re; try { re = new RegExp('(?<![\\p{L}\\p{N}_])' + escRe(w.word) + '(?![\\p{L}\\p{N}_])', 'giu'); } catch (e) { re = new RegExp(escRe(w.word), 'gi'); }
       return {re: re, i: i, w: w};
     });
   }
   // a category's look: the lens defaults, then the reader's own (render.py look_rules writes the same CSS)
-  function lookDef(c){ return {'case': c['case'] || 'normal', scale: c.scale || 1, bold: !!c.bold, italic: !!c.italic, underline: UNDERLINES.indexOf(c.underline) >= 0 ? c.underline : 'none', ul: ''}; }
-  function lookOf(c){
-    var v = st.look[c.name] || {}, d = lookDef(c);
-    Object.keys(d).forEach(function(k){ if (v[k] !== undefined) d[k] = v[k]; });
-    return d;
-  }
+  function lookDef(c){ return {'case': c['case'] || 'normal', scale: c.scale || 1, bold: !!c.bold, thin: !!c.thin, italic: !!c.italic, underline: UNDERLINES.indexOf(c.underline) >= 0 ? c.underline : 'none', ul: ''}; }
+  function lookWith(c, v){ var d = lookDef(c); Object.keys(d).forEach(function(k){ if (v && v[k] !== undefined) d[k] = v[k]; }); if (d.bold) d.thin = false; return d; }
+  function lookOf(c){ return lookWith(c, EF.look[c.name]); }
+  function lookCore(c){ return lookWith(c, st.look[c.name]); }   // the core look under a specialty
   function ulRules(sel, u){
     if (u === 'none') return '.m-a ' + sel + ',.m-b ' + sel + ',.m-c ' + sel + '{text-decoration:none}.m-d ' + sel + '{text-decoration-style:solid}';
     var line = 'text-decoration-line:underline;text-decoration-style:' + u + ';text-decoration-thickness:2px;text-underline-offset:.22em';
     return '.m-a ' + sel + ',.m-c ' + sel + '{' + line + ';text-decoration-color:var(--ul,var(--c))}' +
       '.m-b ' + sel + '{' + line + ';text-decoration-color:var(--ul,var(--on))}.m-d ' + sel + '{text-decoration-style:' + u + '}';
   }
+  // render.py look_rules writes the same CSS; a grammar rule names the layer so it outranks the page's own grammar rules
   function lookCss(){
-    return CONTENT.map(function(c){
-      var l = lookOf(c), sel = '.c-' + c.name;
-      return sel + '{text-transform:' + (l['case'] === 'upper' ? 'uppercase' : 'none') + ';font-size:' + l.scale + 'em;font-weight:' + (l.bold ? '700' : 'inherit') +
+    return LOOKABLE.map(function(c){
+      var l = lookOf(c), sel = (c.layer === 'grammar' ? '.c.l-grammar' : '') + '.c-' + c.name + ':not(.off-' + c.name + ' *)';
+      return sel + '{text-transform:' + (l['case'] === 'upper' ? 'uppercase' : 'none') + ';font-size:' + l.scale + 'em;font-weight:' + (l.bold ? '700' : l.thin ? '300' : 'inherit') +
         ';font-style:' + (l.italic ? 'italic' : 'inherit') + (l.ul ? ';--ul:' + l.ul : '') + '}' + ulRules(sel, l.underline);
     }).join('');
   }
   function bankCss(){
     return BANK.map(function(b){
       var w = b.w, d = [];
+      if (w.cat) return '';   // drawn as its category
       if (w.color) d.push('color:' + w.color);
       if (w.bg){ d.push('background:' + w.bg + ';padding:.04em .3em;box-shadow:none'); if (!w.color) d.push('color:' + onColor(w.bg)); }
       else d.push('background:none;box-shadow:none;padding:0');
@@ -1057,7 +1165,7 @@ body.dragging #dropall{display:grid}
       b.re.lastIndex = 0; var m;
       while ((m = b.re.exec(text)) !== null){
         if (!m[0].length){ b.re.lastIndex++; continue; }
-        cands.push([-1000 + b.i, m.index, -m[0].length, m.index + m[0].length, 'wb-' + b.i]);
+        cands.push([-1000 + b.i, m.index, -m[0].length, m.index + m[0].length, b.w.cat || ('wb-' + b.i), true]);
       }
     });
     RX.forEach(function(x){
@@ -1076,7 +1184,7 @@ body.dragging #dropall{display:grid}
     cands.forEach(function(k){
       for (var i = k[1]; i < k[3]; i++) if (taken[i]) return;
       for (i = k[1]; i < k[3]; i++) taken[i] = 1;
-      out.push({start: k[1], end: k[3], cat: k[4]});
+      out.push({start: k[1], end: k[3], cat: k[4], wb: !!k[5]});
     });
     return out.sort(function(a, b){ return a.start - b.start; });
   }
@@ -1119,7 +1227,7 @@ body.dragging #dropall{display:grid}
   }
 
   // ---- the app's own text, colored with the same lens ----
-  var UI_SKIP = 'script,style,textarea,input,select,option,#pv,#mark,.cex,.kdots,.c,#fr,.pic,.lchip,.tl,[data-plain]';
+  var UI_SKIP = 'script,style,textarea,input,select,option,#mark,.cex,.rex,.kdots,.c,#fr,.pic,.lchip,.tl,[data-plain]';
   var uiOn = lsGet('synapp.uitext') !== '0', obs = null;
   function paint(elm){ colorText(elm, null, 'data-ui', UI_SKIP); if (obs) obs.takeRecords(); }
   function setUi(on){
@@ -1348,6 +1456,7 @@ body.dragging #dropall{display:grid}
     if (t === 'layer') renderRecent();
     if (t === 'settings') usage();
     if (t === 'free') frPaint();
+    if (t === 'editor') initEditor();
     rainSync();
     measureTabs();
   }
@@ -1395,10 +1504,10 @@ body.dragging #dropall{display:grid}
   // the matched words carry the look), with the look spelled out beside its name. The grammar layer's four
   // shapes follow.
   function lookWords(c){
-    var g = c.layer === 'grammar', l = g ? lookDef(c) : lookOf(c), w = g ? ['tint'] : [];
+    var g = c.layer === 'grammar', l = lookOf(c), w = g ? ['tint'] : [];
     if (l['case'] === 'upper') w.push('ALL CAPS');
     if (l.bold) w.push('bold');
-    if (c.thin && !l.bold) w.push('thin');
+    if (l.thin && !l.bold) w.push('thin');
     if (l.italic) w.push('italic');
     if (l.scale > 1) w.push('larger');
     if (l.underline !== 'none') w.push(l.underline + ' underline');
@@ -1407,7 +1516,7 @@ body.dragging #dropall{display:grid}
   function exampleHtml(c){
     return c.example.split(/\s+or\s+|,\s+|\s{2,}/).filter(Boolean).map(function(p){
       if (c.layer === 'grammar'){
-        var l = lookDef(c), css = 'font-weight:' + (l.bold ? 700 : c.thin ? 300 : 'inherit') + ';font-style:' + (l.italic ? 'italic' : 'normal') +
+        var l = lookOf(c), css = 'font-weight:' + (l.bold ? 700 : l.thin ? 300 : 'inherit') + ';font-style:' + (l.italic ? 'italic' : 'normal') + (l['case'] === 'upper' ? ';text-transform:uppercase' : '') + (l.scale !== 1 ? ';font-size:' + l.scale + 'em' : '') +
           (l.underline !== 'none' ? ';text-decoration:underline ' + l.underline + ' 1px var(--c);text-underline-offset:.2em' : ';text-decoration:none');
         return '<span class="c l-grammar c-' + c.name + '" style="' + css + '">' + esc(p) + '</span>';
       }
@@ -1417,7 +1526,7 @@ body.dragging #dropall{display:grid}
     }).join('');
   }
   function howLegend(){
-    var rows = CONTENT.filter(function(c){ return !c.off; }).concat(CATS.filter(function(c){ return c.layer === 'grammar'; }));
+    var rows = LOOKABLE.filter(function(c){ return !EF.off[c.name]; });
     $('how-legend').innerHTML = rows.map(function(c, i){
       var head = c.layer === 'grammar' && (!i || rows[i - 1].layer !== 'grammar') ? '<h4>Grammar layer</h4>' : '';
       return head + '<div data-plain><b>' + esc(c.label) + '<small>' + esc(lookWords(c)) + '</small></b><span class="lg-ex">' + exampleHtml(c) + '</span></div>';
@@ -1428,12 +1537,16 @@ body.dragging #dropall{display:grid}
   var sframe = $('show-frame');
   $('show-schemes').innerHTML = '<button data-v="yours">Yours</button><button data-v="standard">Standard</button>' +
     Object.keys(SCHEMES).map(function(k){ return '<button data-v="' + k + '">' + SCHEMES[k].label + '</button>'; }).join('');
+  var showP = null;
+  function loadShow(){
+    if (!showP) showP = fetch('/showcase.json?v=' + (cfg.showcaseV || '')).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d){ SHOWDATA = d.examples; return SHOWDATA; });
+    return showP;
+  }
   function initShow(){
     if (SHOWDATA){ if (!show.key) openExample(SHOWDATA[0].key); return; }
     if (!cfg.showcase){ $('show-msg').textContent = 'The examples are not available here.'; return; }
     show.mode = st.mode; show.cb = st.palette === 'cb'; show.theme = theme();
-    fetch('/showcase.json?v=' + (cfg.showcaseV || '')).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d){
-      SHOWDATA = d.examples;
+    loadShow().then(function(){
       var pick = $('show-pick'), groups = {famous: 'Famous writing', everyday: 'Everyday'};
       Object.keys(groups).forEach(function(g){
         var h = el('h4', null, groups[g]); pick.appendChild(h);
@@ -1484,26 +1597,27 @@ body.dragging #dropall{display:grid}
     var w = d.createTreeWalker(main, NodeFilter.SHOW_TEXT), list = [], t;
     while ((t = w.nextNode())) if (t.nodeValue.trim()) list.push(t);
     list.forEach(function(t){
-      var text = t.nodeValue, hits = spans(text).filter(function(s){ return s.cat.indexOf('wb-') === 0; });
+      var text = t.nodeValue, hits = spans(text).filter(function(s){ return s.wb; });
       if (!hits.length) return;
       var frag = d.createDocumentFragment(), at = 0;
       hits.forEach(function(s){
         if (s.start > at) frag.appendChild(d.createTextNode(text.slice(at, s.start)));
-        var e = d.createElement('span'); e.className = 'c c-' + s.cat; e.setAttribute('data-wb', ''); e.textContent = text.slice(s.start, s.end);
+        var e = d.createElement('span'), k = cat(s.cat); e.className = 'c c-' + s.cat + (k ? ' l-' + k.layer : ''); e.setAttribute('data-wb', ''); e.setAttribute('data-cat', s.cat); e.textContent = text.slice(s.start, s.end);
         frag.appendChild(e); at = s.end;
       });
       if (at < text.length) frag.appendChild(d.createTextNode(text.slice(at)));
       t.parentNode.replaceChild(frag, t);
     });
   }
-  function fitShow(){
-    var d = sframe.contentDocument; if (!d || !d.documentElement) return;
-    sframe.style.height = Math.max(240, Math.ceil(d.body.getBoundingClientRect().height)) + 'px';
-    if (!sframe._ro && d.defaultView && d.defaultView.ResizeObserver){
-      sframe._ro = true;
-      new d.defaultView.ResizeObserver(function(){ sframe.style.height = Math.max(240, Math.ceil(d.body.getBoundingClientRect().height)) + 'px'; }).observe(d.body);
+  function fitFrame(f, min){
+    var d = f.contentDocument; if (!d || !d.documentElement || !d.body) return;
+    f.style.height = Math.max(min, Math.ceil(d.body.getBoundingClientRect().height)) + 'px';
+    if (!f._ro && d.defaultView && d.defaultView.ResizeObserver){
+      f._ro = true;
+      new d.defaultView.ResizeObserver(function(){ f.style.height = Math.max(min, Math.ceil(d.body.getBoundingClientRect().height)) + 'px'; }).observe(d.body);
     }
   }
+  function fitShow(){ fitFrame(sframe, 240); }
   sframe.addEventListener('load', function(){ sframe._ro = false; });
   window.addEventListener('resize', function(){ if (cur === 'how') fitShow(); });
   function syncShow(){
@@ -1625,8 +1739,8 @@ body.dragging #dropall{display:grid}
 
   function styleForServer(){
     var s = load();  // includes any style, theme or palette picked on a converted page
-    return {colors: st.colors, body: st.body, heading: st.heading, size: st.size, mode: s.mode, theme: s.theme, palette: s.palette, hl: st.hl,
-            look: st.look, pdf: $('pdfletters').checked ? 'restyle' : 'notes', wordbank: {on: st.wordbank.on, words: st.wordbank.words.filter(function(w){ return !w.off; })}};
+    return {colors: EF.colors, body: st.body, heading: st.heading, size: st.size, mode: s.mode, theme: s.theme, palette: s.palette, hl: st.hl,
+            look: EF.look, off: EF.off, pdf: $('pdfletters').checked ? 'restyle' : 'notes', wordbank: {on: st.wordbank.on, words: EF.words.filter(function(w){ return !w.off; })}};
   }
   function headers(name){ return {'X-File-Name': encodeURIComponent(name), 'X-Style': encodeURIComponent(JSON.stringify(styleForServer()))}; }
   // send one document; `out` is the status line under the button that started it
@@ -2275,23 +2389,266 @@ body.dragging #dropall{display:grid}
   $('ro-close').onclick = function(){ closeRoller(); };
 
   // ================= Editor =================
-  ['content','grammar','meaning'].forEach(function(layer){
-    $('c-' + layer).innerHTML = CATS.filter(function(c){ return c.layer === layer; }).map(function(c){
-      return '<div class="crow" data-n="' + c.name + '" style="--c:var(--c-' + c.name + ')">' +
-        // a content category's example shows its whole look: bold, italic, underline, caps, size
-        '<div><span class="cname">' + esc(c.label) + '</span><span class="cex">' + (c.layer === 'content' ? '<span class="c c-' + c.name + '">' + esc(c.example) + '</span>' : esc(c.example)) + '</span>' +
-        '<span class="warn" hidden></span><button class="rst" hidden>Reset</button></div>' +
-        '<label class="pick" data-t="dark"><input type="color" data-t="dark" aria-label="' + esc(c.label) + ', dark theme"><span>Dark</span></label>' +
-        '<label class="pick" data-t="light"><input type="color" data-t="light" aria-label="' + esc(c.label) + ', light theme"><span>Light</span></label></div>';
-    }).join('');
+  // Specialties: a named set of changes laid over the core ("Analyst"); the picker says where edits go.
+  function profKeys(){ return Object.keys(st.profiles); }
+  function drawProfiles(){
+    var seg = $('ed-prof'), p = prof();
+    seg.innerHTML = '<button data-v="core">Core</button>' + profKeys().map(function(k){ return '<button data-v="' + k + '">' + esc(st.profiles[k].label) + '</button>'; }).join('') +
+      '<button data-v="+">+ Specialty</button>';
+    seg.querySelectorAll('button').forEach(function(bt){ bt.setAttribute('aria-pressed', bt.getAttribute('data-v') === st.profile ? 'true' : 'false'); });
+    $('ed-prof-acts').hidden = !p;
+    $('ed-prof-note').textContent = p ? 'Changes here apply only in ' + p.label + '. Everything else shows through from Core.' : 'Core: every change applies everywhere. A specialty is a set of changes on top, for one kind of reading.';
+    $('wb-add-prof').hidden = !p; if (p) $('wb-add-prof').textContent = 'Only in ' + p.label;
+    $('wb-add').textContent = wbEdit ? 'Save changes' : (p ? 'Add to Core' : 'Add to Word Bank');
+  }
+  function slug(label){ var s = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20) || 'spec'; var k = s, i = 2; while (st.profiles[k] || k === 'core'){ k = s + '-' + i++; } return k; }
+  $('ed-prof').addEventListener('click', function(e){
+    var bt = e.target.closest('button'); if (!bt) return;
+    var v = bt.getAttribute('data-v');
+    if (v === '+'){
+      ask('New specialty', 'A name for this kind of reading, like Analyst or Healthcare. It starts as a copy of Core; what you change here applies only to it.', [{label:'Create', value:'ok'}], {input: ''}).then(function(name){
+        if (!name) return;
+        if (profKeys().length >= 12){ toast('Twelve specialties is the limit'); return; }
+        var k = slug(name); st.profiles[k] = blankProfile(name.slice(0, 30)); st.profile = k;
+        save(); apply(); editorSync(); toast('Editing ' + name);
+      });
+      return;
+    }
+    st.profile = v === 'core' || st.profiles[v] ? v : 'core'; save(); apply(); editorSync();
   });
+  $('ed-prof-rename').onclick = function(){
+    var p = prof(); if (!p) return;
+    ask('Rename ' + p.label, '', [{label:'Rename', value:'ok'}], {input: p.label}).then(function(name){ if (name){ p.label = name.slice(0, 30); save(); editorSync(); } });
+  };
+  $('ed-prof-del').onclick = function(){
+    var p = prof(), k = st.profile; if (!p) return;
+    ask('Delete ' + p.label + '?', 'Its changes and its words are removed. Core is not touched.', [{label:'Delete', value:'y', danger:true}]).then(function(v){
+      if (!v) return;
+      delete st.profiles[k]; st.profile = 'core'; save(); apply(); editorSync(); toast('Deleted ' + p.label);
+    });
+  };
+
+  // ---- the passage: real text, colored once, redrawn live with every change ----
+  var eframe = $('ed-frame'), edPass = lsGet('synapp.edpass') || '', edSel = null, EDBUILTIN = ['market-wrap', 'study-notes', 'lease', 'aftercare', 'meeting-notes', 'trip', 'budget', 'recipe'];
+  function passages(){
+    var mine = st.passages.map(function(p){ return {key: 'p:' + p.id, title: p.title, html: p.html, mine: p}; });
+    var built = (SHOWDATA || []).filter(function(x){ return EDBUILTIN.indexOf(x.key) >= 0; }).sort(function(a, b){ return EDBUILTIN.indexOf(a.key) - EDBUILTIN.indexOf(b.key); })
+      .map(function(x){ return {key: x.key, title: x.title, html: x.html}; });
+    return mine.concat(built);
+  }
+  function passNow(){ var all = passages(); for (var i = 0; i < all.length; i++) if (all[i].key === edPass) return all[i]; return all[0] || null; }
+  function drawPassages(){
+    var all = passages(), p = passNow(), seg = $('ed-pass');
+    seg.innerHTML = all.map(function(x){ return '<button data-v="' + esc(x.key) + '" aria-pressed="' + (p && x.key === p.key ? 'true' : 'false') + '">' + esc(x.title) + '</button>'; }).join('') || '<span class="hint">The examples are not available here. Add your own passage below.</span>';
+    $('ed-pdel').hidden = !(p && p.mine);
+  }
+  $('ed-pass').addEventListener('click', function(e){ var bt = e.target.closest('button'); if (!bt) return; openPass(bt.getAttribute('data-v')); });
+  function openPass(key){
+    edPass = key; lsSet('synapp.edpass', key);
+    var p = passNow(); drawPassages();
+    if (!p){ eframe.removeAttribute('srcdoc'); return; }
+    if (eframe._key === p.key){ paintEd(); return; }
+    eframe._key = p.key; eframe._ro = false;
+    eframe.onload = function(){ hookEd(); paintEd(); };
+    eframe.srcdoc = p.html;
+  }
+  function edCounts(){
+    var d = eframe.contentDocument, n = {}; if (!d || !d.body) return n;
+    d.querySelectorAll('[data-cat]').forEach(function(s){ var c = s.getAttribute('data-cat'); n[c] = (n[c] || 0) + 1; });
+    return n;
+  }
+  function paintEd(){
+    var d = eframe.contentDocument; if (!d || !d.body || !d.head) return;
+    var t = theme(), r = d.documentElement;
+    r.setAttribute('data-theme', t);
+    CATS.forEach(function(c){ var h = col(c, t); r.style.setProperty('--c-' + c.name, h); r.style.setProperty('--on-' + c.name, onColor(h)); });
+    var css = d.getElementById('appx');
+    if (!css){ css = d.createElement('style'); css.id = 'appx'; d.head.appendChild(css);
+      var fit = d.createElement('style'); fit.id = 'appx-fit'; fit.textContent = 'main{padding:16px 18px 24px}::selection{background:color-mix(in srgb,var(--c-link) 35%,transparent)}'; d.head.appendChild(fit); }
+    var pick = edSel ? '.c-' + edSel + '{outline:2px solid var(--c-' + edSel + ');outline-offset:2px;border-radius:3px;animation:edp 1.2s ease-in-out 2}@keyframes edp{50%{outline-offset:5px}}' : '';
+    css.textContent = 'body{font-family:' + FONTS[st.body].stack + ';font-size:' + (16 * st.size / 100).toFixed(1) + 'px}h1,h2,h3,h4,h5,h6{font-family:' + FONTS[st.heading].stack + '}' + (HLCSS[st.hl] || '') + lookCss() + bankCss() + pick;
+    [st.body, st.heading].concat(BANK.map(function(b){ return b.w.font; })).forEach(function(k){
+      var h = fontHref(k); if (h && !d.querySelector('link[href="' + h + '"]')){ var l = d.createElement('link'); l.rel = 'stylesheet'; l.href = h; d.head.appendChild(l); }
+    });
+    var b = d.body;
+    ['a','b','c','d'].forEach(function(m){ b.classList.toggle('m-' + m, m === st.mode); });
+    b.classList.remove('off-layer-grammar');
+    CATS.forEach(function(c){ b.classList.toggle('off-' + c.name, !!EF.off[c.name]); });
+    showBank(d);
+    drawRail();
+  }
+  // selecting words in the passage offers a custom look for them
+  var edSelT = null;
+  function hookEd(){
+    var d = eframe.contentDocument; if (!d || d._ed) return;
+    d._ed = true;
+    d.addEventListener('selectionchange', function(){ clearTimeout(edSelT); edSelT = setTimeout(edCheckSel, 250); });
+    d.addEventListener('scroll', function(){ $('ed-custom').hidden = true; }, {passive: true});
+  }
+  function edCheckSel(){
+    var bt = $('ed-custom'), d = eframe.contentDocument, s = d && d.getSelection && d.getSelection();
+    var text = s && !s.isCollapsed && s.rangeCount ? s.toString().replace(/\s+/g, ' ').trim() : '';
+    if (!text || text.length > 80 || !/[A-Za-z0-9]/.test(text)){ bt.hidden = true; return; }
+    var rect = s.getRangeAt(0).getBoundingClientRect(), wrapR = $('ed-wrap').getBoundingClientRect(), fr = eframe.getBoundingClientRect();
+    bt._text = text; $('ed-custom-w').textContent = text; bt.hidden = false;
+    var x = fr.left - wrapR.left + rect.left + rect.width / 2 - bt.offsetWidth / 2, y = fr.top - wrapR.top + rect.bottom + 8;
+    x = Math.max(8, Math.min(x, wrapR.width - bt.offsetWidth - 8)); y = Math.max(8, Math.min(y, wrapR.height - bt.offsetHeight - 8));
+    bt.style.left = x + 'px'; bt.style.top = y + 'px';
+  }
+  $('ed-custom').onclick = function(){
+    var text = this._text; this.hidden = true;
+    var have = EF.words.filter(function(w){ return w.word.toLowerCase() === text.toLowerCase(); })[0];
+    if (have){ wbEdit = have; wbFill(have); } else { wbEdit = null; wbFill({word: text}); }
+    drawProfiles();
+    $('wordbank').scrollIntoView({behavior: calm ? 'auto' : 'smooth', block: 'start'});
+    setTimeout(function(){ $('wb-cat').focus(); }, calm ? 0 : 350);
+  };
+  // your own passages: colored once on the server, then kept on this device
+  $('ed-padd').onclick = function(){
+    var text = $('ed-ptext').value.trim(), title = $('ed-ptitle').value.trim() || 'Passage ' + (st.passages.length + 1), msg = $('ed-pmsg');
+    if (!text){ msg.textContent = 'Paste some text first.'; return; }
+    if (st.passages.length >= 12){ msg.textContent = 'Twelve passages is the limit. Remove one first.'; return; }
+    msg.innerHTML = '<span class="spin" aria-hidden="true"></span>Coloring it...';
+    var style = {mode: st.mode, theme: 'dark'};   // the looks are laid on later, live
+    fetch('/api/convert?grammar=1&fast=0&keep=0', {method: 'POST', body: new Blob([text], {type: 'text/plain'}),
+      headers: {'X-File-Name': encodeURIComponent('passage.txt'), 'X-Style': encodeURIComponent(JSON.stringify(style))}})
+      .then(function(r){ if (!r.ok) throw new Error('error ' + r.status); return r.text(); })
+      .then(function(html){
+        html = html.replace(/<div class="bar"[\s\S]*?<\/div>\n<main>/, '<main>').replace(/<script>[\s\S]*?<\/script>/, '').replace(/<p class="file">[^<]*<\/p>\n?/, '');
+        var p = {id: newId(), title: title.slice(0, 60), text: text, html: html};
+        st.passages.unshift(p); save();
+        $('ed-ptext').value = ''; $('ed-ptitle').value = ''; msg.textContent = '';
+        openPass('p:' + p.id); toast('Added "' + p.title + '"');
+      }).catch(function(e){ msg.textContent = 'Could not color it: ' + e.message; });
+  };
+  $('ed-pdel').onclick = function(){
+    var p = passNow(); if (!p || !p.mine) return;
+    var i = st.passages.indexOf(p.mine); st.passages.splice(i, 1); save(); edPass = ''; openPass('');
+    toast('Removed "' + p.title + '"', 'Undo', function(){ st.passages.splice(i, 0, p.mine); save(); openPass(p.key); });
+  };
+
+  // ---- the category rail: a switch each, tap a name to edit its look ----
+  function drawRail(){
+    var box = $('ed-rail'), n = edCounts();
+    if (!box.childElementCount){
+      box.innerHTML = LOOKABLE.map(function(c, i){
+        var head = c.layer === 'grammar' && (!i || LOOKABLE[i - 1].layer !== 'grammar') ? '<div class="rail-h">Grammar words</div>' : (!i ? '<div class="rail-h">Details</div>' : '');
+        return head + '<div class="rc" data-n="' + c.name + '" style="--c:var(--c-' + c.name + ')"><input type="checkbox" class="rsw" aria-label="Use ' + esc(c.label) + '">' +
+          '<button class="rname" type="button"><i aria-hidden="true"></i><b>' + esc(c.label) + '</b><span class="rn"></span><span class="rex" data-plain>' + (c.layer === 'content' ? '<span class="c c-' + c.name + '">' + esc(c.example) + '</span>' : esc(c.example)) + '</span></button></div>';
+      }).join('');
+      box.addEventListener('change', function(e){
+        var sw = e.target.closest('.rsw'); if (!sw) return;
+        setOff(sw.closest('.rc').getAttribute('data-n'), !sw.checked);
+      });
+      box.addEventListener('click', function(e){
+        var bt = e.target.closest('.rname'); if (!bt) return;
+        selectCat(bt.closest('.rc').getAttribute('data-n'));
+      });
+    }
+    box.querySelectorAll('.rc').forEach(function(row){
+      var name = row.getAttribute('data-n'), off = !!EF.off[name];
+      row.classList.toggle('off', off);
+      row.querySelector('.rsw').checked = !off;
+      row.querySelector('.rn').textContent = n[name] ? n[name] + ' here' : '';
+      row.querySelector('.rname').setAttribute('aria-pressed', edSel === name ? 'true' : 'false');
+    });
+  }
+  function offBase(c){   // what "default" means for the switch: the lens for Core, the core for a specialty
+    if (!prof()) return !!c.off;
+    return typeof st.off[c.name] === 'boolean' ? st.off[c.name] : !!c.off;
+  }
+  function setOff(name, off){
+    var c = cat(name), o = tg().off;
+    if (off === offBase(c)) delete o[name]; else o[name] = off;
+    save(); apply(); paintEd();
+  }
+  function selectCat(name){
+    edSel = edSel === name ? null : name;
+    $('ed-look').hidden = !edSel;
+    syncLook(); paintEd();
+    if (edSel && window.innerWidth < 900) $('ed-look').scrollIntoView({behavior: calm ? 'auto' : 'smooth', block: 'nearest'});
+  }
+  $('ed-look-close').onclick = function(){ selectCat(edSel); };
+
+  // ---- the look panel for the chosen category: colors, weight, italic, caps, size, underline ----
+  var UL_LABELS = {none: 'No underline', solid: 'Underline', dotted: 'Dotted underline', dashed: 'Dashed underline', double: 'Double underline', wavy: 'Wavy underline'};
+  var lkBox = $('ed-look-box');
+  lkBox.querySelector('[data-look=underline]').innerHTML = UNDERLINES.map(function(u){ return '<option value="' + u + '">' + UL_LABELS[u] + '</option>'; }).join('');
+  function lookBase(c){ return prof() ? lookCore(c) : lookDef(c); }   // a specialty stores only what differs from Core
+  var lookT = null;
+  function setLook(n, k, v, live){
+    var c = cat(n), o = tg().look[n] = tg().look[n] || {}, base = lookBase(c);
+    if (k === 'weight'){ setLook(n, 'bold', v === 'bold'); setLook(n, 'thin', v === 'thin'); return; }
+    if (v === base[k]) delete o[k]; else o[k] = v;
+    if (!Object.keys(o).length) delete tg().look[n];
+    save();
+    if (live){ clearTimeout(lookT); lookT = setTimeout(function(){ apply(); paintEd(); }, 60); } else { apply(); paintEd(); }
+  }
+  lkBox.querySelector('[data-look=weight]').addEventListener('click', function(e){ var bt = e.target.closest('button'); if (bt && edSel) setLook(edSel, 'weight', bt.getAttribute('data-v')); });
+  lkBox.querySelector('[data-look=case]').addEventListener('click', function(e){ var bt = e.target.closest('button'); if (bt && edSel) setLook(edSel, 'case', bt.getAttribute('data-v')); });
+  lkBox.querySelector('[data-look=fx]').addEventListener('click', function(e){ var bt = e.target.closest('button'); if (bt && edSel) setLook(edSel, 'italic', !lookOf(cat(edSel)).italic); });
+  lkBox.querySelector('[data-look=scale]').onchange = function(){ if (edSel) setLook(edSel, 'scale', +this.value); };
+  lkBox.querySelector('[data-look=underline]').onchange = function(){ if (edSel) setLook(edSel, 'underline', this.value); };
+  lkBox.querySelector('[data-look=ul]').oninput = function(){ if (edSel) setLook(edSel, 'ul', this.value.toLowerCase(), true); };
+  lkBox.querySelector('[data-look=ulreset]').onclick = function(){ if (edSel) setLook(edSel, 'ul', ''); };
+  var colT = null;
+  ['dark', 'light'].forEach(function(th){
+    $('ed-col-' + th).oninput = function(){
+      if (!edSel) return;
+      var c = cat(edSel), o = tg().colors[edSel] = tg().colors[edSel] || {}, v = this.value.toLowerCase();
+      var base = prof() ? ((st.colors[edSel] && st.colors[edSel][th]) || c[th]) : c[th];
+      if (v === base) delete o[th]; else o[th] = v;
+      if (!Object.keys(o).length) delete tg().colors[edSel];
+      save(); clearTimeout(colT); colT = setTimeout(function(){ apply(); paintEd(); }, 60);
+    };
+  });
+  $('ed-look-reset').onclick = function(){
+    if (!edSel) return;
+    delete tg().look[edSel]; delete tg().colors[edSel]; delete tg().off[edSel];
+    save(); apply(); paintEd(); toast(cat(edSel).label + ': back to ' + (prof() ? 'Core' : 'the default'));
+  };
+  function syncLook(){
+    var box = $('ed-look'); if (!edSel){ box.hidden = true; return; }
+    var c = cat(edSel), l = lookOf(c), t = theme();
+    box.hidden = false; box.style.setProperty('--c', 'var(--c-' + edSel + ')');
+    $('ed-look-t').textContent = c.label;
+    $('ed-look-ex').innerHTML = c.layer === 'content' ? '<span class="c c-' + c.name + '">' + esc(c.example) + '</span>' : esc(c.example);
+    var low = [];
+    ['dark', 'light'].forEach(function(th){
+      var inp = $('ed-col-' + th), h = own(c, th);
+      if (document.activeElement !== inp && inp.value !== h) inp.value = h;
+      inp.closest('.pick').classList.toggle('cur', th === t);
+      if (contrast(h, th === 'dark' ? '#14161b' : '#fbfbf8') < 3) low.push(th);
+    });
+    $('ed-look-warn').hidden = !low.length; $('ed-look-warn').textContent = low.length ? 'Hard to read on the ' + low.join(' and ') + ' theme' : '';
+    lkBox.querySelectorAll('[data-look=weight] button').forEach(function(bt){ bt.setAttribute('aria-pressed', bt.getAttribute('data-v') === (l.bold ? 'bold' : l.thin ? 'thin' : 'normal') ? 'true' : 'false'); });
+    lkBox.querySelectorAll('[data-look=case] button').forEach(function(bt){ bt.setAttribute('aria-pressed', bt.getAttribute('data-v') === l['case'] ? 'true' : 'false'); });
+    lkBox.querySelector('[data-look=fx] button').setAttribute('aria-pressed', l.italic ? 'true' : 'false');
+    var s = lkBox.querySelector('[data-look=scale]'), want = String(l.scale);
+    if (!Array.prototype.some.call(s.options, function(o){ return o.value === want; })){ var o = el('option', null, Math.round(l.scale * 100) + '%'); o.value = want; s.appendChild(o); }
+    s.value = want;
+    lkBox.querySelector('[data-look=underline]').value = l.underline;
+    var pick = lkBox.querySelector('[data-look=ul]');
+    if (document.activeElement !== pick) pick.value = l.ul || col(c, t);
+    pick.closest('.ulc').hidden = l.underline === 'none' && st.mode !== 'd';
+    lkBox.querySelector('[data-look=ulreset]').hidden = !l.ul;
+  }
+
+  // ---- the page: scheme, style, fonts, and the AI layer's colors ----
+  $('c-meaning').innerHTML = CATS.filter(function(c){ return c.layer === 'meaning'; }).map(function(c){
+    return '<div class="crow" data-n="' + c.name + '" style="--c:var(--c-' + c.name + ')">' +
+      '<div><span class="cname">' + esc(c.label) + '</span><span class="cex">' + esc(c.example) + '</span>' +
+      '<span class="warn" hidden></span><button class="rst" hidden>Reset</button></div>' +
+      '<label class="pick" data-t="dark"><input type="color" data-t="dark" aria-label="' + esc(c.label) + ', dark theme"><span>Dark</span></label>' +
+      '<label class="pick" data-t="light"><input type="color" data-t="light" aria-label="' + esc(c.label) + ', light theme"><span>Light</span></label></div>';
+  }).join('');
   ['f-body','f-heading'].forEach(function(id){
     $(id).innerHTML = cfg.fonts.map(function(f){ return '<option value="' + f.key + '">' + esc(f.label) + '</option>'; }).join('');
   });
   var SCHEME_KEYS = ['standard'].concat(Object.keys(SCHEMES));
   $('schemes').innerHTML = SCHEME_KEYS.map(function(k){
     return '<button class="scheme" data-v="' + k + '"><b>' + (k === 'standard' ? 'Standard' : SCHEMES[k].label) + '</b><span class="kdots" data-dots="' + k + '"></span></button>';
-  }).join('') + '<button class="scheme" data-v="custom" disabled><b>Your own</b><span class="hint" style="margin:0;font-size:12.5px">Change any color below</span></button>';
+  }).join('') + '<button class="scheme" data-v="custom" disabled><b>Your own</b><span class="hint" style="margin:0;font-size:12.5px">Change any color above</span></button>';
   function schemeNow(){
     var match = null;
     SCHEME_KEYS.forEach(function(k){
@@ -2305,19 +2662,15 @@ body.dragging #dropall{display:grid}
   }
   $('schemes').addEventListener('click', function(e){
     var b = e.target.closest('.scheme'); if (!b || b.disabled) return;
-    var k = b.getAttribute('data-v');
+    var k = b.getAttribute('data-v'), o = tg().colors;
     CONTENT.forEach(function(c){
-      if (k === 'standard'){ delete st.colors[c.name]; return; }
-      st.colors[c.name] = {dark: SCHEMES[k].dark[c.name] || c.dark, light: SCHEMES[k].light[c.name] || c.light};
+      if (k === 'standard'){ if (prof()) o[c.name] = {dark: c.dark, light: c.light}; else delete o[c.name]; return; }
+      o[c.name] = {dark: SCHEMES[k].dark[c.name] || c.dark, light: SCHEMES[k].light[c.name] || c.light};
     });
-    save(); apply();
+    save(); apply(); paintEd();
   });
   function syncEditor(){
     var t = theme();
-    $('pv').className = 'pv m-' + st.mode;
-    $('pv').style.fontSize = (17 * st.size / 100).toFixed(1) + 'px';
-    $('pv').style.fontFamily = 'var(--font-body)';
-    $('pv').querySelector('h4').style.fontFamily = 'var(--font-head)';
     document.querySelectorAll('.seg[data-k]').forEach(function(g){
       var k = g.getAttribute('data-k');
       g.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-v') === st[k] ? 'true' : 'false'); });
@@ -2350,87 +2703,40 @@ body.dragging #dropall{display:grid}
   document.querySelectorAll('.seg[data-k]').forEach(function(g){
     g.addEventListener('click', function(e){
       var b = e.target.closest('button'); if (!b) return;
-      st[g.getAttribute('data-k')] = b.getAttribute('data-v'); save(); apply();
+      st[g.getAttribute('data-k')] = b.getAttribute('data-v'); save(); apply(); paintEd();
       if (g.getAttribute('data-k') === 'mode'){ show.mode = st.mode; }
       if (g.getAttribute('data-k') === 'theme'){ show.theme = theme(); }
     });
   });
-  $('f-body').onchange = function(){ st.body = this.value; save(); apply(); };
-  $('f-heading').onchange = function(){ st.heading = this.value; save(); apply(); };
-  $('f-size').oninput = function(){ st.size = +this.value; save(); syncEditor(); };
+  $('f-body').onchange = function(){ st.body = this.value; save(); apply(); paintEd(); };
+  $('f-heading').onchange = function(){ st.heading = this.value; save(); apply(); paintEd(); };
+  $('f-size').oninput = function(){ st.size = +this.value; save(); syncEditor(); paintEd(); };
   document.addEventListener('input', function(e){
     var inp = e.target; if (inp.type !== 'color' || !inp.closest('.crow') || !inp.hasAttribute('data-t')) return;
-    var n = inp.closest('.crow').getAttribute('data-n'), t = inp.getAttribute('data-t');
-    (st.colors[n] = st.colors[n] || {})[t] = inp.value.toLowerCase();
-    if (inp.value.toLowerCase() === cat(n)[t]) delete st.colors[n][t];
+    var n = inp.closest('.crow').getAttribute('data-n'), t = inp.getAttribute('data-t'), o = tg().colors;
+    (o[n] = o[n] || {})[t] = inp.value.toLowerCase();
+    if (inp.value.toLowerCase() === cat(n)[t]) delete o[n][t];
     save(); apply();
   });
   document.addEventListener('click', function(e){
     if (!e.target.classList.contains('rst')) return;
-    delete st.colors[e.target.closest('.crow').getAttribute('data-n')]; save(); apply();
+    delete tg().colors[e.target.closest('.crow').getAttribute('data-n')]; save(); apply();
   });
   $('reset').onclick = function(){
-    ask('Reset colors, fonts and highlights?', 'Everything in Editor goes back to the defaults.', [{label:'Reset', value:'y', danger:true}]).then(function(v){
+    ask('Reset the Editor?', 'Colors, looks, fonts, switches, specialties and your passages all go back to the start. Word Bank words stay.', [{label:'Reset', value:'y', danger:true}]).then(function(v){
       if (!v) return;
-      var keepPal = st.palette, keepTheme = st.theme; st = blank(); st.palette = keepPal; st.theme = keepTheme; save(); apply(); toast('Back to the defaults');
+      var keep = {palette: st.palette, theme: st.theme, wordbank: st.wordbank}; st = blank(); Object.assign(st, keep); edSel = null;
+      save(); apply(); editorSync(); toast('Back to the defaults');
     });
   };
 
-  // ---- per category: ALL CAPS, size, bold, italic, underline and the underline's own color ----
-  var UL_LABELS = {none: 'No underline', solid: 'Underline', dotted: 'Dotted underline', dashed: 'Dashed underline', double: 'Double underline', wavy: 'Wavy underline'};
-  document.querySelectorAll('#c-content .crow').forEach(function(row){
-    var n = row.getAttribute('data-n'), c = cat(n);
-    var box = el('div', 'clook');
-    box.innerHTML = '<div class="seg" data-look="case"><button data-v="normal">Aa</button><button data-v="upper">ALL CAPS</button></div>' +
-      '<select data-look="scale" aria-label="' + esc(c.label) + ' size"><option value="1">Same size</option><option value="1.12">Larger</option><option value="1.25">Larger still</option><option value="1.4">Largest</option></select>' +
-      '<div class="seg" data-look="fx"><button data-k="bold" aria-label="' + esc(c.label) + ' bold"><b>B</b></button><button data-k="italic" aria-label="' + esc(c.label) + ' italic"><i>I</i></button></div>' +
-      '<select data-look="underline" aria-label="' + esc(c.label) + ' underline">' + UNDERLINES.map(function(u){ return '<option value="' + u + '">' + UL_LABELS[u] + '</option>'; }).join('') + '</select>' +
-      '<label class="ulc"><input type="color" data-look="ul" aria-label="' + esc(c.label) + ' underline color"><span>Underline color</span></label>' +
-      '<button class="link" data-look="ulreset">Same as text</button>';
-    row.appendChild(box);
-    box.querySelector('[data-look=case]').addEventListener('click', function(e){
-      var b = e.target.closest('button'); if (!b) return;
-      setLook(n, 'case', b.getAttribute('data-v'));
-    });
-    box.querySelector('[data-look=fx]').addEventListener('click', function(e){
-      var b = e.target.closest('button'); if (!b) return;
-      var k = b.getAttribute('data-k'); setLook(n, k, !lookOf(c)[k]);
-    });
-    box.querySelector('[data-look=scale]').onchange = function(){ setLook(n, 'scale', +this.value); };
-    box.querySelector('[data-look=underline]').onchange = function(){ setLook(n, 'underline', this.value); };
-    box.querySelector('[data-look=ul]').oninput = function(){ setLook(n, 'ul', this.value.toLowerCase(), true); };
-    box.querySelector('[data-look=ulreset]').onclick = function(){ setLook(n, 'ul', ''); };
-  });
-  var lookT = null;
-  function setLook(n, k, v, live){
-    var c = cat(n), o = st.look[n] = st.look[n] || {};
-    if (v === lookDef(c)[k]) delete o[k]; else o[k] = v;
-    if (!Object.keys(o).length) delete st.look[n];
-    save();
-    if (live){ clearTimeout(lookT); lookT = setTimeout(apply, 60); } else apply();   // the color picker fires as you drag
-  }
-  function syncLook(){
-    var t = theme();
-    document.querySelectorAll('#c-content .crow').forEach(function(row){
-      var c = cat(row.getAttribute('data-n')), l = lookOf(c);
-      row.querySelectorAll('[data-look=case] button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-v') === l['case'] ? 'true' : 'false'); });
-      row.querySelectorAll('[data-look=fx] button').forEach(function(b){ b.setAttribute('aria-pressed', l[b.getAttribute('data-k')] ? 'true' : 'false'); });
-      var s = row.querySelector('[data-look=scale]'), want = String(l.scale);
-      if (!Array.prototype.some.call(s.options, function(o){ return o.value === want; })){ var o = el('option', null, Math.round(l.scale * 100) + '%'); o.value = want; s.appendChild(o); }
-      s.value = want;
-      row.querySelector('[data-look=underline]').value = l.underline;
-      var pick = row.querySelector('[data-look=ul]');
-      if (document.activeElement !== pick) pick.value = l.ul || col(c, t);
-      pick.closest('.ulc').hidden = l.underline === 'none' && st.mode !== 'd';
-      row.querySelector('[data-look=ulreset]').hidden = !l.ul;
-    });
-  }
-
-  // ---- the Word Bank ----
+  // ---- the Word Bank: your own words with their own look, or counted as a category ----
   var wbEdit = null, wbFlags = {};
   $('wb-font').innerHTML = '<option value="">Same as the text</option>' + cfg.fonts.map(function(f){ return '<option value="' + f.key + '">' + esc(f.label) + '</option>'; }).join('');
+  $('wb-cat').innerHTML = '<option value="">Its own look, below</option>' + LOOKABLE.map(function(c){ return '<option value="' + c.name + '">' + esc(c.label) + '</option>'; }).join('');
   function wbDraft(){
     var w = {word: $('wb-word').value.trim()};
+    if ($('wb-cat').value){ w.cat = $('wb-cat').value; return w; }
     if ($('wb-hascolor').checked) w.color = $('wb-color').value.toLowerCase();
     if ($('wb-hasbg').checked) w.bg = $('wb-bg').value.toLowerCase();
     if ($('wb-font').value) w.font = $('wb-font').value;
@@ -2440,6 +2746,17 @@ body.dragging #dropall{display:grid}
   }
   function wbStyle(w){   // inline style for a preview of one word
     var d = [];
+    if (w.cat){   // as its category looks right now
+      var c = cat(w.cat), l = lookOf(c), h = col(c, theme());
+      d.push('color:' + h);
+      if (c.layer === 'content' && st.mode !== 'a' && st.mode !== 'd') d.push('background:color-mix(in srgb,' + h + ' 22%,transparent)', 'padding:.04em .3em', 'border-radius:.3em');
+      if (l['case'] === 'upper') d.push('text-transform:uppercase');
+      if (l.scale !== 1) d.push('font-size:' + l.scale + 'em');
+      if (l.bold) d.push('font-weight:700'); else if (l.thin) d.push('font-weight:300');
+      if (l.italic) d.push('font-style:italic');
+      if (l.underline !== 'none') d.push('text-decoration:underline ' + l.underline + ' 2px ' + (l.ul || h));
+      return d.join(';');
+    }
     if (w.color) d.push('color:' + w.color);
     if (w.bg){ d.push('background:' + w.bg, 'padding:.04em .3em', 'border-radius:.3em'); if (!w.color) d.push('color:' + onColor(w.bg)); }
     if (w.caps) d.push('text-transform:uppercase');
@@ -2452,20 +2769,22 @@ body.dragging #dropall{display:grid}
   }
   function wbPreview(){
     var w = wbDraft();
+    $('wb-own').hidden = !!w.cat;
     $('wb-hascolor').nextElementSibling.disabled = !$('wb-hascolor').checked;
     $('wb-hasbg').nextElementSibling.disabled = !$('wb-hasbg').checked;
     $('wb-size-o').textContent = Math.round(+$('wb-size').value * 100) + '%';
     document.querySelectorAll('#wb-flags button').forEach(function(b){ b.setAttribute('aria-pressed', wbFlags[b.getAttribute('data-f')] ? 'true' : 'false'); });
     var word = w.word || 'your word';
-    $('wb-pv').innerHTML = 'In every document, <span style="' + esc(wbStyle(w)) + '">' + esc(word) + '</span> looks like this.';
-    $('wb-add').textContent = wbEdit ? 'Save changes' : 'Add to Word Bank';
+    $('wb-pv').innerHTML = 'In every document, <span style="' + esc(wbStyle(w)) + '">' + esc(word) + '</span> ' + (w.cat ? 'counts as ' + esc(cat(w.cat).label.toLowerCase()) + '.' : 'looks like this.');
     $('wb-cancel').hidden = !wbEdit;
     $('wb-form-t').textContent = wbEdit ? 'Change "' + wbEdit.word + '"' : 'Add a word';
+    drawProfiles();
   }
-  ['wb-word','wb-hascolor','wb-color','wb-hasbg','wb-bg','wb-font','wb-size'].forEach(function(id){ $(id).addEventListener('input', wbPreview); $(id).addEventListener('change', wbPreview); });
+  ['wb-word','wb-cat','wb-hascolor','wb-color','wb-hasbg','wb-bg','wb-font','wb-size'].forEach(function(id){ $(id).addEventListener('input', wbPreview); $(id).addEventListener('change', wbPreview); });
   $('wb-flags').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; var k = b.getAttribute('data-f'); wbFlags[k] = !wbFlags[k]; wbPreview(); });
   function wbFill(w){
     $('wb-word').value = w ? w.word : '';
+    $('wb-cat').value = (w && w.cat) || '';
     $('wb-hascolor').checked = !!(w && w.color); if (w && w.color) $('wb-color').value = w.color;
     $('wb-hasbg').checked = !!(w && w.bg); if (w && w.bg) $('wb-bg').value = w.bg;
     $('wb-font').value = (w && w.font) || '';
@@ -2473,42 +2792,60 @@ body.dragging #dropall{display:grid}
     wbFlags = {}; ['caps','bold','italic','underline'].forEach(function(k){ if (w && w[k]) wbFlags[k] = true; });
     wbPreview();
   }
-  $('wb-add').onclick = function(){
+  function wbOwner(w){ var p = prof(); return p && p.wordbank.words.indexOf(w) >= 0 ? p.wordbank.words : st.wordbank.words; }
+  function wbSave(list){
     var w = wbDraft();
     if (!w.word){ toast('Type a word first'); $('wb-word').focus(); return; }
-    if (!w.color && !w.bg && !w.caps && !w.bold && !w.italic && !w.underline && !w.font && !w.size){ toast('Pick at least one look for it'); return; }
-    var words = st.wordbank.words;
-    var dup = words.filter(function(x){ return x.word.toLowerCase() === w.word.toLowerCase() && x !== wbEdit; })[0];
-    if (dup){ toast('"' + dup.word + '" is already in the Word Bank'); return; }
-    if (wbEdit){ w.id = wbEdit.id; if (wbEdit.off) w.off = true; words[words.indexOf(wbEdit)] = w; toast('Saved "' + w.word + '"'); }
-    else { w.id = newId(); words.push(w); toast('Added "' + w.word + '"'); }
-    wbEdit = null; wbFill(null); save(); apply(); wbList();
-  };
+    if (!w.cat && !w.color && !w.bg && !w.caps && !w.bold && !w.italic && !w.underline && !w.font && !w.size){ toast('Pick at least one look for it'); return; }
+    var dup = list.filter(function(x){ return x.word.toLowerCase() === w.word.toLowerCase() && x !== wbEdit; })[0];
+    if (dup){ toast('"' + dup.word + '" is already there'); return; }
+    if (wbEdit){
+      var from = wbOwner(wbEdit); w.id = wbEdit.id; if (wbEdit.off) w.off = true;
+      if (from === list) list[list.indexOf(wbEdit)] = w; else { from.splice(from.indexOf(wbEdit), 1); list.push(w); }
+      toast('Saved "' + w.word + '"');
+    } else { w.id = newId(); list.push(w); toast('Added "' + w.word + '"'); }
+    wbEdit = null; wbFill(null); save(); apply(); paintEd(); wbList();
+  }
+  $('wb-add').onclick = function(){ wbSave(st.wordbank.words); };
+  $('wb-add-prof').onclick = function(){ if (prof()) wbSave(prof().wordbank.words); };
   $('wb-cancel').onclick = function(){ wbEdit = null; wbFill(null); };
-  $('wb-on').onchange = function(){ st.wordbank.on = this.checked; save(); apply(); wbList(); };
+  $('wb-on').onchange = function(){ st.wordbank.on = this.checked; save(); apply(); paintEd(); wbList(); };
   function wbList(){
     $('wb-on').checked = !!st.wordbank.on;
     var box = $('wb-list'); box.textContent = '';
-    var words = st.wordbank.words;
-    if (!words.length){ box.appendChild(el('p', 'hint', 'No words yet. Add one above, like yell in ALL CAPS with a yellow highlight.')); return; }
-    words.forEach(function(w){
-      var row = el('div', 'wb-row');
-      var left = el('div'); left.setAttribute('data-plain', '');
-      var s = el('span', null, w.word); s.setAttribute('style', wbStyle(w)); left.appendChild(s);
-      if (w.off || !st.wordbank.on) left.style.opacity = '.45';
-      var acts = el('div', 'acts');
-      var sw = el('input'); sw.type = 'checkbox'; sw.checked = !w.off; sw.setAttribute('aria-label', 'Use ' + w.word);
-      sw.onchange = function(){ if (this.checked) delete w.off; else w.off = true; save(); apply(); wbList(); };
-      var ed = el('button', 'pill', 'Edit'); ed.onclick = function(){ wbEdit = w; wbFill(w); $('wb-word').focus(); $('wordbank').scrollIntoView({behavior: calm ? 'auto' : 'smooth'}); };
-      var del = el('button', 'pill danger', 'Delete'); del.onclick = function(){
-        var i = words.indexOf(w); words.splice(i, 1); save(); apply(); wbList();
-        toast('Removed "' + w.word + '"', 'Undo', function(){ words.splice(i, 0, w); save(); apply(); wbList(); });
-      };
-      acts.append(sw, ed, del);
-      row.append(left, acts); box.appendChild(row);
+    var p = prof(), groups = p ? [[p.wordbank.words, 'Only in ' + p.label], [st.wordbank.words, 'Everywhere']] : [[st.wordbank.words, '']];
+    if (!groups.some(function(g){ return g[0].length; })){ box.appendChild(el('p', 'hint', 'No words yet. Add one above, or select words in the passage.')); return; }
+    groups.forEach(function(g){
+      var words = g[0];
+      if (g[1] && words.length) box.appendChild(el('div', 'rail-h', g[1]));
+      words.forEach(function(w){
+        var row = el('div', 'wb-row');
+        var left = el('div'); left.setAttribute('data-plain', '');
+        var s = el('span', null, w.word); s.setAttribute('style', wbStyle(w)); left.appendChild(s);
+        if (w.cat) left.appendChild(el('small', 'hint', ' as ' + cat(w.cat).label.toLowerCase()));
+        if (w.off || !st.wordbank.on) left.style.opacity = '.45';
+        var acts = el('div', 'acts');
+        var sw = el('input'); sw.type = 'checkbox'; sw.checked = !w.off; sw.setAttribute('aria-label', 'Use ' + w.word);
+        sw.onchange = function(){ if (this.checked) delete w.off; else w.off = true; save(); apply(); paintEd(); wbList(); };
+        var ed = el('button', 'pill', 'Edit'); ed.onclick = function(){ wbEdit = w; wbFill(w); $('wb-word').focus(); $('wordbank').scrollIntoView({behavior: calm ? 'auto' : 'smooth'}); };
+        var del = el('button', 'pill danger', 'Delete'); del.onclick = function(){
+          var i = words.indexOf(w); words.splice(i, 1); save(); apply(); paintEd(); wbList();
+          toast('Removed "' + w.word + '"', 'Undo', function(){ words.splice(i, 0, w); save(); apply(); paintEd(); wbList(); });
+        };
+        acts.append(sw, ed, del);
+        row.append(left, acts); box.appendChild(row);
+      });
     });
   }
-  wbFill(null); wbList();
+  function editorSync(){ drawProfiles(); drawPassages(); drawRail(); syncLook(); wbList(); paintEd(); }
+  var edInit = false;
+  function initEditor(){
+    if (edInit){ editorSync(); return; }
+    edInit = true;
+    drawRail(); wbFill(null); wbList(); drawProfiles();
+    (cfg.showcase ? loadShow() : Promise.resolve([])).catch(function(){ return []; }).then(function(){ openPass(edPass); drawProfiles(); });
+  }
+  window.addEventListener('resize', function(){ if (cur === 'editor') $('ed-custom').hidden = true; });
 
   // ================= Saved =================
   var svTab = 'saved', svView = lsGet('synapp.svview') === 'grid' ? 'grid' : 'list';
@@ -2655,7 +2992,7 @@ body.dragging #dropall{display:grid}
   if (obs) obs.observe(wrap, {childList: true, characterData: true, subtree: true});
   setUi(uiOn);
   // for developer mode (/dev.js): the app's toast and which tab is open
-  window.synApp = {toast: toast, tab: function(){ return cur; }, setTab: setTab};
+  window.synApp = {toast: toast, tab: function(){ return cur; }, setTab: setTab, style: styleForServer};
 })();
 </script>
 </body>

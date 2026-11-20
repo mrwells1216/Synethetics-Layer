@@ -216,7 +216,7 @@ def test_word_bank_on_pages(lens):
     html = render_document(doc, lens, style=style, log=lambda *a, **k: None)
     assert html.count('class="c c-wb-0 l-bank"') == 2
     assert "body .c.c-wb-0{color:#d00000" in html and "text-transform:uppercase" in html
-    assert ".c-number{text-transform:uppercase;font-size:1.5em;" in html
+    assert ".c-number:not(.off-number *){text-transform:uppercase;font-size:1.5em;" in html
 
 
 LOOK = {"number": {"bold": True, "italic": True, "underline": "wavy", "ul": "#00AA55"},
@@ -232,10 +232,10 @@ def test_bold_italic_underline_and_its_color_on_pages(lens):
     assert "date" not in st["look"]                       # nothing valid in it
     doc = Document(source="a.md", title="t", blocks=[Block(kind="para", text="Do not pay $40.")])
     html = render_document(doc, lens, style={"look": LOOK}, log=lambda *a, **k: None)
-    assert ".c-number{text-transform:none;font-size:1.12em;font-weight:700;font-style:italic;--ul:#00aa55}" in html
-    assert ".m-a .c-number,.m-c .c-number{text-decoration-line:underline;text-decoration-style:wavy;" in html
+    assert ".c-number:not(.off-number *){text-transform:none;font-size:1.12em;font-weight:700;font-style:italic;--ul:#00aa55}" in html
+    assert ".m-a .c-number:not(.off-number *),.m-c .c-number:not(.off-number *){text-decoration-line:underline;text-decoration-style:wavy;" in html
     assert "text-decoration-color:var(--ul,var(--on))" in html      # on a filled chip too
-    assert ".m-a .c-warning,.m-b .c-warning,.m-c .c-warning{text-decoration:none}" in html
+    assert ".m-a .c-warning:not(.off-warning *),.m-b .c-warning:not(.off-warning *),.m-c .c-warning:not(.off-warning *){text-decoration:none}" in html
     # the lens defaults underline in every highlight style too (links are solid, quotes are italic)
     plain = render_document(doc, lens, log=lambda *a, **k: None)
     assert ".m-b .c-link{text-decoration-line:underline;text-decoration-style:solid" in plain
@@ -280,3 +280,35 @@ def test_bold_italic_underline_in_word_excel_and_pdf(lens):
     assert "BoldOblique" in num["font"] or "BoldItalic" in num["font"]
     green = [p for p in page.get_drawings() if p.get("color") and tuple(round(x, 2) for x in p["color"]) == (0.0, 0.67, 0.33)]
     assert green and green[0]["items"][0][0] == "l"        # a wavy line, in the underline's own color
+
+
+def test_grammar_looks_thin_weight_and_categories_off(lens):
+    from synesthetic.model import Block, Document
+    from synesthetic.render import clean_style, render_document
+
+    st = clean_style({"look": {"verb": {"bold": False, "underline": "solid"}, "adverb": {"thin": True, "bold": True},
+                               "keyterm": {"bold": True}, "noun": {"scale": 1.2}},
+                      "off": {"verb": True, "number": True, "keyterm": True, "nope": True, "date": "yes"}}, lens)
+    assert st["look"] == {"verb": {"bold": False, "underline": "solid"}, "adverb": {"bold": True}, "noun": {"scale": 1.2}}
+    assert st["off"] == ["number", "verb"]
+    doc = Document(source="a.md", title="t", blocks=[Block(kind="para", text="Pay $40 quickly.")])
+    html = render_document(doc, lens, style={"look": {"number": {"thin": True}, "verb": {"underline": "solid"}},
+                                             "off": {"verb": True}}, log=lambda *a, **k: None)
+    assert ".c-number:not(.off-number *){text-transform:none;font-size:1.12em;font-weight:300;" in html
+    assert ".c.l-grammar.c-verb:not(.off-verb *){" in html
+    assert ".m-a .c.l-grammar.c-verb:not(.off-verb *),.m-c .c.l-grammar.c-verb:not(.off-verb *){text-decoration-line:underline;text-decoration-style:solid" in html
+    assert '"off": ["name", "verb"]' in html
+
+
+def test_treat_as_word_bank_entries(lens):
+    from synesthetic.model import Block, Document
+    from synesthetic.render import clean_bank, render_document
+
+    words = [{"word": "encounter", "cat": "noun", "color": "#ff0000"}, {"word": "yell", "caps": True},
+             {"word": "x", "cat": "keyterm"}, {"word": "y", "cat": "nope"}]
+    bank = clean_bank({"on": True, "words": words}, lens)
+    assert bank == [{"word": "encounter", "cat": "noun"}, {"word": "yell", "caps": True}, {"word": "x"}, {"word": "y"}]
+    doc = Document(source="a.md", title="t", blocks=[Block(kind="para", text="The encounter: yell $40 and ENCOUNTER more.")])
+    html = render_document(doc, lens, style={"wordbank": {"on": True, "words": words}}, log=lambda *a, **k: None)
+    assert html.count('class="c c-noun l-grammar" data-cat="noun"') == 2
+    assert 'class="c c-wb-1 l-bank"' in html and "body .c.c-wb-1{" in html and "c-wb-0{" not in html

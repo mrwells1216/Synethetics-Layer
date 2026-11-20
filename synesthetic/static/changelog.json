@@ -1,14 +1,25 @@
 [
  {
-  "sha": "84a6f7ea82f749a1712350205b032f20ea295fae",
-  "short": "84a6f7e",
-  "date": "2026-11-17T09:53:42-06:00",
+  "sha": "717db50203318460e884bce6a510c9a812dedeb4",
+  "short": "717db50",
+  "date": "2026-11-19T20:50:20-06:00",
+  "title": "Editor with full control: switches, looks, custom words and specialties",
+  "body": "The Editor showed a fixed sample and let only the content categories be changed; the owner wants every effect decided on real text, with nothing hidden.\n\n- A passage strip: the everyday examples, or the owner's own pasted text, colored once on the server and kept on the device. Every change redraws it at once. - A rail of every content and grammar category, each with a switch (off everywhere, including converted files and pages) and a count of hits in the passage. Tapping a name opens its look: colors, normal/bold/thin, italic, ALL CAPS, size, underline style and color. Grammar words can be changed now too. - Selecting words in the passage offers a custom look: a Word Bank entry, which can also count as a category (\"treat encounter as a noun\"). - Specialties: Core, plus named sets such as Analyst that lay changes over Core for one kind of reading. The active one is what conversions and the examples use; a specialty keeps only what differs from Core. - Server side: looks for grammar categories, a thin weight, categories switched off, and \"treat as\" Word Bank entries.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/717db50203318460e884bce6a510c9a812dedeb4"
+ },
+ {
+  "sha": "8cb88ec637df891e3c235dd16fe44ce9ae2e4eac",
+  "short": "8cb88ec",
+  "date": "2026-11-17T09:53:43-06:00",
   "title": "The Bookshelf is the logo: app icon, browser tab and header",
   "body": "The owner picked option 35 from the logo board: seven book spines in the seven category colors standing on a shelf, the last one leaning. It replaces the Ribbon S on the home screen and in the browser tab, and sits beside the name at the top of the app, where the books follow the colors chosen in Editor.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/84a6f7ea82f749a1712350205b032f20ea295fae"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/8cb88ec637df891e3c235dd16fe44ce9ae2e4eac"
  },
  {
   "sha": "319ded6132a13235b9b59c4f26105dea3f69d410",
