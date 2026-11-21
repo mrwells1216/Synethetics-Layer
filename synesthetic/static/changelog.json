@@ -1,14 +1,25 @@
 [
  {
-  "sha": "f5794e7622bab4ae55dff1d1ab4d7675f326c2ef",
-  "short": "f5794e7",
-  "date": "2026-11-20T21:00:56-06:00",
+  "sha": "1ee5bda80e09be2d264e1fdb22957c15593b03d5",
+  "short": "1ee5bda",
+  "date": "2026-11-20T21:05:16-06:00",
+  "title": "Sign in once per browser instead of the dev link",
+  "body": "On the hosted site, Settings, Notes for Claude now has a sign-in: type the dev key once and that browser stays linked (Safari, Chrome, the installed app, each on its own). The key goes in a password field, so the browser's password manager can offer to remember it. A wrong key is refused before anything is kept; Sign out clears it. The dev link still works the same way.\n\n- The Editor's note and the server's refusal point at the sign-in. - tools/serve_hosted.py runs the app on this computer as the hosted site does (a test key, a stand-in store id), and .claude/launch.json gains a \"serve-hosted\" entry for the preview.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/1ee5bda80e09be2d264e1fdb22957c15593b03d5"
+ },
+ {
+  "sha": "adea3efaf7d0daaca21ba4a83edccc203fb2d5bc",
+  "short": "adea3ef",
+  "date": "2026-11-20T21:00:57-06:00",
   "title": "Formulas in a box of their own",
   "body": "A line that states a relation between math-like parts (E = mc², PV = nRT, Revenue = Price × Quantity, $$...$$) is now its own block, drawn centered in a math face inside a double ring in the page's accent, with a short label before a colon set in small caps above it. Prose with an equals sign in it stays prose.\n\n- synesthetic/formula.py tells a formula from a sentence; the extractor dispatcher marks them for every file type, so converted files, Free Rain, the Editor passages and the thumbnail all get the box. - No grammar or meaning layer inside a formula; content colors (a number in it) still apply. - The study notes example gains a Formulas section; the pre-rendered examples are rebuilt.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/f5794e7622bab4ae55dff1d1ab4d7675f326c2ef"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/adea3efaf7d0daaca21ba4a83edccc203fb2d5bc"
  },
  {
   "sha": "79113178206bb36d73377a67c40615bec6bae658",

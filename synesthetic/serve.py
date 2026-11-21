@@ -269,8 +269,8 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
             key = os.environ.get(DEV_KEY_ENV, "").strip()  # a pasted key can carry a stray space or newline
             if key:
                 if not hmac.compare_digest(self.headers.get("X-Dev-Key", "").strip().encode(), key.encode()):
-                    return self._send(403, "This device isn't linked for developer mode. Open your dev link on it.",
-                                      text)
+                    return self._send(403, "This browser isn't signed in for developer mode. Sign in under Settings, "
+                                           "Notes for Claude, or open your dev link on it.", text)
             elif hosted:
                 return self._send(403, "Developer mode isn't set up on this site yet.", text)
             oidc = self.headers.get("x-vercel-oidc-token")

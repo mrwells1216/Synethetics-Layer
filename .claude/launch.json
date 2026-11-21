@@ -4,8 +4,24 @@
     {
       "name": "serve",
       "runtimeExecutable": ".venv\\Scripts\\python.exe",
-      "runtimeArgs": ["-m", "synesthetic", "serve", "--port", "8781"],
+      "runtimeArgs": [
+        "-m",
+        "synesthetic",
+        "serve",
+        "--port",
+        "8781"
+      ],
       "port": 8781
+    },
+    {
+      "name": "serve-hosted",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "tools\\serve_hosted.py",
+        "--port",
+        "8782"
+      ],
+      "port": 8782
     }
   ]
 }

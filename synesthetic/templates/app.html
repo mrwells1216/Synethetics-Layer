@@ -165,6 +165,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .pill.danger{color:var(--c-warning);border-color:color-mix(in srgb,var(--c-warning) 45%,var(--line))}
 .pill[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .link{all:unset;cursor:pointer;color:var(--muted);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+/* the dev sign-in: the key in a password field, so the browser can offer to remember it */
+.dev-login{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
+.dev-login .wb-text{flex:1 1 180px;min-width:0}
+.dev-user{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 .pill:focus-visible,.seg button:focus-visible,.go:focus-visible,select:focus-visible,.drop:focus-within,.link:focus-visible,.tb:focus-visible,.th:focus-visible,.row:focus-visible,.sp-btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 
@@ -809,6 +813,12 @@ body.dragging #dropall{display:grid}
       <div class="card wide" id="dev-card">
         <h3>Notes for Claude</h3>
         <p class="hint" id="dev-status"></p>
+        <form id="dev-login" class="dev-login" hidden autocomplete="on">
+          <input type="text" name="username" value="owner" autocomplete="username" aria-hidden="true" tabindex="-1" class="dev-user">
+          <input class="wb-text" type="password" id="dev-key" name="password" autocomplete="current-password" placeholder="Your dev key" aria-label="Dev key" required>
+          <button class="pill" type="submit">Sign in</button>
+        </form>
+        <p class="hint" id="dev-linked" hidden>Signed in on this browser; it stays signed in. <button class="link" id="dev-logout" type="button">Sign out</button></p>
         <div id="dev-more" hidden>
           <div class="actions" style="margin-top:6px">
             <button class="pill" id="dev-copy" hidden>Copy for Claude</button>
@@ -1007,13 +1017,13 @@ body.dragging #dropall{display:grid}
     lsSet('syn.off', JSON.stringify(Object.keys(EF.off)));   // colored pages read the same key
     pushStyleSoon();
   }
-  // the chat add-on follows these looks: they go to the app's store (the hosted site needs the dev link on this device)
+  // the chat add-on follows these looks: they go to the app's store (the hosted site needs this browser signed in)
   var pushT = null, pushed = '';
   function pushStyleSoon(){ clearTimeout(pushT); pushT = setTimeout(pushStyle, 1500); }
   function chatNote(t){ var e = $('ed-chat'); if (e) e.textContent = t; }
   function pushStyle(){
     var key = lsGet('synapp.devkey');
-    if (cfg.hosted && !key){ chatNote('The chat add-on cannot see these looks from this device yet: open your dev link here once.'); return; }
+    if (cfg.hosted && !key){ chatNote('The chat add-on cannot see these looks from this browser yet: sign in under Settings, Notes for Claude.'); return; }
     var body = JSON.stringify({style: styleForServer()});
     if (body === pushed) return;
     var hd = {'Content-Type': 'application/json', 'X-App': '1'}; if (key) hd['X-Dev-Key'] = key;
@@ -3015,7 +3025,7 @@ body.dragging #dropall{display:grid}
   if (obs) obs.observe(wrap, {childList: true, characterData: true, subtree: true});
   setUi(uiOn);
   // for developer mode (/dev.js): the app's toast and which tab is open
-  window.synApp = {toast: toast, tab: function(){ return cur; }, setTab: setTab, style: styleForServer};
+  window.synApp = {toast: toast, tab: function(){ return cur; }, setTab: setTab, style: styleForServer, pushStyle: pushStyle};
 })();
 </script>
 </body>

@@ -190,12 +190,35 @@
       if (!window.confirm('Remove the notes kept on this device? This can’t be undone.')) return;
       keepClear().then(function(){ refreshFixes(); toast('Notes cleared'); }, function(e){ toast(e.message); });
     });
+    // sign in: the key is tried against the site before it is kept, so a typo never looks linked
+    $('dev-login').addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var inp = $('dev-key'), k = (inp.value || '').trim();
+      if (!k) return;
+      var hd = {'Content-Type': 'application/json', 'X-App': '1', 'X-Dev-Key': k};
+      fetch('/api/fix-check', {method: 'POST', headers: hd, body: '{}'}).then(function(r){
+        if (!r.ok) throw new Error(r.status === 403 ? 'That key isn’t right.' : 'Could not check the key (' + r.status + ').');
+        lsSet(DEV_KEY, k); inp.value = '';
+        setOn(true, true);
+        toast('Signed in. This browser stays linked.');
+        if (app.pushStyle) app.pushStyle();
+      }, function(e){ toast(e.message); });
+    });
+    $('dev-logout').addEventListener('click', function(){
+      lsSet(DEV_KEY, null); devStatus(); refreshFixes(); toast('Signed out on this browser.');
+    });
   }
   function devStatus(){
     var s = $('dev-status'); if (!s) return;
     var how = 'Highlight text, or triple-click (triple-tap on a phone) for a screenshot, then pick Good, Not good or Fix/idea. ';
     if (!isOn()) s.textContent = 'Press DEV under the green bar at the top of the page. ' + how.replace(/^H/, 'Then h');
     else s.textContent = how + (toStore() ? 'Notes go straight to Claude’s list.' : 'Notes are kept on this device: press Copy for Claude, then paste into your Claude chat.');
+    // the hosted site with a key set: sign in once per browser (the dev link does the same)
+    var d = cfg.dev || {}, can = !!(cfg.hosted && d.keyed), linked = can && !!devKey();
+    var f = $('dev-login'), l = $('dev-linked');
+    if (f) f.hidden = !(can && !linked);
+    if (l) l.hidden = !linked;
+    if (can && !linked) s.textContent = 'Sign in with your dev key to send notes and the Editor’s looks straight to Claude from this browser. ' + s.textContent;
   }
 
   // ================= the notes list =================
