@@ -1,14 +1,25 @@
 [
  {
-  "sha": "50afd120ee6f389ecdbc8e60d459623ec20ff16e",
-  "short": "50afd12",
-  "date": "2026-11-20T20:03:19-06:00",
+  "sha": "f8bb69db40d8d07029042962d87dd247d439304a",
+  "short": "f8bb69d",
+  "date": "2026-11-20T20:10:48-06:00",
+  "title": "Headings: a richer bronze line",
+  "body": "A tad darker and more saturated on both themes, as the owner asked.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/f8bb69db40d8d07029042962d87dd247d439304a"
+ },
+ {
+  "sha": "844565329cfc9809bcc3b8a660d315278947b8ec",
+  "short": "8445653",
+  "date": "2026-11-20T20:03:20-06:00",
   "title": "Headings: a dark bronze line behind the letters",
   "body": "The line behind every heading was the page's own color; the owner asked for a darker bronze. One bronze on each theme (--strike), a shade lighter on the light theme so the near-black letters still read.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/50afd120ee6f389ecdbc8e60d459623ec20ff16e"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/844565329cfc9809bcc3b8a660d315278947b8ec"
  },
  {
   "sha": "2c82cb3fb7106a19a1e6de89239c899a2ed81b03",
