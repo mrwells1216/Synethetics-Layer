@@ -490,6 +490,9 @@ def _block(b: Block, lens: Lens, counts: Counter, ann) -> str:
         )
     if k == "quote":
         return f"<blockquote>{inner}</blockquote>"
+    if k == "formula":
+        label = f'<span class="fxl">{_esc(b.marker)}</span>' if b.marker else ""
+        return f'<div class="fx">{label}<span class="fxm">{inner}</span></div>'
     return f"<p>{inner}</p>"
 
 

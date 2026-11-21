@@ -1,14 +1,25 @@
 [
  {
-  "sha": "09904f9a3d99196513e3c7880e2423aeab5fd6a6",
-  "short": "09904f9",
+  "sha": "f5794e7622bab4ae55dff1d1ab4d7675f326c2ef",
+  "short": "f5794e7",
+  "date": "2026-11-20T21:00:56-06:00",
+  "title": "Formulas in a box of their own",
+  "body": "A line that states a relation between math-like parts (E = mc², PV = nRT, Revenue = Price × Quantity, $$...$$) is now its own block, drawn centered in a math face inside a double ring in the page's accent, with a short label before a colon set in small caps above it. Prose with an equals sign in it stays prose.\n\n- synesthetic/formula.py tells a formula from a sentence; the extractor dispatcher marks them for every file type, so converted files, Free Rain, the Editor passages and the thumbnail all get the box. - No grammar or meaning layer inside a formula; content colors (a number in it) still apply. - The study notes example gains a Formulas section; the pre-rendered examples are rebuilt.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/f5794e7622bab4ae55dff1d1ab4d7675f326c2ef"
+ },
+ {
+  "sha": "79113178206bb36d73377a67c40615bec6bae658",
+  "short": "7911317",
   "date": "2026-11-20T20:23:19-06:00",
   "title": "DEV in white, larger, in the heading face",
   "body": "The DEV switch's name was small sans in the slot's own color. It is now white and bigger, in the heading serif: in the phone strip's green slot and in the pill under the bars.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/09904f9a3d99196513e3c7880e2423aeab5fd6a6"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/79113178206bb36d73377a67c40615bec6bae658"
  },
  {
   "sha": "29f3c2a314ce3a66cb1c13ed42e6487ab9c0f7c3",

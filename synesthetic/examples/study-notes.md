@@ -14,6 +14,14 @@ Homeostasis: the body keeping internal conditions steady, such as a temperature 
 - The human body has roughly 37 trillion cells.
 - A red blood cell lives about 120 days.
 
+## Formulas
+
+Surface area to volume: SA/V = 3/r for a sphere
+
+Osmotic pressure: Π = iMRT
+
+$$ΔG = ΔH − TΔS$$
+
 ## Exam tips
 
 The exam is on Oct 14 at 9:00 AM in Room B-204. Review Section 4.2 and Figure 4.7 on page 112.

@@ -49,7 +49,7 @@ def _text_page(name, data, lens, style, palette) -> bytes:
         src.write_bytes(data)
         doc = extract(src, find_tables=False)
     blocks = doc.blocks[:MAX_BLOCKS]
-    texts = [b.text for b in blocks if b.kind in ("para", "item", "quote")]
+    texts = [b.text for b in blocks if b.kind in ("para", "item", "quote", "formula")]
     for b in blocks:
         if b.kind == "table":
             texts.extend(c.text for row in (b.rows or [])[:14] for c in row)
@@ -87,7 +87,7 @@ def _text_page(name, data, lens, style, palette) -> bytes:
             parts.append(f"<table>{rows}</table>")
         elif b.kind == "item":
             parts.append(f"<p>{html.escape(b.marker or '•')} {paint(b.text)}</p>")
-        elif b.kind in ("para", "quote"):
+        elif b.kind in ("para", "quote", "formula"):
             parts.append(f"<p>{paint(b.text)}</p>")
     css = ("body{font-family:sans-serif;font-size:11pt;color:#1d2026}h1,h2,h3,h4{font-family:serif;margin:10pt 0 4pt}"
            "p{margin:0 0 6pt}table{border-collapse:collapse;margin:4pt 0 8pt}td{border:0.5pt solid #c8ccd4;padding:2pt 4pt;font-size:9pt}")

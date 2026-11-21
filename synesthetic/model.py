@@ -13,7 +13,7 @@ class Cell:
 
 @dataclass
 class Block:
-    kind: str  # heading | para | item | quote | code | table | rule
+    kind: str  # heading | para | item | quote | code | table | rule | formula (marker: its label)
     text: str = ""
     level: int = 0  # heading level (1-6) or list depth (0-based)
     marker: str = ""  # list marker, e.g. "•" or "3."

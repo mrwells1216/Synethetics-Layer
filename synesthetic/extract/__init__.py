@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from ..formula import parse_formula
 from ..model import Document
 
 SUPPORTED = {".txt", ".md", ".markdown", ".pdf", ".docx", ".doc", ".xlsx", ".xlsm"}
@@ -51,9 +52,22 @@ def _convert_doc(path: Path) -> Path:
     return produced
 
 
+def _mark_formulas(doc: Document) -> Document:
+    """A paragraph that is a formula on its own becomes a formula block (its label, if any, in marker)."""
+    for b in doc.blocks:
+        if b.kind == "para" and not b.emph:
+            found = parse_formula(b.text)
+            if found:
+                b.kind, b.marker, b.text = "formula", found[0], found[1]
+    return doc
+
+
 def extract(path, *, find_tables: bool = True) -> Document:
     """Read a file into the common Document model. find_tables: run PDF table detection (slow)."""
-    path = Path(path)
+    return _mark_formulas(_extract(Path(path), find_tables=find_tables))
+
+
+def _extract(path: Path, *, find_tables: bool) -> Document:
     ext = path.suffix.lower()
     if ext == ".txt":
         from . import txt as mod
