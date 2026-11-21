@@ -20,13 +20,13 @@
 /* Tokens. Category colors (--c-*) and fonts (--font-*) are set from the user's saved style. */
 :root{
   --bg:#0e1014;--surface:#15181e;--raised:#1c2028;--fg:#eceef2;--muted:#8d95a3;--line:#272c36;
-  --doc-bg:#14161b;--r-sm:10px;--r-md:14px;--r-lg:22px;
+  --ink:#c6cad3;--doc-bg:#14161b;--r-sm:10px;--r-md:14px;--r-lg:22px;
   --font-body:'Atkinson Hyperlegible Next','Atkinson Hyperlegible',system-ui,sans-serif;--font-head:Fraunces,Georgia,serif;
   --spec:linear-gradient(100deg,#ff6b6b,#ff9f5a,#f2c14e,#5fd38d,#3dd6d0,#6cb4ff,#b394ff);--on-spec:#0e1014;
   --ease:cubic-bezier(.2,.7,.2,1);--tabh:64px;color-scheme:dark}
 :root[data-theme=light]{
   --bg:#f6f3ec;--surface:#fdfbf6;--raised:#ece8de;--fg:#1b1d22;--muted:#5f6672;--line:#dcd6c9;
-  --doc-bg:#fbfbf8;color-scheme:light}
+  --ink:#1b1d22;--doc-bg:#fbfbf8;color-scheme:light}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--fg);font:17px/1.55 var(--font-body);
@@ -93,9 +93,14 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tabbar.pulse .tab i,.tabbar.pulse .tabgap i{animation:pulse .6s var(--ease)}
 @media (max-width:599px){
   .tab span{display:none}
-  .tab{min-height:0;padding-bottom:12px}
-  .devsw span{padding:4px 8px;font-size:10px;letter-spacing:.08em}
+  .tab{min-height:0;padding-bottom:9px}
+  .tabbar{margin:10px -16px 14px;padding-top:calc(7px + env(safe-area-inset-top))}
+  .devsw span{padding:3px 7px;font-size:9.5px;letter-spacing:.08em}
   .devsw span::before{display:none}
+  /* while the side strip is out its green slot is the DEV switch, so the bar row keeps just the bars */
+  :root:not(.vfolded) .devsw{display:none}
+  :root:not(.vfolded) .tabgap{padding-bottom:9px}
+  :root.vfolded .tabgap{gap:5px;padding-bottom:6px}
   /* the color bars stay pinned at the top only while the side strip is away (then they're the way around) */
   :root:not(.vfolded) .tabbar{position:relative}
   .vbar{display:flex;flex-direction:column;position:fixed;z-index:25;top:0;right:0;bottom:0;width:34px;
@@ -118,10 +123,11 @@ button,input,select,textarea{font:inherit;color:inherit}
   /* a full-screen result or roller has its own buttons along that edge, so the strip steps aside for it */
   body:has(#result.on) .vbar,body:has(#roller.on) .vbar{transform:translateX(calc(100% + 24px));pointer-events:none}
   :root.vinit .vbar{transition:none}
-  /* the switch at the top keeps clear of the strip */
-  .top-acts{transition:margin-right .42s var(--ease)}
-  :root:not(.vfolded) .top-acts{margin-right:32px}
-  :root.vinit .top-acts{transition:none}
+  /* the page keeps clear of the strip while it's out: its width plus the open tab's tongue, so no line
+     ends under it; the room goes with the strip when it slides away */
+  .wrap{transition:padding-right .42s var(--ease)}
+  :root:not(.vfolded) .wrap{padding-right:50px}
+  :root.vinit .wrap{transition:none}
   /* the + is the name's last letter: same font, size and weight, the next color in its cycle; filled while
      the strip is out, an outline while it's away */
   .plus{all:unset;box-sizing:border-box;display:block;flex:none;margin-left:.01em;padding:0 .08em 0 0;cursor:pointer;
@@ -144,10 +150,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sec{font-family:var(--font-head);font-size:1.3rem;font-weight:650;margin:30px 0 10px}
 .sec-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .sec-row .sec{margin-bottom:10px}
-/* Headers: ALL CAPS, with a line in the page's color running behind the letters (on every line of a long one) */
+/* Headers: ALL CAPS in a slightly darker ink than the body (white fought the line), with a line in the page's
+   color running behind the letters (on every line of a long one) */
 #v-how{--hk:var(--c-warning)}#v-layer{--hk:var(--c-quote)}#v-free{--hk:var(--c-date)}
 #v-editor{--hk:var(--c-id)}#v-saved{--hk:var(--c-number)}#v-settings{--hk:var(--c-reference)}
-.vh,.sec,.card h3{--hl:color-mix(in srgb,var(--hk,var(--c-link)) 80%,transparent);text-transform:uppercase;letter-spacing:.03em;
+.vh,.sec,.card h3{--hl:color-mix(in srgb,var(--hk,var(--c-link)) 80%,transparent);color:var(--ink);text-transform:uppercase;letter-spacing:.03em;
   line-height:1.2;width:fit-content;max-width:100%;padding:0 .15em;margin-left:-.15em;
   background:linear-gradient(transparent 41%,var(--hl) 41%,var(--hl) 55%,transparent 55%) 0 0/100% 1.2em repeat-y}
 .steps strong,.hcard b{text-transform:uppercase;letter-spacing:.03em}

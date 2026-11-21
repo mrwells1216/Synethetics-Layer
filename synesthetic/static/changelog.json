@@ -1,14 +1,25 @@
 [
  {
-  "sha": "b221a3d5a00cbdfd313f5b27071420c10173ccc5",
-  "short": "b221a3d",
+  "sha": "c95b0405f6ed079192df9402e530df345e9b10c6",
+  "short": "c95b040",
+  "date": "2026-11-20T20:01:13-06:00",
+  "title": "Phones: the page clears the tab strip, a one-line bar row, softer heading ink",
+  "body": "On a phone the last word of a line could hide under the side tab strip (\"synced just no\"), the bar row at the top carried a second DEV switch the strip already has, and the white headings fought the color line drawn behind them.\n\n- The page keeps 50px of room on the right while the strip is out, and gives it back when the strip slides away. - While the strip is out, the bar row is just the seven bars: the DEV pill shows only once the strip is folded, and the row is tighter. - Headings use a slightly darker ink than the body text (--ink), on both themes, so the letters read over the line behind them.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/c95b0405f6ed079192df9402e530df345e9b10c6"
+ },
+ {
+  "sha": "caed5b7ba4b6fe6b4a35fedb333b6e37bb8de95b",
+  "short": "caed5b7",
   "date": "2026-11-19T21:10:50-06:00",
   "title": "The chat add-on follows the Editor's looks",
   "body": "The add-on drew the lens as shipped; the owner's colors, looks, switches and Word Bank never reached it.\n\n- The app sends the Editor's looks to its store after every change (/api/style-put; on the hosted site the device needs the dev link), and the Editor says whether that worked. - The add-on (0.3.0) reads them at session start: this computer's app folder, then the hosted site with the paired key from remote.json; newest wins, and the last ones seen are kept for sessions offline. - It draws colors, bold/thin/italic/caps/underline per category, the highlight style, the categories switched off, and Word Bank words, including ones that count as a category. - The examples tab no longer fails when the Editor loaded the examples first.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/b221a3d5a00cbdfd313f5b27071420c10173ccc5"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/caed5b7ba4b6fe6b4a35fedb333b6e37bb8de95b"
  },
  {
   "sha": "ead64a13274fda616086347a2a3a97194fdaf91a",
