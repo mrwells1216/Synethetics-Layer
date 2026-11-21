@@ -1,14 +1,25 @@
 [
  {
-  "sha": "c95b0405f6ed079192df9402e530df345e9b10c6",
-  "short": "c95b040",
-  "date": "2026-11-20T20:01:13-06:00",
+  "sha": "50afd120ee6f389ecdbc8e60d459623ec20ff16e",
+  "short": "50afd12",
+  "date": "2026-11-20T20:03:19-06:00",
+  "title": "Headings: a dark bronze line behind the letters",
+  "body": "The line behind every heading was the page's own color; the owner asked for a darker bronze. One bronze on each theme (--strike), a shade lighter on the light theme so the near-black letters still read.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/50afd120ee6f389ecdbc8e60d459623ec20ff16e"
+ },
+ {
+  "sha": "2c82cb3fb7106a19a1e6de89239c899a2ed81b03",
+  "short": "2c82cb3",
+  "date": "2026-11-20T20:01:14-06:00",
   "title": "Phones: the page clears the tab strip, a one-line bar row, softer heading ink",
   "body": "On a phone the last word of a line could hide under the side tab strip (\"synced just no\"), the bar row at the top carried a second DEV switch the strip already has, and the white headings fought the color line drawn behind them.\n\n- The page keeps 50px of room on the right while the strip is out, and gives it back when the strip slides away. - While the strip is out, the bar row is just the seven bars: the DEV pill shows only once the strip is folded, and the row is tighter. - Headings use a slightly darker ink than the body text (--ink), on both themes, so the letters read over the line behind them.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/c95b0405f6ed079192df9402e530df345e9b10c6"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/2c82cb3fb7106a19a1e6de89239c899a2ed81b03"
  },
  {
   "sha": "caed5b7ba4b6fe6b4a35fedb333b6e37bb8de95b",

@@ -20,13 +20,13 @@
 /* Tokens. Category colors (--c-*) and fonts (--font-*) are set from the user's saved style. */
 :root{
   --bg:#0e1014;--surface:#15181e;--raised:#1c2028;--fg:#eceef2;--muted:#8d95a3;--line:#272c36;
-  --ink:#c6cad3;--doc-bg:#14161b;--r-sm:10px;--r-md:14px;--r-lg:22px;
+  --ink:#c6cad3;--strike:#6e4e26;--doc-bg:#14161b;--r-sm:10px;--r-md:14px;--r-lg:22px;
   --font-body:'Atkinson Hyperlegible Next','Atkinson Hyperlegible',system-ui,sans-serif;--font-head:Fraunces,Georgia,serif;
   --spec:linear-gradient(100deg,#ff6b6b,#ff9f5a,#f2c14e,#5fd38d,#3dd6d0,#6cb4ff,#b394ff);--on-spec:#0e1014;
   --ease:cubic-bezier(.2,.7,.2,1);--tabh:64px;color-scheme:dark}
 :root[data-theme=light]{
   --bg:#f6f3ec;--surface:#fdfbf6;--raised:#ece8de;--fg:#1b1d22;--muted:#5f6672;--line:#dcd6c9;
-  --ink:#1b1d22;--doc-bg:#fbfbf8;color-scheme:light}
+  --ink:#1b1d22;--strike:#9a7042;--doc-bg:#fbfbf8;color-scheme:light}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--fg);font:17px/1.55 var(--font-body);
@@ -150,11 +150,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sec{font-family:var(--font-head);font-size:1.3rem;font-weight:650;margin:30px 0 10px}
 .sec-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .sec-row .sec{margin-bottom:10px}
-/* Headers: ALL CAPS in a slightly darker ink than the body (white fought the line), with a line in the page's
-   color running behind the letters (on every line of a long one) */
-#v-how{--hk:var(--c-warning)}#v-layer{--hk:var(--c-quote)}#v-free{--hk:var(--c-date)}
-#v-editor{--hk:var(--c-id)}#v-saved{--hk:var(--c-number)}#v-settings{--hk:var(--c-reference)}
-.vh,.sec,.card h3{--hl:color-mix(in srgb,var(--hk,var(--c-link)) 80%,transparent);color:var(--ink);text-transform:uppercase;letter-spacing:.03em;
+/* Headers: ALL CAPS in a slightly darker ink than the body (white fought the line), with a dark bronze line
+   running behind the letters (on every line of a long one) */
+.vh,.sec,.card h3{--hl:var(--strike);color:var(--ink);text-transform:uppercase;letter-spacing:.03em;
   line-height:1.2;width:fit-content;max-width:100%;padding:0 .15em;margin-left:-.15em;
   background:linear-gradient(transparent 41%,var(--hl) 41%,var(--hl) 55%,transparent 55%) 0 0/100% 1.2em repeat-y}
 .steps strong,.hcard b{text-transform:uppercase;letter-spacing:.03em}
