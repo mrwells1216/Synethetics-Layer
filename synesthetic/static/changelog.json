@@ -1,14 +1,25 @@
 [
  {
-  "sha": "9e19fbd31a7a22f426675326605a2c82559b3866",
-  "short": "9e19fbd",
+  "sha": "09904f9a3d99196513e3c7880e2423aeab5fd6a6",
+  "short": "09904f9",
+  "date": "2026-11-20T20:23:19-06:00",
+  "title": "DEV in white, larger, in the heading face",
+  "body": "The DEV switch's name was small sans in the slot's own color. It is now white and bigger, in the heading serif: in the phone strip's green slot and in the pill under the bars.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/09904f9a3d99196513e3c7880e2423aeab5fd6a6"
+ },
+ {
+  "sha": "29f3c2a314ce3a66cb1c13ed42e6487ab9c0f7c3",
+  "short": "29f3c2a",
   "date": "2026-11-20T20:19:50-06:00",
   "title": "An index's number is part of its name, not a count",
   "body": "\"S&P 500\" and \"Russell 2000\" drew their numbers in the number color, as if they were counts. The owner asked for them to stay plain.\n\n- The bare-number patterns skip a number right after an index name: S&P, Russell, Nasdaq, FTSE, Nikkei, Stoxx, Wilshire, CAC, DAX, Dow. They also no longer pick up the digits after a thousands comma on their own (\"000\" in a skipped \"5,000\"). - The lens is exported to the chat add-on (0.3.1) and the pre-rendered examples are rebuilt; the parity check reports no difference between the Python and the add-on.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/9e19fbd31a7a22f426675326605a2c82559b3866"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/29f3c2a314ce3a66cb1c13ed42e6487ab9c0f7c3"
  },
  {
   "sha": "3394cb89576711130548be6dea42e532b054f79b",

@@ -43,7 +43,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* DEV sits under the green bar, the one bar with no page of its own: a pill that fills while the tools are on */
 .devsw{position:relative;display:inline-flex;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .devsw input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
-.devsw span{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--k) 50%,var(--line));color:var(--k);font:750 11px/1 var(--font-body);letter-spacing:.12em;transition:background .2s,color .2s,box-shadow .2s,border-color .2s}
+.devsw span{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--k) 50%,var(--line));color:#fff;font:650 14px/1 var(--font-head);letter-spacing:.1em;transition:background .2s,color .2s,box-shadow .2s,border-color .2s}
 .devsw span::before{content:"";box-sizing:border-box;width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;transition:background .2s}
 .devsw:hover span{border-color:var(--k)}
 .devsw input:checked+span{background:var(--k);border-color:var(--k);color:var(--ok,var(--bg));box-shadow:0 0 14px -2px color-mix(in srgb,var(--k) 70%,transparent)}
@@ -95,7 +95,7 @@ button,input,select,textarea{font:inherit;color:inherit}
   .tab span{display:none}
   .tab{min-height:0;padding-bottom:9px}
   .tabbar{margin:10px -16px 14px;padding-top:calc(7px + env(safe-area-inset-top))}
-  .devsw span{padding:3px 7px;font-size:9.5px;letter-spacing:.08em}
+  .devsw span{padding:3px 8px;font-size:12.5px;letter-spacing:.08em}
   .devsw span::before{display:none}
   /* while the side strip is out its green slot is the DEV switch, so the bar row keeps just the bars */
   :root:not(.vfolded) .devsw{display:none}
@@ -113,7 +113,9 @@ button,input,select,textarea{font:inherit;color:inherit}
     font:750 clamp(11px,1.7vh,13.5px)/1 var(--font-body);letter-spacing:.03em}
   .vtab[aria-current=page]{filter:none;margin-left:-8px;border-radius:9px 0 0 9px;box-shadow:-4px 0 12px rgba(0,0,0,.35);z-index:1}
   .vtab:focus-visible{outline:2px solid var(--fg);outline-offset:-3px}
-  /* the green slot is the DEV button: dim while the tools are off, lit with a dot while they're on */
+  /* the green slot is the DEV button: dim while the tools are off, lit with a dot while they're on;
+     its name is white and bigger, in the heading face, so it stands apart from the page names */
+  .vgap span{color:#fff;font:650 clamp(16px,2.5vh,20px)/1 var(--font-head);letter-spacing:.08em}
   .vgap{filter:saturate(.75) brightness(.6)}
   :root.dev-on .vgap{filter:none}
   :root.dev-on .vgap span::after{content:" \25CF"}
@@ -467,7 +469,7 @@ body.dragging #dropall{display:grid}
 .ro-more{max-width:900px;margin:0 auto;color:var(--muted);text-align:center;font-size:14px}
 
 /* Wider screens */
-@media (min-width:600px){.tab{font-size:14px}.devsw span{font-size:12px;padding:6px 14px 6px 11px}}
+@media (min-width:600px){.tab{font-size:14px}.devsw span{font-size:15px;padding:5px 14px 5px 11px}}
 @media (min-width:960px){
   .wrap{width:min(1180px,100%);padding:36px 40px 56px}
   .mark{font-size:3.4rem}
