@@ -1,14 +1,25 @@
 [
  {
-  "sha": "f8bb69db40d8d07029042962d87dd247d439304a",
-  "short": "f8bb69d",
-  "date": "2026-11-20T20:10:48-06:00",
+  "sha": "9e19fbd31a7a22f426675326605a2c82559b3866",
+  "short": "9e19fbd",
+  "date": "2026-11-20T20:19:50-06:00",
+  "title": "An index's number is part of its name, not a count",
+  "body": "\"S&P 500\" and \"Russell 2000\" drew their numbers in the number color, as if they were counts. The owner asked for them to stay plain.\n\n- The bare-number patterns skip a number right after an index name: S&P, Russell, Nasdaq, FTSE, Nikkei, Stoxx, Wilshire, CAC, DAX, Dow. They also no longer pick up the digits after a thousands comma on their own (\"000\" in a skipped \"5,000\"). - The lens is exported to the chat add-on (0.3.1) and the pre-rendered examples are rebuilt; the parity check reports no difference between the Python and the add-on.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/9e19fbd31a7a22f426675326605a2c82559b3866"
+ },
+ {
+  "sha": "3394cb89576711130548be6dea42e532b054f79b",
+  "short": "3394cb8",
+  "date": "2026-11-20T20:10:49-06:00",
   "title": "Headings: a richer bronze line",
   "body": "A tad darker and more saturated on both themes, as the owner asked.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/f8bb69db40d8d07029042962d87dd247d439304a"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/3394cb89576711130548be6dea42e532b054f79b"
  },
  {
   "sha": "844565329cfc9809bcc3b8a660d315278947b8ec",

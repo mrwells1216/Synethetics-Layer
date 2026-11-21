@@ -181,9 +181,9 @@ export const LENS: LensCategory[] = [
       "[$€£¥]\\s?\\d[\\d,]*(?:\\.\\d+)?(?:\\s?(?:[KMBkmb]\\b|million\\b|billion\\b|thousand\\b))?",
       "(?<![\\w.])[-−]?\\d[\\d,]*(?:\\.\\d+)?\\s?%",
       "(?<![\\w.\\-])[-−]\\d[\\d,]*(?:\\.\\d+)?(?![\\w])",
-      "(?<![\\w.])\\d[\\d,]*\\.\\d+(?![\\w])",
-      "(?<![\\w.])\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?(?![\\w])",
-      "(?<![\\w.])\\d{2,}(?![\\w])"
+      "(?<![\\w.])(?<!\\d,)(?<!S&P )(?<!Russell )(?<!Nasdaq )(?<!FTSE )(?<!Nikkei )(?<!Stoxx )(?<!Wilshire )(?<!CAC )(?<!DAX )(?<!Dow )\\d[\\d,]*\\.\\d+(?![\\w])",
+      "(?<![\\w.])(?<!\\d,)(?<!S&P )(?<!Russell )(?<!Nasdaq )(?<!FTSE )(?<!Nikkei )(?<!Stoxx )(?<!Wilshire )(?<!CAC )(?<!DAX )(?<!Dow )\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?(?![\\w])",
+      "(?<![\\w.])(?<!\\d,)(?<!S&P )(?<!Russell )(?<!Nasdaq )(?<!FTSE )(?<!Nikkei )(?<!Stoxx )(?<!Wilshire )(?<!CAC )(?<!DAX )(?<!Dow )\\d{2,}(?![\\w])"
     ],
     "colors": {
       "dark": "#6cb4ff",

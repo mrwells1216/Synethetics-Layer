@@ -45,6 +45,8 @@ def test_detects(text, expected):
         "Create/Edit/View access",  # slash lists are not paths
         "Sex/GI/SAAB options",
         'values like ", " and ": " appear',  # stray quote fragments
+        "the S&P 500 and Russell 2000 rose",  # an index's number is part of its name
+        "Nasdaq 100, FTSE 100 and Wilshire 5,000 fell",
     ],
 )
 def test_known_noise_not_flagged(text):
@@ -57,6 +59,7 @@ def test_real_paths_and_numbers_still_found():
     assert ("src/app/main.py", "link") in spans("edit src/app/main.py today")
     assert ("42", "number") in spans("there are 42 items")
     assert ("3.5", "number") in spans("rate of 3.5 per day")
+    assert ("1,250", "number") in spans("S&P 500 closed near 1,250 today")  # the count beside the name still is
     assert ('"XHC"', "quote") in spans('the code "XHC" is used')
 
 

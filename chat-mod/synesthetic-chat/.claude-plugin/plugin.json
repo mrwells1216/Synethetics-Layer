@@ -1,6 +1,6 @@
 {
   "name": "synesthetic-chat",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Colors, highlights and letter shapes in Claude's replies, following the looks you set in the Synesthetic Layer app's Editor: numbers, dates, IDs, links and warnings, nouns, verbs, adjectives and adverbs, and your Word Bank.",
   "userConfig": {
     "mode": {
