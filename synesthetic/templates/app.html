@@ -57,7 +57,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .mark .lyr{display:block;font-family:var(--font-body);font-size:.8rem;font-weight:700;letter-spacing:.42em;text-transform:uppercase;color:var(--muted);margin:.7em 0 0 .15em}
 
 /* Tabs: one per color bar */
-.tabbar{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin:16px -16px 22px;padding:calc(10px + env(safe-area-inset-top)) 16px 0;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.tabbar{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;margin:16px -16px 22px;padding:calc(10px + env(safe-area-inset-top)) 16px 0;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .tab{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:8px;align-content:start;justify-items:center;text-align:center;padding:0 0 10px;min-height:50px;font-size:12px;font-weight:650;line-height:1.15;color:var(--muted);-webkit-hyphens:manual;hyphens:manual;overflow-wrap:anywhere}
 .tab i{display:block;width:100%;height:6px;border-radius:3px;background:var(--k);opacity:.38;transition:opacity .2s,transform .2s var(--ease)}
 .tab:hover i{opacity:.7}
@@ -482,6 +482,30 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
 .pr-item summary .acts{margin-left:auto;display:flex;gap:6px}
 .pr-item summary .acts .pill{padding:5px 10px;font-size:13px}
 .pr-item.hid summary b{opacity:.45}
+/* Core Pool */
+.cp-add{display:flex;gap:8px;align-items:center}
+.cp-add input{flex:1;min-width:0}
+.cp-from{margin-top:14px;display:grid;gap:6px}
+.cp-from-row{display:flex;gap:8px;align-items:center}
+.cp-from-row select{flex:1;min-width:0;width:auto}
+.cp-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.cp-row:last-child{border-bottom:0}
+.cp-row h4{margin:12px 0 0;grid-column:1/-1;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.cp-row.off .cp-main{opacity:.45}
+.cp-main{display:grid;gap:3px;min-width:0}
+.cp-main b{font-size:15px}
+.cp-main .lg-ex{font-size:15px}
+.cp-main small{color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.cp-main small i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;border:1px solid var(--line)}
+.cp-row .acts{display:flex;gap:6px}
+.cp-row .acts .pill{padding:6px 11px;font-size:13px}
+.cp-row.editing{background:color-mix(in srgb,var(--c-term) 8%,transparent);border-radius:12px;padding-left:8px;padding-right:8px}
+.cp-h{margin:4px 0 0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:599px){
+  .cp-row{grid-template-columns:auto minmax(0,1fr);align-items:start}
+  .cp-row .acts{grid-column:2}
+  .cp-row .rsw{margin-top:2px}
+}
 .rl-text{padding:22px 24px;line-height:1.75;overflow-wrap:anywhere;font-size:1.04em;-webkit-user-select:text;user-select:text}
 .rl-text p{margin:0 0 .9em}
 .rl-text p:last-child{margin-bottom:0}
@@ -623,6 +647,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
   <button class="vgap" id="vdev" type="button" aria-pressed="false" aria-label="Review mode" style="--k:var(--c-link)"><i class="lamp" aria-hidden="true"></i></button>
   <button class="vtab" type="button" data-tab="editor" style="--k:var(--c-id)"><span>Editor</span></button>
   <button class="vtab" type="button" data-tab="roller" style="--k:var(--c-number)"><span>Roller</span></button>
+  <button class="vtab" type="button" data-tab="core" style="--k:var(--c-term)"><span>Core Pool</span></button>
   <button class="vtab" type="button" data-tab="settings" style="--k:var(--c-reference)"><span>Settings</span></button>
 </nav>
 <div class="wrap" id="wrap">
@@ -644,6 +669,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
     <span class="tabgap" style="--k:var(--c-link);--ok:var(--on-link)"><i aria-hidden="true"></i><button class="devbtn" id="set-dev" type="button" role="switch" aria-checked="false" aria-label="Review mode" title="Review mode: highlight text to mark it, triple-click for a screenshot"></button></span>
     <button class="tab" role="tab" id="t-editor" data-tab="editor" aria-controls="v-editor" style="--k:var(--c-id);--ok:var(--on-id)"><i></i><span><b>Editor</b></span></button>
     <button class="tab" role="tab" id="t-roller" data-tab="roller" aria-controls="v-roller" style="--k:var(--c-number);--ok:var(--on-number)"><i></i><span><b>Roller</b></span></button>
+    <button class="tab" role="tab" id="t-core" data-tab="core" aria-controls="v-core" style="--k:var(--c-term);--ok:var(--on-term)"><i></i><span><b>Core Pool</b></span></button>
     <button class="tab" role="tab" id="t-settings" data-tab="settings" aria-controls="v-settings" style="--k:var(--c-reference);--ok:var(--on-reference)"><i></i><span><b>Settings</b></span></button>
   </nav>
 
@@ -663,7 +689,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
         </ol>
       </div>
       <div>
-        <h3 class="sec" style="margin-top:0">Formula</h3>
+        <div class="sec-row"><h3 class="sec" style="margin-top:0">Formula</h3><button class="link" data-go="core">Change it in Core Pool</button></div>
         <div class="lg-grid" id="how-legend"></div>
       </div>
     </div>
@@ -897,6 +923,23 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
     </div>
   </section>
 
+  <!-- ============ Core Pool ============ -->
+  <section class="view" id="v-core" role="tabpanel" aria-labelledby="t-core" hidden>
+    <h2 class="vh">Core Pool</h2>
+    <p class="lede">The enhancers on every reading: Synesthesize pages and files, Free Rain, this app, and Claude chat (as far as chat can show them).</p>
+    <p class="hint" id="cp-prof" hidden></p>
+    <h3 class="sec">Formula</h3>
+    <p class="hint">The default enhancers: one per kind of detail. Tap Edit to change a kind's look with the Roller's enhancer bar; the switch turns a kind off everywhere.</p>
+    <div class="card" id="cp-formula" data-plain></div>
+    <h3 class="sec">Core enhancers</h3>
+    <p class="hint">Your own words and phrases, each with its own look. They win over the Formula. Layers you add from a preset roller land here.</p>
+    <div class="card">
+      <div class="cp-add"><input class="wb-text" id="cp-word" maxlength="80" placeholder="A word or phrase" autocomplete="off" spellcheck="false" aria-label="Word or phrase to add"><button class="pill" id="cp-add">Add enhancer</button></div>
+      <div class="cp-from" id="cp-from" hidden><span class="flabel">Or add layers from a preset roller</span><div class="cp-from-row"><select id="cp-preset" aria-label="Preset roller"></select><button class="pill" id="cp-add-all">Add its layers</button></div></div>
+    </div>
+    <div class="card" id="cp-words" data-plain></div>
+  </section>
+
   <!-- ============ Settings ============ -->
   <section class="view" id="v-settings" role="tabpanel" aria-labelledby="t-settings" hidden>
     <h2 class="vh">Settings</h2>
@@ -1083,6 +1126,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
     if (FONTS[w.font]) e.font = w.font;
     if (typeof w.size === 'number' && w.size >= .8 && w.size <= 2.5) e.size = Math.round(w.size * 100) / 100;
     ['caps','bold','italic','underline','off'].forEach(function(k){ if (w[k] === true) e[k] = true; });
+    var rich = cleanRich(w.rich); if (Object.keys(rich).length) e.rich = rich;   // the Roller's enhancers (Core Pool)
     return e;
   }
   // one Roller look: every enhancer the bar can set, checked the same way render.py clean_rich checks it
@@ -1149,6 +1193,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
       if (typeof v.italic === 'boolean') o.italic = v.italic;
       if (UNDERLINES.indexOf(v.underline) >= 0) o.underline = v.underline;
       if (/^#[0-9a-f]{6}$/i.test(v.ul || '')) o.ul = v.ul.toLowerCase();
+      var rich = cleanRich(v.rich); if (Object.keys(rich).length) o.rich = rich;   // Core Pool enhancers
       if (Object.keys(o).length) dst[c.name] = o;
     });
   }
@@ -1354,7 +1399,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
   }
   // a category's look: the lens defaults, then the reader's own (render.py look_rules writes the same CSS)
   function lookDef(c){ return {'case': c['case'] || 'normal', scale: c.scale || 1, bold: !!c.bold, thin: !!c.thin, italic: !!c.italic, underline: UNDERLINES.indexOf(c.underline) >= 0 ? c.underline : 'none', ul: ''}; }
-  function lookWith(c, v){ var d = lookDef(c); Object.keys(d).forEach(function(k){ if (v && v[k] !== undefined) d[k] = v[k]; }); if (d.bold) d.thin = false; return d; }
+  function lookWith(c, v){ var d = lookDef(c); Object.keys(d).forEach(function(k){ if (v && v[k] !== undefined) d[k] = v[k]; }); if (d.bold) d.thin = false; if (v && v.rich) d.rich = v.rich; return d; }
   function lookOf(c){ return lookWith(c, EF.look[c.name]); }
   function lookCore(c){ return lookWith(c, st.look[c.name]); }   // the core look under a specialty
   function ulRules(sel, u){
@@ -1368,8 +1413,39 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
     return LOOKABLE.map(function(c){
       var l = lookOf(c), sel = (c.layer === 'grammar' ? '.c.l-grammar' : '') + '.c-' + c.name + ':not(.off-' + c.name + ' *)';
       return sel + '{text-transform:' + (l['case'] === 'upper' ? 'uppercase' : 'none') + ';font-size:' + l.scale + 'em;font-weight:' + (l.bold ? '700' : l.thin ? '300' : 'inherit') +
-        ';font-style:' + (l.italic ? 'italic' : 'inherit') + (l.ul ? ';--ul:' + l.ul : '') + '}' + ulRules(sel, l.underline);
+        ';font-style:' + (l.italic ? 'italic' : 'inherit') + (l.ul ? ';--ul:' + l.ul : '') + '}' + ulRules(sel, l.underline) +
+        (l.rich ? 'body ' + sel + '{' + richCss(l.rich) + '}' : '');   // Core Pool enhancers win over the category's own look
     }).join('');
+  }
+  // a Roller look as CSS: the bar's enhancers (render.py rich_css writes the same)
+  function richCss(l){
+    var d = [];
+    if (l.weight) d.push('font-weight:' + l.weight);
+    if (l.italic) d.push('font-style:italic');
+    if (l.font && FONTS[l.font]){ useFont(l.font); d.push('font-family:' + FONTS[l.font].stack); }
+    if (l.size) d.push('font-size:' + l.size + 'px');
+    if (l.caps) d.push('text-transform:uppercase');
+    if (l.ls != null) d.push('letter-spacing:' + l.ls + 'em');
+    if (l.ws != null) d.push('word-spacing:' + l.ws + 'em');
+    if (l.lh != null) d.push('line-height:' + l.lh);
+    var color = l.color;
+    if (l.underline) d.push('text-decoration-line:underline;text-decoration-style:solid;text-decoration-thickness:' + (l.underline.w || 2) + 'px;text-underline-offset:.22em;text-decoration-color:' + (l.underline.color || 'currentColor'));
+    var bg = [], pad = 0;
+    if (l.overline){ var oc = l.overline.color || 'currentColor'; bg.push('linear-gradient(' + oc + ',' + oc + ') left top/100% ' + (l.overline.w || 2) + 'px no-repeat'); }
+    if (l.hl){
+      var hc = l.hl.color || '#f2c14e', h = l.hl.h || 100;
+      bg.push('linear-gradient(' + hc + ',' + hc + ') center/100% ' + h + '% no-repeat');
+      pad = l.hl.w != null ? l.hl.w : .08;
+      if (!color && HEX.test(hc) && h >= 60) color = onColor(hc);   // text stays readable on a full band
+    }
+    if (l.hl) d.push('background:' + bg.join(',') + ';box-shadow:none');
+    else if (bg.length){   // an overline alone keeps whatever background the text already has (a category's tint)
+      var oc2 = l.overline.color || 'currentColor';
+      d.push('background-image:linear-gradient(' + oc2 + ',' + oc2 + ');background-position:left top;background-size:100% ' + (l.overline.w || 2) + 'px;background-repeat:no-repeat');
+    }
+    if (pad) d.push('padding:0 ' + pad + 'em');
+    if (color) d.push('color:' + color);
+    return d.join(';');
   }
   function bankCss(){
     return BANK.map(function(b){
@@ -1384,6 +1460,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
       if (w.bold) d.push('font-weight:700');
       if (w.italic) d.push('font-style:italic');
       d.push('text-decoration:' + (w.underline ? 'underline 2px ' + (w.color || 'currentColor') : 'none'));
+      if (w.rich) d.push(richCss(w.rich));
       return 'body .c.c-wb-' + b.i + '{' + d.join(';') + '}';
     }).join('');
   }
@@ -1671,7 +1748,7 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
   }
 
   // ================= tabs =================
-  var TABS = ['how', 'layer', 'free', 'editor', 'roller', 'settings'], cur = null;
+  var TABS = ['how', 'layer', 'free', 'editor', 'roller', 'core', 'settings'], cur = null;
   function setTab(t, keepScroll){
     var toSaved = t === 'saved';   // Saved lives in Settings now: old links and a remembered tab go there
     if (toSaved) t = 'settings';
@@ -3251,7 +3328,12 @@ select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px
     onColor: onColor, maxBytes: cfg.maxBytes, mb: mb, cleanLayer: cleanLayer, cleanRich: cleanRich, newId: newId,
     // what the detector finds in a text (the same categories every page gets), and their names
     detect: function(t){ return spans(t).filter(function(s){ return !/^wb-/.test(s.cat); }); },
-    catLabel: function(n){ var c = cat(n); return c ? c.label : n; }};
+    catLabel: function(n){ var c = cat(n); return c ? c.label : n; },
+    // for the Core Pool: the categories, their looks and colors, their examples, and a repaint
+    richCss: richCss, cats: function(){ return LOOKABLE; }, coreLook: function(n){ var c = cat(n); return c ? lookCore(c) : {}; },
+    color: function(n){ var c = cat(n); return c ? col(c, theme()) : ''; }, theme: theme, isOff: function(n){ return !!EF.off[n]; },
+    example: function(n){ var c = cat(n); return c ? exampleHtml(c) : ''; }, lookWords: function(n){ var c = cat(n); return c ? lookWords(c) : ''; },
+    apply: function(){ apply(); }, profileLabel: function(){ var p = prof(); return p ? p.label : ''; }};
 })();
 </script>
 <script src="/roller-menu.js?v={{MENUJS}}"></script>

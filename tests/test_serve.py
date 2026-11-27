@@ -34,6 +34,7 @@ def test_roller_tab_and_its_scripts(server):
     # Roller took Saved's place in the menu; Saved is a card in Settings
     assert 'id="t-roller"' in html and 'id="v-roller"' in html and 'data-tab="roller"' in html
     assert 'id="t-saved"' not in html and 'data-tab="saved"' not in html
+    assert 'id="t-core"' in html and 'id="v-core"' in html and 'id="cp-formula"' in html   # the Core Pool tab
     assert 'id="saved-card"' in html and 'id="sv-list"' in html and 'id="font-list"' in html
     # preset rollers: made on the Roller tab, listed in Settings, offered in Free Rain and Synesthesize
     assert 'id="rl-config"' in html and 'id="preset-list"' in html

@@ -98,6 +98,9 @@ def clean_style(style, lens: Lens) -> dict:
                 item["underline"] = v["underline"]
             if isinstance(v.get("ul"), str) and _HEX.match(v["ul"]):
                 item["ul"] = v["ul"].lower()
+            rich = clean_rich(v.get("rich"))
+            if rich:   # set in the Core Pool: the Roller's enhancers on the whole category
+                item["rich"] = rich
             if item:
                 clean[name] = item
         if clean:
@@ -166,11 +169,105 @@ def look_rules(name: str, lk: dict, layer: str = "content") -> list[str]:
          "font-style:" + ("italic" if lk.get("italic") else "inherit")]
     if lk.get("ul"):
         d.append(f"--ul:{lk['ul']}")
-    return [f"{sel}{{{';'.join(d)}}}", *underline_rules(sel, lk.get("underline", "none"))]
+    rules = [f"{sel}{{{';'.join(d)}}}", *underline_rules(sel, lk.get("underline", "none"))]
+    if lk.get("rich"):   # Core Pool enhancers go last, so they win over the category's own look
+        rules.append(f"body {sel}{{{rich_css(lk['rich'])}}}")
+    return rules
 
 
 def _num(v, lo, hi) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and lo <= v <= hi
+
+
+def clean_rich(v) -> dict:
+    """A Roller look (the enhancers the app's bar sets), checked the same way the app's cleanRich checks it:
+    weight, italic, caps, font, color, size (px), underline and overline {w, color}, highlight
+    {color, h (% of the line), w (em each side)}, letter, word and line spacing. Anything else is dropped."""
+    if not isinstance(v, dict):
+        return {}
+    o: dict = {}
+    if _num(v.get("weight"), 100, 900):
+        o["weight"] = int(round(v["weight"] / 100) * 100)
+    for k in ("italic", "caps"):
+        if v.get(k) is True:
+            o[k] = True
+    if v.get("font") in FONT_CHOICES:
+        o["font"] = v["font"]
+    if isinstance(v.get("color"), str) and _HEX.match(v["color"]):
+        o["color"] = v["color"].lower()
+    if _num(v.get("size"), 10, 64):
+        o["size"] = round(float(v["size"]), 3)
+    for k in ("underline", "overline"):
+        line = v.get(k)
+        if isinstance(line, dict):
+            x = {}
+            if _num(line.get("w"), 1, 6):
+                x["w"] = round(float(line["w"]), 3)
+            if isinstance(line.get("color"), str) and _HEX.match(line["color"]):
+                x["color"] = line["color"].lower()
+            o[k] = x
+    hl = v.get("hl")
+    if isinstance(hl, dict):
+        h = {}
+        if isinstance(hl.get("color"), str) and _HEX.match(hl["color"]):
+            h["color"] = hl["color"].lower()
+        if _num(hl.get("h"), 20, 100):
+            h["h"] = round(float(hl["h"]), 3)
+        if _num(hl.get("w"), 0, 0.6):
+            h["w"] = round(float(hl["w"]), 3)
+        if h:
+            o["hl"] = h
+    for k, lo, hi in (("ls", -0.05, 0.3), ("ws", 0, 1), ("lh", 1, 3)):
+        if _num(v.get(k), lo, hi):
+            o[k] = round(float(v[k]), 3)
+    return o
+
+
+def rich_css(lk: dict) -> str:
+    """CSS declarations for a Roller look (the app's richCss writes the same)."""
+    d = []
+    if lk.get("weight"):
+        d.append(f"font-weight:{lk['weight']}")
+    if lk.get("italic"):
+        d.append("font-style:italic")
+    if lk.get("font") in FONT_CHOICES:
+        d.append(f"font-family:{FONT_CHOICES[lk['font']][1]}")
+    if lk.get("size"):
+        d.append(f"font-size:{lk['size']:g}px")
+    if lk.get("caps"):
+        d.append("text-transform:uppercase")
+    if "ls" in lk:
+        d.append(f"letter-spacing:{lk['ls']:g}em")
+    if "ws" in lk:
+        d.append(f"word-spacing:{lk['ws']:g}em")
+    if "lh" in lk:
+        d.append(f"line-height:{lk['lh']:g}")
+    color = lk.get("color")
+    if "underline" in lk:
+        u = lk["underline"]
+        d.append(f"text-decoration-line:underline;text-decoration-style:solid;text-decoration-thickness:{u.get('w', 2):g}px;"
+                 f"text-underline-offset:.22em;text-decoration-color:{u.get('color', 'currentColor')}")
+    bg, pad = [], 0.0
+    if "overline" in lk:
+        oc = lk["overline"].get("color", "currentColor")
+        bg.append(f"linear-gradient({oc},{oc}) left top/100% {lk['overline'].get('w', 2):g}px no-repeat")
+    if "hl" in lk:
+        hc, h = lk["hl"].get("color", "#f2c14e"), lk["hl"].get("h", 100)
+        bg.append(f"linear-gradient({hc},{hc}) center/100% {h:g}% no-repeat")
+        pad = lk["hl"].get("w", 0.08)
+        if not color and h >= 60:
+            color = _on(hc)
+    if "hl" in lk:
+        d.append("background:" + ",".join(bg) + ";box-shadow:none")
+    elif bg:   # an overline alone keeps whatever background the text already has (a category's tint)
+        oc = lk["overline"].get("color", "currentColor")
+        d.append(f"background-image:linear-gradient({oc},{oc});background-position:left top;"
+                 f"background-size:100% {lk['overline'].get('w', 2):g}px;background-repeat:no-repeat")
+    if pad:
+        d.append(f"padding:0 {pad:g}em")
+    if color:
+        d.append(f"color:{color}")
+    return ";".join(d)
 
 
 def clean_bank(bank, lens: Lens | None = None) -> list[dict]:
@@ -197,6 +294,9 @@ def clean_bank(bank, lens: Lens | None = None) -> list[dict]:
         for k in ("caps", "bold", "italic", "underline"):
             if w.get(k) is True:
                 e[k] = True
+        rich = clean_rich(w.get("rich"))
+        if rich:   # the Roller's enhancers (Core Pool, preset rollers)
+            e["rich"] = rich
         cat = w.get("cat")
         if lens is not None and isinstance(cat, str) and lens.get(cat) and lens.get(cat).layer in ("content", "grammar"):
             e = {"word": e["word"], "cat": cat}
@@ -256,6 +356,8 @@ def bank_css(bank: list[dict]) -> str:
         if e.get("italic"):
             d.append("font-style:italic")
         d.append("text-decoration:" + (f"underline 2px {e.get('color', 'currentColor')}" if e.get("underline") else "none"))
+        if e.get("rich"):
+            d.append(rich_css(e["rich"]))
         rules.append(f"body .c.c-wb-{i}{{{';'.join(d)}}}")
     return "".join(rules)
 
@@ -296,6 +398,8 @@ def _custom_css(st: dict, lens: Lens | None = None) -> tuple[str, str]:
     if st.get("wordbank"):
         css.append(bank_css(st["wordbank"]))
         bank_fonts = {FONT_CHOICES[e["font"]][2] for e in st["wordbank"] if "font" in e}
+        bank_fonts |= {FONT_CHOICES[e["rich"]["font"]][2] for e in st["wordbank"] if "font" in e.get("rich", {})}
+    bank_fonts |= {FONT_CHOICES[v["rich"]["font"]][2] for v in st.get("look", {}).values() if "font" in v.get("rich", {})}
     families = sorted(({FONT_CHOICES[st[k]][2] for k in ("body", "heading") if k in st} | bank_fonts) - {None})
     links = ""
     if families:

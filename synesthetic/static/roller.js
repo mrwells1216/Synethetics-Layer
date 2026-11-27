@@ -88,36 +88,7 @@
     if (v === null || v === undefined || v === false) delete x[last]; else x[last] = v;
     if (ks.length && !Object.keys(x).length) delete o[ks[0]];
   }
-  function cssOf(k){
-    var f = A.fonts[k]; if (!f) return '';
-    A.useFont(k); return f.stack;
-  }
-  function styleOf(l){
-    var d = [];
-    if (l.weight) d.push('font-weight:' + l.weight);
-    if (l.italic) d.push('font-style:italic');
-    if (l.font) d.push('font-family:' + cssOf(l.font));
-    if (l.size) d.push('font-size:' + l.size + 'px');
-    if (l.caps) d.push('text-transform:uppercase');
-    if (l.ls != null) d.push('letter-spacing:' + l.ls + 'em');
-    if (l.ws != null) d.push('word-spacing:' + l.ws + 'em');
-    var color = l.color;
-    if (l.underline){
-      d.push('text-decoration-line:underline;text-decoration-thickness:' + (l.underline.w || 2) + 'px;text-underline-offset:.22em;text-decoration-color:' + (l.underline.color || 'currentColor'));
-    }
-    var bg = [], pad = 0;
-    if (l.overline){ var oc = l.overline.color || 'currentColor'; bg.push('linear-gradient(' + oc + ',' + oc + ') left top/100% ' + (l.overline.w || 2) + 'px no-repeat'); }
-    if (l.hl){
-      var hc = l.hl.color || '#f2c14e', h = l.hl.h || 100;
-      bg.push('linear-gradient(' + hc + ',' + hc + ') center/100% ' + h + '% no-repeat');
-      pad = l.hl.w != null ? l.hl.w : .08;
-      if (!color && /^#[0-9a-f]{6}$/i.test(hc) && h >= 60) color = A.onColor(hc);   // text stays readable on a full band
-    }
-    if (bg.length) d.push('background:' + bg.join(','));
-    if (pad) d.push('padding:0 ' + pad + 'em');
-    if (color) d.push('color:' + color);
-    return d.join(';');
-  }
+  function styleOf(l){ return A.richCss(l); }   // the app's richCss: the same CSS pages and the Core Pool use
   function writeLook(span, l){
     if (!Object.keys(l).length){ span.removeAttribute('data-look'); span.removeAttribute('style'); return; }
     span.setAttribute('data-look', JSON.stringify(l)); span.setAttribute('style', styleOf(l));
@@ -182,8 +153,19 @@
   }
   function sizeNow(span){ return Math.round(parseFloat(getComputedStyle(span).fontSize)) || 17; }
 
+  // The bar can also edit a look that isn't on the page (the Core Pool): `target` holds it while it's open.
+  // target = {get(): look, set(look), anchor: the element the bar sits by, done()}
+  var target = null;
+  function patch(l, c){   // one change to one look object
+    if (c.mode === 'toggle') setPath(l, c.path, getPath(l, c.path) ? null : true);
+    else if (c.mode === 'clear') setPath(l, c.path, null);
+    else if (c.mode === 'bump'){ var now = getPath(l, c.path); if (now == null) now = 17; setPath(l, c.path, Math.max(c.min || 10, Math.min(c.max || 64, now + c.by))); }
+    else setPath(l, c.path, c.value);
+    return l;
+  }
   // one change: {path, mode: set|toggle|bump|clear, value, by, min, max}
   function change(c, o){
+    if (target){ target.set(patch(JSON.parse(JSON.stringify(target.get())), c)); return; }
     o = o || sel; if (!o) return;
     if (c.path === 'lh'){
       paras(o).forEach(function(p){
@@ -208,6 +190,7 @@
     tidy();
   }
   function applyNow(c, key){
+    if (target){ change(c); refreshDrop(); return; }
     if (!sel){ A.toast('Select some text first'); return; }
     snapshot(key);
     change(c); reselect(); refreshDrop();
@@ -228,11 +211,12 @@
     A.toast('Picked: ' + label + '. Open Multiple to apply.');
   }
   function applyStaged(){
-    if (!staged.length || !sel) return;
-    snapshot();
+    if (!staged.length || !(sel || target)) return;
+    if (!target) snapshot();
     staged.forEach(function(x){ change(x.c); });
     var n = staged.length; staged = []; changed = true;
-    reselect(); closeDrop(); drawBar();
+    if (!target) reselect();
+    closeDrop(); drawBar();
     A.toast(n + (n === 1 ? ' enhancer' : ' enhancers') + ' applied');
   }
   function act(c, label, blockId, key){ if (multi) stage(c, label, blockId); else applyNow(c, key); }
@@ -263,11 +247,12 @@
       x.onclick = function(){ blockTap(b); };
       bar.appendChild(x);
     });
-    if (changed){
+    if (changed || target){
       var done = el('button', 'rl-done'); done.type = 'button';
-      done.setAttribute('aria-label', 'Done with this section: keep it as a layer'); done.title = 'Done with this section: keep it as a layer';
+      var tip = target ? 'Done: keep this look' : 'Done with this section: keep it as a layer';
+      done.setAttribute('aria-label', tip); done.title = tip;
       done.append(el('i', null, '✓'), el('small', null, 'Done'));
-      done.onclick = commitLayer;
+      done.onclick = target ? endTarget : commitLayer;
       bar.appendChild(done);
     }
   }
@@ -288,7 +273,7 @@
 
   // ---------- the menus: columns, like a computer's file menu ----------
   function block(){ for (var i = 0; i < MENU.length; i++) if (MENU[i].id === openId) return MENU[i]; return null; }
-  function visible(items){ var one = !/\S\s+\S/.test(selText().trim()); return items.filter(function(it){ return !(it.words && one); }); }
+  function visible(items){ var one = !target && !/\S\s+\S/.test(selText().trim()); return items.filter(function(it){ return !(it.words && one); }); }
   function openDrop(){ drop.hidden = false; renderDrop(); place(true); }
   function closeDrop(){ openId = null; path = []; drop.hidden = true; drawBar(); }
   function refreshDrop(){ if (!drop.hidden) renderDrop(); }
@@ -306,7 +291,7 @@
     drop.appendChild(head);
     var cols = el('div', 'rd-cols'); drop.appendChild(cols);
     if (b.multi){ cols.appendChild(multiCol()); return; }
-    var level = b.children || [], now = sel ? lookAt(sel) : {};
+    var level = b.children || [], now = target ? target.get() : sel ? lookAt(sel) : {};
     for (var d = 0; d <= path.length; d++){
       var list = visible(level), col = el('div', 'rd-col');
       list.forEach(function(it, i){ col.appendChild(itemBtn(it, i, d, now, b)); });
@@ -442,8 +427,8 @@
       row.appendChild(x); c.appendChild(row);
     });
     var go = el('button', 'rd-apply', '✓ Apply' + (staged.length ? ' ' + staged.length : '')); go.type = 'button';
-    go.setAttribute('aria-disabled', staged.length && sel ? 'false' : 'true');
-    go.onclick = function(){ if (staged.length && sel) applyStaged(); };
+    go.setAttribute('aria-disabled', staged.length && (sel || target) ? 'false' : 'true');
+    go.onclick = function(){ if (staged.length && (sel || target)) applyStaged(); };
     c.appendChild(go);
     var off = el('button', 'rd-it', 'Turn Multiple off'); off.type = 'button';
     off.onclick = function(){ multi = false; staged = []; closeDrop(); };
@@ -463,8 +448,8 @@
     var bw = bar.offsetWidth, bh = bar.offsetHeight, x, y;
     if (moved){ var m = clampXY(moved.x, moved.y, bw, bh); x = m[0]; y = m[1]; }
     else {
-      var r = sel && rangeOf(sel), ps = sel ? paras(sel) : [];
-      var sr = r ? r.getBoundingClientRect() : box.getBoundingClientRect();
+      var r = !target && sel && rangeOf(sel), ps = !target && sel ? paras(sel) : [];
+      var sr = target ? target.anchor.getBoundingClientRect() : r ? r.getBoundingClientRect() : box.getBoundingClientRect();
       var top = Infinity, bottom = -Infinity;
       ps.forEach(function(p){ var b = p.getBoundingClientRect(); top = Math.min(top, b.top); bottom = Math.max(bottom, b.bottom); });
       if (!ps.length){ top = sr.top; bottom = sr.bottom; }
@@ -478,13 +463,13 @@
     if (!drop.hidden){
       // the menu opens on the far side of the bar from your text, so it never covers what you're changing
       var room = {up: y - 10, down: innerHeight - (y + bh) - 10};
-      var ps2 = sel ? paras(sel) : [], textTop = ps2.length ? ps2[0].getBoundingClientRect().top : innerHeight / 2;
+      var ps2 = target ? [target.anchor] : sel ? paras(sel) : [], textTop = ps2.length ? ps2[0].getBoundingClientRect().top : innerHeight / 2;
       var wantUp = moved ? room.down < room.up : y + bh / 2 < textTop;
       drop.style.maxHeight = '';
       var dh = drop.offsetHeight;
       // no room on its side: scroll the page a little so the menu fits there and your selection stays in view
       if (fit && !moved && Date.now() - scrolled > 400){
-        var need = (wantUp ? dh - room.up : dh - room.down) + 8, sr2 = sel && rangeOf(sel) ? rangeOf(sel).getBoundingClientRect() : null;
+        var need = (wantUp ? dh - room.up : dh - room.down) + 8, sr2 = target ? target.anchor.getBoundingClientRect() : sel && rangeOf(sel) ? rangeOf(sel).getBoundingClientRect() : null;
         var tabh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tabh')) || 0;
         if (need > 8 && sr2){
           var can = wantUp ? Math.min(need, innerHeight - 8 - sr2.bottom) : Math.min(need, sr2.top - tabh - 8);
@@ -533,7 +518,20 @@
     bar.hidden = false; if (first) drawBar();
     place(); refreshDrop(); placeSoon();
   }
-  function hideAll(){ bar.hidden = true; drop.hidden = true; openId = null; path = []; }
+  function hideAll(){ bar.hidden = true; drop.hidden = true; openId = null; path = []; if (target) endTarget(); }
+  // open the bar on a look that lives elsewhere (Core Pool): every change goes straight to it
+  function editLook(anchor, get, set, done){
+    if (target) endTarget();
+    sel = null; changed = false; multi = false; staged = [];
+    target = {anchor: anchor, get: get, set: set, done: done};
+    openId = null; path = []; drop.hidden = true;
+    bar.hidden = false; drawBar(); place(); placeSoon();
+  }
+  function endTarget(){
+    var t = target; if (!t) return;
+    target = null; bar.hidden = true; drop.hidden = true; openId = null; path = [];
+    if (t.done) t.done();
+  }
   function check(){
     if (ours || A.tab() !== 'roller') return;
     var s = getSelection();
@@ -561,6 +559,7 @@
     x.addEventListener('mousedown', function(e){ if (!e.target.closest('input,textarea,select')) e.preventDefault(); });
   });
   document.addEventListener('keydown', function(e){
+    if (target && e.key === 'Escape'){ if (!drop.hidden) closeDrop(); else endTarget(); return; }
     if (A.tab() !== 'roller') return;
     if (e.key === 'Escape'){ if (!drop.hidden) closeDrop(); else if (!bar.hidden) hideAll(); return; }
     if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.target.closest('input,textarea')){ e.preventDefault(); doUndo(); }
@@ -832,13 +831,19 @@
       sm.append(el('b', null, p.name), el('small', null, p.layers.length + (p.layers.length === 1 ? ' layer' : ' layers') + (p.hidden ? ', hidden' : '')));
       var acts = el('span', 'acts');
       function btn(t, fn, cls){ var b = el('button', 'pill' + (cls ? ' ' + cls : ''), t); b.type = 'button'; b.onclick = function(e){ e.preventDefault(); fn(); }; acts.appendChild(b); }
+      btn('Add to Core Pool', function(){
+        A.ask('Add "' + p.name + '" to the Core Pool?', 'Its ' + p.layers.length + (p.layers.length === 1 ? ' layer goes' : ' layers go') + ' on every reading from now on: words become core enhancers, kinds change the Formula. You can change or remove them in Core Pool.', [{label: 'Add to Core Pool', value: 'y'}])
+          .then(function(v){ if (v){ var n = addLayers(p.layers); A.toast(n + (n === 1 ? ' layer' : ' layers') + ' added to the Core Pool'); } });
+      });
       btn(p.hidden ? 'Show' : 'Hide', function(){ p.hidden = !p.hidden; A.save(); presetsChanged(); });
       btn('Delete', function(){
         A.ask('Delete "' + p.name + '"?', 'This roller and its ' + p.layers.length + (p.layers.length === 1 ? ' layer are' : ' layers are') + ' removed. Text it already rolled over keeps its looks.', [{label: 'Delete', value: 'y', danger: true}])
           .then(function(v){ if (v){ st.rollers.splice(st.rollers.indexOf(p), 1); A.save(); presetsChanged(); } });
       }, 'danger');
       sm.appendChild(acts); d.appendChild(sm);
-      p.layers.forEach(function(lay){ d.appendChild(layerRow(lay, [])); });
+      p.layers.forEach(function(lay){
+        d.appendChild(layerRow(lay, [{label: 'Add to Core Pool', fn: function(){ addLayers([lay]); A.toast('Added to the Core Pool: ' + (lay.match === 'kind' ? 'all ' + A.catLabel(lay.cat).toLowerCase() : '“' + lay.text + '”')); }}]));
+      });
       list.appendChild(d);
     });
   }
@@ -878,13 +883,157 @@
     return s;
   }
 
+  // ================= Core Pool: the Formula and your core enhancers =================
+  // A category's look as a Roller look (the Formula row's starting point): the lens look and yours, plus its color.
+  function catRich(n){
+    var lk = A.coreLook(n), r = JSON.parse(JSON.stringify(lk.rich || {}));
+    if (r.weight == null && (lk.bold || lk.thin)) r.weight = lk.bold ? 700 : 300;
+    if (lk.italic && r.italic == null) r.italic = true;
+    if (lk['case'] === 'upper' && r.caps == null) r.caps = true;
+    if (lk.scale && lk.scale !== 1 && r.size == null) r.size = Math.round(17 * lk.scale);
+    if (lk.underline && lk.underline !== 'none' && !r.underline){ r.underline = {w: 2}; if (lk.ul) r.underline.color = lk.ul; }
+    var c = A.color(n); if (c && !r.color) r.color = c;
+    return r;
+  }
+  function setCatRich(n, l){   // back to the core look: the plain fields Editor and files read, the rest as rich
+    var st = A.st(), color = l.color, rich = A.cleanRich(l); delete rich.color;
+    var lk = {'case': l.caps ? 'upper' : 'normal', bold: (l.weight || 400) >= 600, thin: !!l.weight && l.weight <= 300, italic: !!l.italic,
+              underline: l.underline ? 'solid' : 'none', scale: l.size ? Math.max(.8, Math.min(2, Math.round(l.size / 17 * 100) / 100)) : 1};
+    if (l.underline && l.underline.color) lk.ul = l.underline.color;
+    if (Object.keys(rich).length) lk.rich = rich;
+    st.look[n] = lk;
+    st.colors[n] = st.colors[n] || {};
+    var t = A.theme();
+    if (color && color !== A.color(n)) st.colors[n][t] = color;   // only a color you changed is pinned
+    else if (!color) delete st.colors[n][t];
+    if (!Object.keys(st.colors[n]).length) delete st.colors[n];
+    A.save(); A.apply();
+  }
+  function wordRich(w){   // a Word Bank word's look as a Roller look
+    if (w.rich) return JSON.parse(JSON.stringify(w.rich));
+    var r = {};
+    if (w.color) r.color = w.color;
+    if (w.bg) r.hl = {color: w.bg};
+    if (w.font) r.font = w.font;
+    if (w.size) r.size = Math.round(w.size * 17);
+    if (w.caps) r.caps = true;
+    if (w.bold) r.weight = 700;
+    if (w.italic) r.italic = true;
+    if (w.underline) r.underline = {w: 2};
+    return r;
+  }
+  function setWordRich(w, l){   // the whole look as rich, plus the plain fields older readers (chat, kept-layout files) use
+    var rich = A.cleanRich(l);
+    ['color', 'bg', 'font', 'size', 'caps', 'bold', 'italic', 'underline', 'cat', 'rich'].forEach(function(k){ delete w[k]; });
+    if (rich.color) w.color = rich.color;
+    if (rich.hl) w.bg = rich.hl.color || '#f2c14e';
+    if (rich.font) w.font = rich.font;
+    if (rich.size) w.size = Math.max(.8, Math.min(2.5, Math.round(rich.size / 17 * 100) / 100));
+    if (rich.caps) w.caps = true;
+    if ((rich.weight || 400) >= 600) w.bold = true;
+    if (rich.italic) w.italic = true;
+    if (rich.underline) w.underline = true;
+    if (Object.keys(rich).length) w.rich = rich;
+  }
+  var editingRow = null;
+  function markEditing(row){ if (editingRow) editingRow.classList.remove('editing'); editingRow = row; if (row) row.classList.add('editing'); }
+  function drawCore(){
+    var fbox = $('cp-formula'), wbox = $('cp-words'); if (!fbox) return;
+    var st = A.st(), pl = A.profileLabel();
+    $('cp-prof').hidden = !pl;
+    $('cp-prof').textContent = pl ? 'Editor is set to the specialty "' + pl + '". The Core Pool changes the core under it; that specialty can still lay its own looks on top.' : '';
+    fbox.textContent = ''; fbox.className = 'card m-' + (st.mode || 'c');
+    var lastLayer = null;
+    A.cats().forEach(function(c){
+      if (c.layer !== lastLayer){ if (c.layer === 'grammar') fbox.appendChild(el('p', 'cp-h', 'Grammar layer (when it is on)')); lastLayer = c.layer; }
+      var row = el('div', 'cp-row' + (A.isOff(c.name) ? ' off' : ''));
+      var sw = el('input', 'rsw'); sw.type = 'checkbox'; sw.setAttribute('role', 'switch'); sw.checked = !A.isOff(c.name); sw.setAttribute('aria-label', c.label + ' on or off');
+      sw.onchange = function(){ st.off[c.name] = !sw.checked; A.save(); A.apply(); drawCore(); };
+      var main = el('div', 'cp-main'); main.appendChild(el('b', null, c.label));
+      var ex = el('span', 'lg-ex'); ex.innerHTML = A.example(c.name); main.appendChild(ex);
+      main.appendChild(describe(catRich(c.name)));
+      var acts = el('div', 'acts'), ed = el('button', 'pill', 'Edit'); ed.type = 'button';
+      ed.onclick = function(){
+        markEditing(row);
+        editLook(row, function(){ return catRich(c.name); }, function(l){ setCatRich(c.name, l); ex.innerHTML = A.example(c.name); main.replaceChild(describe(catRich(c.name)), main.lastChild); },
+          function(){ markEditing(null); drawCore(); });
+      };
+      var rs = el('button', 'pill', 'Default'); rs.type = 'button'; rs.title = 'Back to the default look';
+      rs.onclick = function(){ delete st.look[c.name]; delete st.colors[c.name]; A.save(); A.apply(); drawCore(); };
+      acts.append(ed, rs);
+      row.append(sw, main, acts); fbox.appendChild(row);
+    });
+    // your words
+    wbox.textContent = '';
+    var words = st.wordbank.words;
+    if (!st.wordbank.on) wbox.appendChild(el('p', 'hint', 'Your words are switched off in Editor, Word Bank. They are kept, but not used until you turn them back on there.'));
+    if (!words.length) wbox.appendChild(el('p', 'empty', 'No core enhancers yet. Add a word or phrase above, or add the layers of a preset roller.'));
+    words.forEach(function(w, i){
+      var row = el('div', 'cp-row' + (w.off ? ' off' : ''));
+      var sw = el('input', 'rsw'); sw.type = 'checkbox'; sw.setAttribute('role', 'switch'); sw.checked = !w.off; sw.setAttribute('aria-label', w.word + ' on or off');
+      sw.onchange = function(){ if (sw.checked) delete w.off; else w.off = true; A.save(); A.apply(); drawCore(); };
+      var main = el('div', 'cp-main'), sam = el('span', 'rx', w.word);
+      if (w.cat){ sam.className = 'c c-' + w.cat; main.append(sam, el('small', null, 'Counts as ' + A.catLabel(w.cat))); }
+      else { sam.setAttribute('style', styleOf(wordRich(w))); main.append(sam, describe(wordRich(w))); }
+      var acts = el('div', 'acts'), ed = el('button', 'pill', 'Edit'), del = el('button', 'pill danger', 'Delete'); ed.type = del.type = 'button';
+      ed.onclick = function(){
+        markEditing(row);
+        editLook(row, function(){ return wordRich(w); }, function(l){ setWordRich(w, l); A.save(); A.apply(); sam.className = 'rx'; sam.setAttribute('style', styleOf(wordRich(w))); main.replaceChild(describe(wordRich(w)), main.lastChild); },
+          function(){
+            markEditing(null);
+            if (!w.cat && !Object.keys(wordRich(w)).length){ words.splice(words.indexOf(w), 1); A.save(); A.apply(); A.toast('"' + w.word + '" had no look, so it was left out'); }
+            drawCore();
+          });
+      };
+      del.onclick = function(){ words.splice(i, 1); A.save(); A.apply(); drawCore(); A.toast('"' + w.word + '" removed from the Core Pool'); };
+      acts.append(ed, del);
+      row.append(sw, main, acts); wbox.appendChild(row);
+    });
+    var any = visiblePresets().length || (st.rollers || []).length;
+    $('cp-from').hidden = !any;
+    var ps = $('cp-preset'); ps.textContent = '';
+    (st.rollers || []).forEach(function(p){ var o = el('option', null, p.name + (p.hidden ? ' (hidden)' : '')); o.value = p.id; ps.appendChild(o); });
+  }
+  function addWord(text, look){   // a core enhancer: first in the list, so it wins
+    var st = A.st(), words = st.wordbank.words;
+    var w = words.filter(function(x){ return x.word.toLowerCase() === text.toLowerCase(); })[0];
+    if (!w){ w = {id: A.newId(), word: text.slice(0, 80)}; words.unshift(w); }
+    if (look) setWordRich(w, look);
+    if (words.length > 200) words.length = 200;
+    return w;
+  }
+  function addLayers(lays){   // preset layers into the Core Pool: words become core enhancers, kinds change the Formula
+    var n = 0;
+    lays.forEach(function(lay){
+      if (lay.match === 'kind' && lay.cat){ setCatRich(lay.cat, Object.assign(catRich(lay.cat), lay.look)); n++; }
+      else { addWord(lay.text, lay.look); n++; }
+    });
+    A.save(); A.apply();
+    return n;
+  }
+  $('cp-add').onclick = function(){
+    var t = $('cp-word').value.trim();
+    if (!t){ A.toast('Type a word or phrase first'); return; }
+    var w = addWord(t, null); A.save(); $('cp-word').value = '';
+    drawCore();
+    var row = [].filter.call($('cp-words').querySelectorAll('.cp-row'), function(r){ return r.querySelector('.cp-main').firstChild.textContent === w.word; })[0];
+    if (row) row.querySelector('.acts .pill').click();   // straight into the bar to give it a look
+  };
+  $('cp-word').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); $('cp-add').click(); } });
+  $('cp-add-all').onclick = function(){
+    var p = presetById($('cp-preset').value); if (!p) return;
+    var n = addLayers(p.layers); drawCore();
+    A.toast(n + (n === 1 ? ' layer' : ' layers') + ' from "' + p.name + '" added to the Core Pool');
+  };
+
   // ---------- the app tells the Roller which tab is open ----------
   window.synRoller = {
-    tab: function(t){ if (t !== 'roller') hideAll(); if (t === 'settings'){ drawFonts(); drawPresets(); } fillPickers(); },
+    tab: function(t){ hideAll(); if (t === 'settings'){ drawFonts(); drawPresets(); } if (t === 'core') drawCore(); fillPickers(); },
     file: file, roll: function(rt, o, id){ return roll(rt, o, id); }, styleWith: styleWith
   };
   setText(DEFAULT);
   $('rl-undo').disabled = true;
   drawLayers(); fillPickers();
   if (A.tab() === 'settings'){ drawFonts(); drawPresets(); }
+  if (A.tab() === 'core') drawCore();
 })();

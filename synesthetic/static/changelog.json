@@ -1,14 +1,25 @@
 [
  {
-  "sha": "21b5393d502062858dbd290f3dada2f1b06db580",
-  "short": "21b5393",
+  "sha": "7a50f4ca1ae5f6f895f96eb6ea4c193a5e2b82e4",
+  "short": "7a50f4c",
+  "date": "2026-11-27T02:22:37-06:00",
+  "title": "Core Pool: the enhancers on every reading, and an editable Formula",
+  "body": "A new Core Pool tab holds what goes on every reading. Its Formula lists each kind of detail (Numbers, Dates, Warnings, Quotes...) with an example, a switch and Edit: Edit opens the Roller's 8-block bar on that kind's look, so any enhancer (weight, italics, underline and overline, font, color, size, highlight, spacing, caps) can be set for the whole kind. Core enhancers are your own words and phrases with their looks (the Word Bank's core words, now with every Roller enhancer): add one by name, edit or remove it, or add the layers of a preset roller. Settings, Preset rollers has Add to Core Pool for a whole roller or one layer. How it works links its Formula here.\n\nColored pages and files from the server draw the new looks too (render.py clean_rich and rich_css); kept-layout PDF, Word and Excel files and Claude chat keep showing what they already could (color, highlight, bold, italics, underline, caps, size).",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/7a50f4ca1ae5f6f895f96eb6ea4c193a5e2b82e4"
+ },
+ {
+  "sha": "c6c4bded4babe35f7dedde1026feedd07bc12e55",
+  "short": "c6c4bde",
   "date": "2026-11-27T02:16:02-06:00",
   "title": "Preset rollers: keep layers with the green check, roll them over any text",
   "body": "On the Roller tab, after the first change to a selection a green check appears at the end of the bar. Tapping it keeps that section as a layer: its text and its enhancers. It asks whether the layer catches just that word or phrase, or, when the text is a number, date, quote and so on, everything of that kind. Layers are listed under the passage. Configure Roller names the set and saves it as a preset roller, kept with the settings (synced and in Export).\n\nRoll a preset: on the Roller tab switch to Roll a preset and select any part, or roll the whole passage; in Free Rain's Roller mode pick it under Roll with; in Synesthesize pick it under Roll with and the file is colored with it. Settings has a Preset rollers card listing each roller's layers, with Hide and Delete.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/21b5393d502062858dbd290f3dada2f1b06db580"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/c6c4bded4babe35f7dedde1026feedd07bc12e55"
  },
  {
   "sha": "cd1e722f186fcb7833f637e38425ddc8f2fe5a5f",
