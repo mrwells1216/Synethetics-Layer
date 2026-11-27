@@ -41,14 +41,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 /* the one switch for the mark-up tools: off, none of them run */
 /* DEV sits under the green bar, the one bar with no page of its own: a pill that fills while the tools are on */
-.devsw{position:relative;display:inline-flex;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.devsw input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
-.devsw span{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--k) 50%,var(--line));color:#fff;font:650 14px/1 var(--font-head);letter-spacing:.1em;transition:background .2s,color .2s,box-shadow .2s,border-color .2s}
-.devsw span::before{content:"";box-sizing:border-box;width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;transition:background .2s}
-.devsw:hover span{border-color:var(--k)}
-.devsw input:checked+span{background:var(--k);border-color:var(--k);color:var(--ok,var(--bg));box-shadow:0 0 14px -2px color-mix(in srgb,var(--k) 70%,transparent)}
-.devsw input:checked+span::before{background:currentColor}
-.devsw input:focus-visible+span{outline:2px solid var(--fg);outline-offset:2px}
+/* review mode is a round light under the green bar: a ring while off, lit and glowing while on */
+.devbtn{all:unset;box-sizing:border-box;cursor:pointer;width:22px;height:22px;border-radius:50%;border:2px solid color-mix(in srgb,var(--k) 60%,var(--line));
+  background:transparent;-webkit-tap-highlight-color:transparent;transition:background .2s,box-shadow .3s var(--ease),border-color .2s}
+.devbtn:hover{border-color:var(--k)}
+.devbtn[aria-checked=true]{background:var(--k);border-color:var(--k);
+  box-shadow:0 0 12px 2px color-mix(in srgb,var(--k) 70%,transparent),0 0 28px 6px color-mix(in srgb,var(--k) 35%,transparent)}
+.devbtn:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
 .mark{margin:0;font-family:var(--font-head);font-weight:650;font-size:clamp(2.1rem,10vw,2.9rem);line-height:.95;letter-spacing:-.02em}
 .mark .ch{display:inline-block;transition:color .4s var(--ease)}
 /* the logo: seven book spines in the seven category colors on a shelf, beside the name */
@@ -95,10 +94,9 @@ button,input,select,textarea{font:inherit;color:inherit}
   .tab span{display:none}
   .tab{min-height:0;padding-bottom:9px}
   .tabbar{margin:10px -16px 14px;padding-top:calc(7px + env(safe-area-inset-top))}
-  .devsw span{padding:3px 8px;font-size:12.5px;letter-spacing:.08em}
-  .devsw span::before{display:none}
-  /* while the side strip is out its green slot is the DEV switch, so the bar row keeps just the bars */
-  :root:not(.vfolded) .devsw{display:none}
+  .devbtn{width:18px;height:18px}
+  /* while the side strip is out its green slot holds the light, so the bar row keeps just the bars */
+  :root:not(.vfolded) .devbtn{display:none}
   :root:not(.vfolded) .tabgap{padding-bottom:9px}
   :root.vfolded .tabgap{gap:5px;padding-bottom:6px}
   /* the color bars stay pinned at the top only while the side strip is away (then they're the way around) */
@@ -109,16 +107,15 @@ button,input,select,textarea{font:inherit;color:inherit}
   .vtab,.vgap{all:unset;box-sizing:border-box;flex:1 1 0;min-height:0;display:grid;place-items:center;position:relative;
     background:var(--k);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:margin .25s var(--ease),filter .2s}
   .vtab{filter:saturate(.75) brightness(.78)}
-  .vtab span,.vgap span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;color:var(--bg);
+  .vtab span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;color:var(--bg);
     font:750 clamp(11px,1.7vh,13.5px)/1 var(--font-body);letter-spacing:.03em}
   .vtab[aria-current=page]{filter:none;margin-left:-8px;border-radius:9px 0 0 9px;box-shadow:-4px 0 12px rgba(0,0,0,.35);z-index:1}
   .vtab:focus-visible{outline:2px solid var(--fg);outline-offset:-3px}
-  /* the green slot is the DEV button: dim while the tools are off, lit with a dot while they're on;
-     its name is white and bigger, in the heading face, so it stands apart from the page names */
-  .vgap span{color:#fff;font:650 clamp(16px,2.5vh,20px)/1 var(--font-head);letter-spacing:.08em}
+  /* the green slot is the review light: a white ring while the tools are off, a lit lamp while they're on */
+  .vgap .lamp{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.85);transition:background .2s,box-shadow .3s var(--ease)}
   .vgap{filter:saturate(.75) brightness(.6)}
   :root.dev-on .vgap{filter:none}
-  :root.dev-on .vgap span::after{content:" \25CF"}
+  :root.dev-on .vgap .lamp{background:#fff;border-color:#fff;box-shadow:0 0 10px 2px rgba(255,255,255,.8),0 0 22px 6px color-mix(in srgb,var(--k) 80%,transparent)}
   .vgap:focus-visible{outline:2px solid var(--fg);outline-offset:-3px}
   /* hiding is showing in reverse: the same sideways slide, off the right edge (past the open tab's tongue) */
   :root.vfolded .vbar{transform:translateX(calc(100% + 24px));pointer-events:none}
@@ -165,10 +162,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 .pill.danger{color:var(--c-warning);border-color:color-mix(in srgb,var(--c-warning) 45%,var(--line))}
 .pill[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .link{all:unset;cursor:pointer;color:var(--muted);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
-/* the dev sign-in: the key in a password field, so the browser can offer to remember it */
-.dev-login{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
-.dev-login .wb-text{flex:1 1 180px;min-width:0}
-.dev-user{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 .pill:focus-visible,.seg button:focus-visible,.go:focus-visible,select:focus-visible,.drop:focus-within,.link:focus-visible,.tb:focus-visible,.th:focus-visible,.row:focus-visible,.sp-btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 
@@ -473,7 +466,7 @@ body.dragging #dropall{display:grid}
 .ro-more{max-width:900px;margin:0 auto;color:var(--muted);text-align:center;font-size:14px}
 
 /* Wider screens */
-@media (min-width:600px){.tab{font-size:14px}.devsw span{font-size:15px;padding:5px 14px 5px 11px}}
+@media (min-width:600px){.tab{font-size:14px}}
 @media (min-width:960px){
   .wrap{width:min(1180px,100%);padding:36px 40px 56px}
   .mark{font-size:3.4rem}
@@ -513,7 +506,7 @@ body.dragging #dropall{display:grid}
   <button class="vtab" type="button" data-tab="how" style="--k:var(--c-warning)"><span>How it works</span></button>
   <button class="vtab" type="button" data-tab="layer" style="--k:var(--c-quote)"><span>Synesthesize</span></button>
   <button class="vtab" type="button" data-tab="free" style="--k:var(--c-date)"><span>Free Rain</span></button>
-  <button class="vgap" id="vdev" type="button" aria-pressed="false" aria-label="Developer tools" style="--k:var(--c-link)"><span>DEV</span></button>
+  <button class="vgap" id="vdev" type="button" aria-pressed="false" aria-label="Review mode" style="--k:var(--c-link)"><i class="lamp" aria-hidden="true"></i></button>
   <button class="vtab" type="button" data-tab="editor" style="--k:var(--c-id)"><span>Editor</span></button>
   <button class="vtab" type="button" data-tab="saved" style="--k:var(--c-number)"><span>Saved</span></button>
   <button class="vtab" type="button" data-tab="settings" style="--k:var(--c-reference)"><span>Settings</span></button>
@@ -534,7 +527,7 @@ body.dragging #dropall{display:grid}
     <button class="tab" role="tab" id="t-how" data-tab="how" aria-controls="v-how" style="--k:var(--c-warning);--ok:var(--on-warning)"><i></i><span><b>How it works</b></span></button>
     <button class="tab" role="tab" id="t-layer" data-tab="layer" aria-controls="v-layer" style="--k:var(--c-quote);--ok:var(--on-quote)"><i></i><span><b>Synes&shy;thesize</b></span></button>
     <button class="tab" role="tab" id="t-free" data-tab="free" aria-controls="v-free" style="--k:var(--c-date);--ok:var(--on-date)"><i></i><span><b>Free Rain</b></span></button>
-    <span class="tabgap" style="--k:var(--c-link);--ok:var(--on-link)"><i aria-hidden="true"></i><label class="devsw" data-plain title="Tools: highlight text to mark it, triple-click for a screenshot"><input type="checkbox" role="switch" id="set-dev" aria-label="Developer tools"><span>DEV</span></label></span>
+    <span class="tabgap" style="--k:var(--c-link);--ok:var(--on-link)"><i aria-hidden="true"></i><button class="devbtn" id="set-dev" type="button" role="switch" aria-checked="false" aria-label="Review mode" title="Review mode: highlight text to mark it, triple-click for a screenshot"></button></span>
     <button class="tab" role="tab" id="t-editor" data-tab="editor" aria-controls="v-editor" style="--k:var(--c-id);--ok:var(--on-id)"><i></i><span><b>Editor</b></span></button>
     <button class="tab" role="tab" id="t-saved" data-tab="saved" aria-controls="v-saved" style="--k:var(--c-number);--ok:var(--on-number)"><i></i><span><b>Saved</b></span></button>
     <button class="tab" role="tab" id="t-settings" data-tab="settings" aria-controls="v-settings" style="--k:var(--c-reference);--ok:var(--on-reference)"><i></i><span><b>Settings</b></span></button>
@@ -813,12 +806,6 @@ body.dragging #dropall{display:grid}
       <div class="card wide" id="dev-card">
         <h3>Notes for Claude</h3>
         <p class="hint" id="dev-status"></p>
-        <form id="dev-login" class="dev-login" hidden autocomplete="on">
-          <input type="text" name="username" value="owner" autocomplete="username" aria-hidden="true" tabindex="-1" class="dev-user">
-          <input class="wb-text" type="password" id="dev-key" name="password" autocomplete="current-password" placeholder="Your dev key" aria-label="Dev key" required>
-          <button class="pill" type="submit">Sign in</button>
-        </form>
-        <p class="hint" id="dev-linked" hidden>Signed in on this browser; it stays signed in. <button class="link" id="dev-logout" type="button">Sign out</button></p>
         <div id="dev-more" hidden>
           <div class="actions" style="margin-top:6px">
             <button class="pill" id="dev-copy" hidden>Copy for Claude</button>
@@ -1017,16 +1004,14 @@ body.dragging #dropall{display:grid}
     lsSet('syn.off', JSON.stringify(Object.keys(EF.off)));   // colored pages read the same key
     pushStyleSoon();
   }
-  // the chat add-on follows these looks: they go to the app's store (the hosted site needs this browser signed in)
+  // the chat add-on follows these looks: they go to the app's store
   var pushT = null, pushed = '';
   function pushStyleSoon(){ clearTimeout(pushT); pushT = setTimeout(pushStyle, 1500); }
   function chatNote(t){ var e = $('ed-chat'); if (e) e.textContent = t; }
   function pushStyle(){
-    var key = lsGet('synapp.devkey');
-    if (cfg.hosted && !key){ chatNote('The chat add-on cannot see these looks from this browser yet: sign in under Settings, Notes for Claude.'); return; }
     var body = JSON.stringify({style: styleForServer()});
     if (body === pushed) return;
-    var hd = {'Content-Type': 'application/json', 'X-App': '1'}; if (key) hd['X-Dev-Key'] = key;
+    var hd = {'Content-Type': 'application/json', 'X-App': '1'};
     fetch('/api/style-put', {method: 'POST', body: body, headers: hd}).then(function(r){
       if (r.ok){ pushed = body; chatNote('The chat add-on follows these looks: synced just now. New Code sessions pick them up.'); }
       else chatNote('The chat add-on could not be updated (error ' + r.status + ').');

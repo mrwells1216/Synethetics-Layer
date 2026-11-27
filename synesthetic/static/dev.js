@@ -1,25 +1,18 @@
-/* Developer tools and the change log.
+/* Review mode and the change log.
  *
- * The DEV button under the green bar turns the tools on: highlight text, or triple-click (triple-tap) for a
- * screenshot frame. Either way the marks come up first (Good, Not good, Fix/idea); picking one opens the
- * comment window, with Submit and Skip. Off, none of it runs. A note goes to the fixes store
- * (python fixes.py list) when the app runs on the owner's computer or the site has a store and this device is
- * linked; anywhere else it is kept on this device, to copy into a Claude chat.
+ * The round light under the green bar (in the green slot of the side strip on a phone) turns the tools on:
+ * highlight text, or triple-click (triple-tap) for a screenshot frame. Either way the marks come up first
+ * (Good, Not good, Fix/idea); picking one opens the comment window, with Submit and Skip. Off, none of it
+ * runs. A note goes to the fixes store (python fixes.py list) when the app runs on the owner's computer or
+ * the site has a store; anywhere else it is kept on this device, to copy into a Claude chat.
  *
  * Builds everything with DOM calls and textContent: no innerHTML, so nothing typed or read can become markup.
  */
 (function(){
   'use strict';
-  var ON_KEY = 'synapp.dev', DEV_KEY = 'synapp.devkey', PNG_LIMIT = 3900000;
+  var ON_KEY = 'synapp.dev', PNG_LIMIT = 3900000;
   function lsGet(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v){ try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
-
-  // the dev link (#dev=KEY) links this device, before the app reads the address for its tab
-  var paired = false, pm = /^#dev=([A-Za-z0-9_-]{16,128})$/.exec(location.hash);
-  if (pm){
-    lsSet(DEV_KEY, pm[1]); lsSet(ON_KEY, '1'); paired = true;
-    try { history.replaceState(null, '', location.pathname + location.search + '#settings'); } catch (e) { location.hash = 'settings'; }
-  }
 
   var realFetch = window.fetch ? window.fetch.bind(window) : null;
 
@@ -44,7 +37,6 @@
   function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
   function toast(t){ if (app.toast) app.toast(t); }
   function isOn(){ return lsGet(ON_KEY) === '1'; }
-  function devKey(){ return lsGet(DEV_KEY); }
   function tabNow(){ return app.tab ? app.tab() : location.hash.slice(1); }
   function when(iso){
     var d = new Date(iso); if (isNaN(d)) return iso || '';
@@ -52,8 +44,7 @@
   }
 
   function api(route, payload, asBlob){
-    var hd = {'Content-Type': 'application/json', 'X-App': '1'}, k = devKey();
-    if (k) hd['X-Dev-Key'] = k;
+    var hd = {'Content-Type': 'application/json', 'X-App': '1'};
     return fetch('/api/' + route, {method: 'POST', headers: hd, body: JSON.stringify(payload || {})}).then(function(r){
       if (!r.ok) return r.text().then(function(t){ var e = new Error(t || ('Error ' + r.status)); e.status = r.status; throw e; });
       return asBlob ? r.blob() : r.json();
@@ -75,7 +66,7 @@
     return c;
   }
   // ================= where notes are kept =================
-  function toStore(){ var d = cfg.dev || {}; return d.store === 'local' || (d.store === 'blob' && d.keyed && !!devKey()); }
+  function toStore(){ var d = cfg.dev || {}; return d.store === 'local' || d.store === 'blob'; }
   var idbP = null;
   function idb(){
     if (!idbP) idbP = new Promise(function(res, rej){
@@ -100,7 +91,7 @@
 
   // resolves to where the note went: 'claude' (the fixes store) or 'kept' (this device)
   function send(entry){
-    entry.page = location.pathname + (location.hash && !/^#dev=/.test(location.hash) ? location.hash : '');
+    entry.page = location.pathname + (location.hash || '');
     if (toStore()) return api('fix-add', entry).then(function(){ refreshFixes(); return 'claude'; });
     entry.made = new Date().toISOString(); entry.status = 'kept';
     return keepAdd(entry).then(function(){ refreshFixes(); return 'kept'; });
@@ -164,13 +155,12 @@
     settingsCard();
     changelogCard();
     setOn(isOn(), true);
-    if (paired) setTimeout(function(){ toast('This device is linked. The tools are on.'); }, 400);
   });
 
   function setOn(on, quiet){
     lsSet(ON_KEY, on ? '1' : '0');
     root.classList.toggle('dev-on', on);
-    var sw = $('set-dev'); if (sw) sw.checked = on;
+    var sw = $('set-dev'); if (sw) sw.setAttribute('aria-checked', on ? 'true' : 'false');
     var vd = $('vdev'); if (vd) vd.setAttribute('aria-pressed', on ? 'true' : 'false');
     var more = $('dev-more'); if (more) more.hidden = !on;
     devStatus();
@@ -178,10 +168,10 @@
     if (!quiet) toast(on ? 'Tools on: highlight text, or triple-tap for a screenshot' : 'Tools off');
   }
 
-  // ================= the switch, and the notes card in Settings =================
+  // ================= the light, and the notes card in Settings =================
   function settingsCard(){
     var sw = $('set-dev'); if (!sw) return;
-    sw.addEventListener('change', function(){ setOn(this.checked); });
+    sw.addEventListener('click', function(){ setOn(!isOn()); });
     var vd = $('vdev'); if (vd) vd.addEventListener('click', function(){ setOn(!isOn()); });
     Array.prototype.forEach.call(document.querySelectorAll('iframe'), function(f){ if (!f.closest('#roller')) hookFrame(f); });
     $('dev-copy').addEventListener('click', copyNotes);
@@ -190,35 +180,12 @@
       if (!window.confirm('Remove the notes kept on this device? This can’t be undone.')) return;
       keepClear().then(function(){ refreshFixes(); toast('Notes cleared'); }, function(e){ toast(e.message); });
     });
-    // sign in: the key is tried against the site before it is kept, so a typo never looks linked
-    $('dev-login').addEventListener('submit', function(ev){
-      ev.preventDefault();
-      var inp = $('dev-key'), k = (inp.value || '').trim();
-      if (!k) return;
-      var hd = {'Content-Type': 'application/json', 'X-App': '1', 'X-Dev-Key': k};
-      fetch('/api/fix-check', {method: 'POST', headers: hd, body: '{}'}).then(function(r){
-        if (!r.ok) throw new Error(r.status === 403 ? 'That key isn’t right.' : 'Could not check the key (' + r.status + ').');
-        lsSet(DEV_KEY, k); inp.value = '';
-        setOn(true, true);
-        toast('Signed in. This browser stays linked.');
-        if (app.pushStyle) app.pushStyle();
-      }, function(e){ toast(e.message); });
-    });
-    $('dev-logout').addEventListener('click', function(){
-      lsSet(DEV_KEY, null); devStatus(); refreshFixes(); toast('Signed out on this browser.');
-    });
   }
   function devStatus(){
     var s = $('dev-status'); if (!s) return;
     var how = 'Highlight text, or triple-click (triple-tap on a phone) for a screenshot, then pick Good, Not good or Fix/idea. ';
-    if (!isOn()) s.textContent = 'Press DEV under the green bar at the top of the page. ' + how.replace(/^H/, 'Then h');
+    if (!isOn()) s.textContent = 'Press the round light under the color bars at the top of the page (on a phone, in the green slot of the side strip). ' + how.replace(/^H/, 'Then h');
     else s.textContent = how + (toStore() ? 'Notes go straight to Claude’s list.' : 'Notes are kept on this device: press Copy for Claude, then paste into your Claude chat.');
-    // the hosted site with a key set: sign in once per browser (the dev link does the same)
-    var d = cfg.dev || {}, can = !!(cfg.hosted && d.keyed), linked = can && !!devKey();
-    var f = $('dev-login'), l = $('dev-linked');
-    if (f) f.hidden = !(can && !linked);
-    if (l) l.hidden = !linked;
-    if (can && !linked) s.textContent = 'Sign in with your dev key to send notes and the Editor’s looks straight to Claude from this browser. ' + s.textContent;
   }
 
   // ================= the notes list =================

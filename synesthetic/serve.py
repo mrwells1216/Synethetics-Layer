@@ -6,7 +6,6 @@ Pick a file in the browser, get the styled page back. Binds to localhost unless 
 from __future__ import annotations
 
 import argparse
-import hmac
 import importlib.util
 import json
 import os
@@ -99,14 +98,12 @@ def app_page(lens, max_bytes: int, hosted: bool) -> str:
         "defaults": STYLE_DEFAULTS,
         # developer mode: where fixes go, and the build they were made on
         "build": changelog.head()[:7], "repo": changelog.REPO_URL,
-        "dev": {"store": ("blob" if fixmod.blob_ready() else "none") if hosted else "local",
-                "keyed": bool(os.environ.get(DEV_KEY_ENV, "").strip())},
+        "dev": {"store": ("blob" if fixmod.blob_ready() else "none") if hosted else "local"},
     }
     page = APP_PAGE.read_text(encoding="utf-8").replace("{{DEVJS}}", _version(STATIC / "dev.js"))
     return page.replace("{{CONFIG}}", json.dumps(cfg).replace("</", "<\\/"))
 
 
-DEV_KEY_ENV = "SYNESTHETIC_DEV_KEY"
 
 
 def _dev_store(hosted: bool, cache: dict):
@@ -261,18 +258,12 @@ def make_handler(lens, max_bytes: int = MAX_BYTES, hosted: bool = False):
                 shutil.rmtree(tmp, ignore_errors=True)
 
         def _fix(self, route: str, body: bytes):
-            """Developer mode: fixes and ideas for the next Claude session. Same-origin (checked above), a
-            custom header, and the dev key when one is set; the hosted app refuses all of it without a key."""
+            """Review mode: fixes and ideas for the next Claude session, from any browser that has the app open
+            (same-origin, checked above, and the app's own header). The site is the owner's and the entries
+            are append-only, so there is no key: the owner asked for none."""
             text = "text/plain; charset=utf-8"
             if self.headers.get("X-App") != "1":
                 return self._send(403, "Missing the app's header.", text)
-            key = os.environ.get(DEV_KEY_ENV, "").strip()  # a pasted key can carry a stray space or newline
-            if key:
-                if not hmac.compare_digest(self.headers.get("X-Dev-Key", "").strip().encode(), key.encode()):
-                    return self._send(403, "This browser isn't signed in for developer mode. Sign in under Settings, "
-                                           "Notes for Claude, or open your dev link on it.", text)
-            elif hosted:
-                return self._send(403, "Developer mode isn't set up on this site yet.", text)
             oidc = self.headers.get("x-vercel-oidc-token")
             if oidc:  # Vercel's per-request credential for the connected Blob store
                 os.environ["VERCEL_OIDC_TOKEN"] = oidc

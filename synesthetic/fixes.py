@@ -452,7 +452,7 @@ def main(argv=None) -> int:
         p = sub.add_parser(name, help=f"close an entry as {'done' if name == 'done' else 'skipped'}, saying why")
         p.add_argument("id", type=int)
         p.add_argument("review")
-    pr = sub.add_parser("pair", help="make the dev key and the link that turns on saving for a device")
+    pr = sub.add_parser("pair", help="save the hosted app's address, so `list` pulls its notes in")
     pr.add_argument("url", nargs="?", help="the hosted app's address")
     args = ap.parse_args(argv)
 
@@ -466,9 +466,7 @@ def main(argv=None) -> int:
         p = data_dir() / "remote.json"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-        print(f"Saved in {p}.")
-        print("Set SYNESTHETIC_DEV_KEY on the hosted app to the key in that file. Open this on each device:")
-        print(f"  {cfg['url']}/#dev={cfg['key']}")
+        print(f"Saved in {p}. `fixes.py list` now pulls notes from {cfg['url']}.")
         return 0
 
     store = LocalStore()

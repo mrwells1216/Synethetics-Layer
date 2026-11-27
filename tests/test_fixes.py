@@ -249,20 +249,14 @@ def test_missing_header_and_cross_site_are_refused(data):
         srv.shutdown()
 
 
-def test_hosted_needs_the_dev_key(data, monkeypatch):
+def test_hosted_store_takes_notes_from_the_app(data, monkeypatch):
     api, real = FakeBlob(), fx.BlobStore
     monkeypatch.setattr(fx, "BlobStore", lambda: real(api=api))
     monkeypatch.setenv("BLOB_READ_WRITE_TOKEN", "test")
     srv, base = serve(hosted=True)
-    try:  # no key on the server: refused
-        with pytest.raises(urllib.error.HTTPError) as e:
-            call(base, "fix-list", {})
-        assert e.value.code == 403
-        monkeypatch.setenv("SYNESTHETIC_DEV_KEY", "k" * 24)
-        with pytest.raises(urllib.error.HTTPError) as e:
-            call(base, "fix-list", {}, {"X-Dev-Key": "wrong"})
-        assert e.value.code == 403
-        key = {"X-Dev-Key": "k" * 24}
+    try:  # no key anywhere: the app's own header is enough (a stale key header is ignored)
+        key = {"X-Dev-Key": "whatever-an-old-pairing-left"}
+        assert json.loads(call(base, "fix-list", {}))["entries"] == []
         ref = json.loads(call(base, "fix-add", {"kind": "text", "text": "Hi", "note": "Bigger"}, key))["id"]
         assert any(p.startswith(fx.BLOB_ENTRIES) for p in api.files)
         exported = json.loads(call(base, "fix-export", {}, key))["entries"]
@@ -312,7 +306,7 @@ def test_page_loads_the_dev_script_and_config(data):
     try:
         html = urllib.request.urlopen(base + "/", timeout=10).read().decode()
         assert re.search(r'<script src="/dev\.js\?v=[0-9a-f]{10}">', html)
-        assert 'id="set-dev"' in html and 'id="log-card"' in html
+        assert 'id="set-dev"' in html and 'id="log-card"' in html and "dev-login" not in html
         cfg = json.loads(re.search(r'<script id="cfg" type="application/json">(.*?)</script>', html, re.S).group(1))
         assert cfg["dev"]["store"] == "local"
         js = urllib.request.urlopen(base + "/dev.js", timeout=10)
