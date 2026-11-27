@@ -1,14 +1,25 @@
 [
  {
-  "sha": "7a50f4ca1ae5f6f895f96eb6ea4c193a5e2b82e4",
-  "short": "7a50f4c",
-  "date": "2026-11-27T02:22:37-06:00",
+  "sha": "53c187aeded595ad24f752a66b3bfb7df6755b06",
+  "short": "53c187a",
+  "date": "2026-11-27T08:53:15-06:00",
+  "title": "Roller: keep the passage and its enhancers between visits",
+  "body": "The Roller's passage, with every enhancer and line spacing on it, is kept in this browser and comes back on the next visit. It is stored as paragraphs of text runs and looks, not as page markup, and each look is cleaned again when it loads. Default passage starts over. How to use the Roller says so.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/53c187aeded595ad24f752a66b3bfb7df6755b06"
+ },
+ {
+  "sha": "a0fa1b7c550d848b44bb9d16cde308d803e098fd",
+  "short": "a0fa1b7",
+  "date": "2026-11-27T02:22:38-06:00",
   "title": "Core Pool: the enhancers on every reading, and an editable Formula",
   "body": "A new Core Pool tab holds what goes on every reading. Its Formula lists each kind of detail (Numbers, Dates, Warnings, Quotes...) with an example, a switch and Edit: Edit opens the Roller's 8-block bar on that kind's look, so any enhancer (weight, italics, underline and overline, font, color, size, highlight, spacing, caps) can be set for the whole kind. Core enhancers are your own words and phrases with their looks (the Word Bank's core words, now with every Roller enhancer): add one by name, edit or remove it, or add the layers of a preset roller. Settings, Preset rollers has Add to Core Pool for a whole roller or one layer. How it works links its Formula here.\n\nColored pages and files from the server draw the new looks too (render.py clean_rich and rich_css); kept-layout PDF, Word and Excel files and Claude chat keep showing what they already could (color, highlight, bold, italics, underline, caps, size).",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/7a50f4ca1ae5f6f895f96eb6ea4c193a5e2b82e4"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/a0fa1b7c550d848b44bb9d16cde308d803e098fd"
  },
  {
   "sha": "c6c4bded4babe35f7dedde1026feedd07bc12e55",

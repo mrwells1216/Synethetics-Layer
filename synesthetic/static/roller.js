@@ -1031,7 +1031,57 @@
     tab: function(t){ hideAll(); if (t === 'settings'){ drawFonts(); drawPresets(); } if (t === 'core') drawCore(); fillPickers(); },
     file: file, roll: function(rt, o, id){ return roll(rt, o, id); }, styleWith: styleWith
   };
-  setText(DEFAULT);
+  // ---------- the passage and its enhancers are kept in this browser between visits ----------
+  // Kept as paragraphs of runs ([text, look]), not as HTML, and every look is cleaned again when it comes back.
+  var KEEP = 'synapp.rpass';
+  function packed(){
+    return {v: 1, p: [].map.call(box.children, function(p){
+      var runs = [];
+      (function walk(n, look){
+        [].forEach.call(n.childNodes, function(c){
+          if (c.nodeType === 3){ if (c.nodeValue) runs.push(look ? [c.nodeValue, look] : [c.nodeValue]); }
+          else if (c.nodeName === 'BR') runs.push(['\n']);
+          else if (c.nodeType === 1) walk(c, c.classList.contains('rx') ? lookOf(c) : look);
+        });
+      })(p, null);
+      var lh = p.getAttribute('data-lh');
+      return lh ? {lh: +lh, r: runs} : {r: runs};
+    })};
+  }
+  function unpack(d){
+    if (!d || d.v !== 1 || !Array.isArray(d.p) || !d.p.length) return false;
+    box.textContent = '';
+    var total = 0;
+    d.p.slice(0, 2000).forEach(function(pd){
+      if (!pd || !Array.isArray(pd.r)) return;
+      var para = el('p'), lh = pd.lh != null && A.cleanRich({lh: pd.lh}).lh;
+      if (lh){ para.style.lineHeight = lh; para.setAttribute('data-lh', lh); }
+      pd.r.forEach(function(run){
+        if (!Array.isArray(run) || typeof run[0] !== 'string' || total > 20000) return;
+        total += run[0].length;
+        run[0].split('\n').forEach(function(part, i){
+          if (i) para.appendChild(el('br'));
+          if (!part) return;
+          var look = run[1] ? A.cleanRich(run[1]) : {};
+          if (!Object.keys(look).length){ para.appendChild(document.createTextNode(part)); return; }
+          var s = el('span'); s.className = 'rx'; s.appendChild(document.createTextNode(part)); writeLook(s, look);
+          para.appendChild(s);
+        });
+      });
+      box.appendChild(para);
+    });
+    if (!box.firstChild){ setText(DEFAULT); return false; }
+    return true;
+  }
+  var keepSoon = 0;
+  new MutationObserver(function(){
+    clearTimeout(keepSoon);
+    keepSoon = setTimeout(function(){ try { A.lsSet(KEEP, JSON.stringify(packed())); } catch (e){} }, 400);
+  }).observe(box, {childList: true, subtree: true, characterData: true, attributes: true});
+
+  var kept = null;
+  try { kept = JSON.parse(A.lsGet(KEEP) || 'null'); } catch (e){}
+  if (!unpack(kept)) setText(DEFAULT);
   $('rl-undo').disabled = true;
   drawLayers(); fillPickers();
   if (A.tab() === 'settings'){ drawFonts(); drawPresets(); }
