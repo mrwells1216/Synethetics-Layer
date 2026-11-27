@@ -446,6 +446,94 @@ body.dragging #dropall{display:grid}
 .wb-row input[type=checkbox]:checked{background:var(--c-link)}
 .wb-row input[type=checkbox]:checked::before{transform:translateX(16px);background:var(--on-link)}
 
+/* Roller tab: a passage to enhance, the floating bar of 8 blocks and its menus */
+.rl-how summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.rl-how summary::-webkit-details-marker{display:none}
+.rl-how summary::after{content:"Hide";font-size:13px;font-weight:650;color:var(--muted)}
+.rl-how:not([open]) summary::after{content:"Show"}
+.rl-how h3{margin:0}
+.rl-steps{margin:10px 0 0;padding-left:1.3em;display:grid;gap:6px;color:var(--muted);font-size:15px}
+.rl-steps b{color:var(--fg)}
+.rl-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0 10px}
+.rl-page{margin-top:4px}
+.rl-text{padding:22px 24px;line-height:1.75;overflow-wrap:anywhere;font-size:1.04em;-webkit-user-select:text;user-select:text}
+.rl-text p{margin:0 0 .9em}
+.rl-text p:last-child{margin-bottom:0}
+.rl-text ::selection{background:color-mix(in srgb,var(--fg) 20%,transparent)}
+.rx{-webkit-box-decoration-break:clone;box-decoration-break:clone;border-radius:.2em}
+#rl-own textarea{min-height:120px;resize:vertical}
+.rl-up{position:relative}
+.rl-up input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#rl-bar{position:fixed;z-index:28;display:flex;align-items:stretch;gap:3px;padding:4px;border-radius:16px;background:var(--surface);border:1px solid var(--line);
+  box-shadow:0 14px 36px -12px rgba(0,0,0,.65);-webkit-user-select:none;user-select:none;touch-action:none;max-width:calc(100vw - 8px)}
+#rl-bar[hidden]{display:none}
+.rl-grip{all:unset;flex:none;width:16px;display:grid;place-items:center;cursor:grab;border-radius:10px;color:var(--muted)}
+.rl-grip::before{content:"";width:4px;height:22px;border-radius:2px;background:radial-gradient(circle,currentColor 1.2px,transparent 1.6px) 0 0/4px 5px}
+.rl-grip:active{cursor:grabbing}
+.rl-b{all:unset;position:relative;box-sizing:border-box;flex:1 1 0;min-width:38px;max-width:64px;display:grid;justify-items:center;align-content:center;gap:2px;padding:6px 2px 5px;border-radius:11px;cursor:pointer;
+  background:var(--raised);border:1px solid transparent;-webkit-tap-highlight-color:transparent;transition:background .15s,border-color .15s}
+.rl-b:hover{border-color:color-mix(in srgb,var(--k) 60%,var(--line))}
+.rl-b i{font-style:normal;font:800 15px/1 var(--font-head);color:var(--k)}
+.rl-b small{font-size:9.5px;font-weight:700;letter-spacing:.02em;color:var(--muted);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.rl-b[aria-expanded=true]{background:var(--k);border-color:var(--k)}
+.rl-b[aria-expanded=true] i,.rl-b[aria-expanded=true] small{color:var(--on-k,var(--bg))}
+.rl-b.picked{border-color:var(--k);box-shadow:inset 0 0 0 1px var(--k)}
+.rl-b.picked::after{content:"\2713";position:absolute;top:1px;right:4px;font-size:11px;font-weight:900;color:var(--k)}
+.rl-b[aria-pressed=true]{background:color-mix(in srgb,var(--k) 22%,var(--raised));border-color:var(--k)}
+.rl-b:focus-visible,.rl-grip:focus-visible{outline:2px solid var(--fg);outline-offset:1px}
+#rl-drop{position:fixed;z-index:27;display:flex;flex-direction:column;max-width:calc(100vw - 8px);max-height:min(70vh,460px);border-radius:16px;background:var(--surface);border:1px solid var(--line);
+  box-shadow:0 18px 44px -14px rgba(0,0,0,.7);overflow:hidden}
+#rl-drop[hidden]{display:none}
+.rd-path{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--muted);min-height:38px}
+.rd-path b{color:var(--fg)}
+.rd-path .rd-back{all:unset;cursor:pointer;padding:2px 8px;border-radius:8px;border:1px solid var(--line);color:var(--fg)}
+.rd-path .rd-x{all:unset;cursor:pointer;margin-left:auto;padding:2px 8px;border-radius:8px;color:var(--muted)}
+.rd-cols{display:flex;min-height:0;overflow:auto}
+.rd-col{flex:none;width:200px;padding:6px;border-left:1px solid var(--line);overflow:auto}
+.rd-col:first-child{border-left:0}
+.rd-col.ctl{width:250px}
+.rd-it{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:9px 10px;border-radius:9px;font-size:14.5px;font-weight:600}
+.rd-it:hover,.rd-it[aria-expanded=true]{background:var(--raised)}
+.rd-it[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.rd-it .arr{color:var(--muted);font-weight:800}
+.rd-it .now{font-size:12px;font-weight:600;color:var(--muted)}
+.rd-it[aria-pressed=true] .now{color:var(--bg)}
+.rd-it:focus-visible{outline:2px solid var(--fg);outline-offset:-2px}
+.rd-ctl{display:grid;gap:10px;padding:6px 4px}
+.rd-ctl h4{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.rd-sw{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.rd-sw button{all:unset;cursor:pointer;aspect-ratio:1;border-radius:50%;background:var(--sw);border:2px solid var(--line)}
+.rd-sw button[aria-pressed=true]{border-color:var(--fg);box-shadow:0 0 0 2px var(--surface) inset}
+.rd-sw button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.rd-sw label{display:grid;place-items:center;aspect-ratio:1;border-radius:50%;border:2px dashed var(--line);cursor:pointer;font-size:11px;font-weight:700;color:var(--muted);position:relative;overflow:hidden}
+.rd-sw label input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.rd-step{display:flex;align-items:center;gap:8px}
+.rd-step button{all:unset;cursor:pointer;width:40px;height:40px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--line);background:var(--raised);font-size:18px;font-weight:800}
+.rd-step button:focus-visible{outline:2px solid var(--fg)}
+.rd-step input{width:70px;padding:8px;border-radius:9px;border:1px solid var(--line);background:var(--bg);text-align:center}
+.rd-step output{min-width:5em;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.rd-fonts{display:grid;gap:2px}
+.rd-apply{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;padding:11px;border-radius:12px;background:var(--c-link);color:var(--on-link);font-weight:800}
+.rd-apply[aria-disabled=true]{opacity:.4;cursor:default}
+.rd-pick{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-radius:9px;background:var(--raised);font-size:13.5px}
+.rd-pick button{all:unset;cursor:pointer;padding:0 6px;color:var(--muted);font-weight:800}
+@media (min-width:600px){.rl-b{min-width:58px;max-width:72px}.rl-b small{font-size:10px}}
+@media (max-width:599px){
+  /* the bar takes the whole width on a phone: the side strip steps aside while it's open */
+  body:has(#rl-bar:not([hidden])) .vbar{transform:translateX(calc(100% + 24px));pointer-events:none}
+  #rl-bar{gap:2px;padding:3px;width:calc(100vw - 8px)}
+  .rl-grip{width:12px}
+  .rl-b{min-width:0;padding:6px 1px 5px}
+  .rl-b small{font-size:8px;letter-spacing:-.02em;text-overflow:clip}
+  .rd-col{width:min(300px,calc(100vw - 12px));border-left:0}
+  .rd-col:not(:last-child){display:none}
+  .rl-text{padding:18px 16px}
+}
+.fontlist{display:flex;flex-wrap:wrap;gap:6px}
+.fontlist button{all:unset;cursor:pointer;padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:15px;opacity:.38;transition:opacity .2s,background .2s}
+.fontlist button[aria-pressed=true]{opacity:1;background:var(--raised);border-color:var(--fg)}
+.fontlist button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+
 /* The roller window: your file's pages, select to color */
 #roller{position:fixed;inset:0;z-index:9;display:none;flex-direction:column;background:var(--bg)}
 #roller.on{display:flex}
@@ -508,7 +596,7 @@ body.dragging #dropall{display:grid}
   <button class="vtab" type="button" data-tab="free" style="--k:var(--c-date)"><span>Free Rain</span></button>
   <button class="vgap" id="vdev" type="button" aria-pressed="false" aria-label="Review mode" style="--k:var(--c-link)"><i class="lamp" aria-hidden="true"></i></button>
   <button class="vtab" type="button" data-tab="editor" style="--k:var(--c-id)"><span>Editor</span></button>
-  <button class="vtab" type="button" data-tab="saved" style="--k:var(--c-number)"><span>Saved</span></button>
+  <button class="vtab" type="button" data-tab="roller" style="--k:var(--c-number)"><span>Roller</span></button>
   <button class="vtab" type="button" data-tab="settings" style="--k:var(--c-reference)"><span>Settings</span></button>
 </nav>
 <div class="wrap" id="wrap">
@@ -529,7 +617,7 @@ body.dragging #dropall{display:grid}
     <button class="tab" role="tab" id="t-free" data-tab="free" aria-controls="v-free" style="--k:var(--c-date);--ok:var(--on-date)"><i></i><span><b>Free Rain</b></span></button>
     <span class="tabgap" style="--k:var(--c-link);--ok:var(--on-link)"><i aria-hidden="true"></i><button class="devbtn" id="set-dev" type="button" role="switch" aria-checked="false" aria-label="Review mode" title="Review mode: highlight text to mark it, triple-click for a screenshot"></button></span>
     <button class="tab" role="tab" id="t-editor" data-tab="editor" aria-controls="v-editor" style="--k:var(--c-id);--ok:var(--on-id)"><i></i><span><b>Editor</b></span></button>
-    <button class="tab" role="tab" id="t-saved" data-tab="saved" aria-controls="v-saved" style="--k:var(--c-number);--ok:var(--on-number)"><i></i><span><b>Saved</b></span></button>
+    <button class="tab" role="tab" id="t-roller" data-tab="roller" aria-controls="v-roller" style="--k:var(--c-number);--ok:var(--on-number)"><i></i><span><b>Roller</b></span></button>
     <button class="tab" role="tab" id="t-settings" data-tab="settings" aria-controls="v-settings" style="--k:var(--c-reference);--ok:var(--on-reference)"><i></i><span><b>Settings</b></span></button>
   </nav>
 
@@ -618,7 +706,7 @@ body.dragging #dropall{display:grid}
         <div class="howto" id="howto" tabindex="0" aria-label="Quick how-to, scroll sideways"></div>
       </div>
     </div>
-    <div class="sec-row"><h3 class="sec">Recent</h3><button class="link" data-go="saved" data-sv="recent">See all</button></div>
+    <div class="sec-row"><h3 class="sec">Recent</h3><button class="link" data-go="settings" data-sv="recent">See all</button></div>
     <div class="thumbs" id="recent-thumbs"></div>
   </section>
 
@@ -738,19 +826,36 @@ body.dragging #dropall{display:grid}
     </div>
   </section>
 
-  <!-- ============ Saved ============ -->
-  <section class="view" id="v-saved" role="tabpanel" aria-labelledby="t-saved" hidden>
-    <h2 class="vh">Saved</h2>
-    <p class="sub">Your documents, kept in this browser on this device.</p>
-    <div class="sv-bar">
-      <div class="line">
-        <div class="seg" id="sv-tabs"><button data-v="saved">Saved</button><button data-v="recent">Recent</button><button data-v="deleted">Deleted</button></div>
-        <div class="seg" id="sv-view" aria-label="View"><button data-v="list">List</button><button data-v="grid">Thumbnails</button></div>
-      </div>
-      <input type="search" id="sv-q" placeholder="Search by name" aria-label="Search saved documents">
-      <div class="line" id="sv-note"></div>
+  <!-- ============ Roller ============ -->
+  <section class="view" id="v-roller" role="tabpanel" aria-labelledby="t-roller" hidden>
+    <h2 class="vh">Roller</h2>
+    <p class="lede">Select a word, a number or a whole section and let go. The enhancer bar opens out of the way of your text.</p>
+    <details class="card rl-how" id="rl-how" open>
+      <summary><h3>How to use the Roller</h3></summary>
+      <ol class="rl-steps">
+        <li><b>Select</b> any text in the passage below, with the mouse or your finger, and <b>let go</b>.</li>
+        <li>The <b>bar of 8 blocks</b> opens. Tap a block to open its menu, then follow the path, like <b>Text Amplifiers &rsaquo; Underline &rsaquo; Thickness</b>.</li>
+        <li><b>Caps</b>, <b>Font &#9650;</b> and <b>Font &#9660;</b> work on one tap.</li>
+        <li>Turn on <b>Multiple</b> to pick several enhancers first. Each picked block shows a check; open Multiple and tap <b>Apply</b> to put them all on at once.</li>
+        <li><b>Drag the bar</b> by its dotted grip to move it. It stays where you put it; double-tap the grip to send it back to following your text.</li>
+        <li><b>Undo</b> takes back the last change. Put in <b>your own text</b> by pasting it or uploading a file.</li>
+      </ol>
+    </details>
+    <div class="rl-tools" role="toolbar" aria-label="Roller tools">
+      <button class="tb" id="rl-undo" aria-label="Undo the last change">Undo</button>
+      <button class="tb" id="rl-clear">Clear enhancers</button>
+      <button class="tb" id="rl-reset">Default passage</button>
+      <span class="tsep"></span>
+      <button class="tb" id="rl-own-btn" aria-expanded="false" aria-controls="rl-own">Your own text</button>
+      <label class="tb rl-up" tabindex="0">Upload a file<input type="file" id="rl-file" accept=".txt,.md,.markdown,.pdf,.docx,.xlsx,.xlsm"></label>
     </div>
-    <div id="sv-list"></div>
+    <div class="card" id="rl-own" hidden>
+      <p class="hint" style="margin-top:0">Paste or type your text. It replaces the passage; enhancers start fresh.</p>
+      <textarea class="wb-text" id="rl-paste" rows="6" maxlength="20000" placeholder="Paste text here"></textarea>
+      <div class="actions" style="margin-top:10px"><button class="pill" id="rl-use">Use this text</button><button class="pill" id="rl-own-close">Close</button></div>
+    </div>
+    <div class="fr-page rl-page"><div id="rl-text" class="rl-text" data-plain aria-label="Passage to enhance"></div></div>
+    <div class="msg" id="rl-msg" role="status" aria-live="polite"></div>
   </section>
 
   <!-- ============ Settings ============ -->
@@ -758,6 +863,24 @@ body.dragging #dropall{display:grid}
     <h2 class="vh">Settings</h2>
     <p class="sub">Saved on this device.</p>
     <div class="set-grid">
+      <div class="card wide" id="saved-card">
+        <h3>Saved</h3>
+        <p class="hint">Your documents, kept in this browser on this device.</p>
+        <div class="sv-bar">
+          <div class="line">
+            <div class="seg" id="sv-tabs"><button data-v="saved">Saved</button><button data-v="recent">Recent</button><button data-v="deleted">Deleted</button></div>
+            <div class="seg" id="sv-view" aria-label="View"><button data-v="list">List</button><button data-v="grid">Thumbnails</button></div>
+          </div>
+          <input type="search" id="sv-q" placeholder="Search by name" aria-label="Search saved documents">
+          <div class="line" id="sv-note"></div>
+        </div>
+        <div id="sv-list"></div>
+      </div>
+      <div class="card wide" id="fonts-card">
+        <h3>Fonts</h3>
+        <p class="hint">The fonts the Roller offers under Font Type. Tap a font to dim it and leave it out; tap again to bring it back.</p>
+        <div class="fontlist" id="font-list" role="group" aria-label="Fonts offered in the Roller"></div>
+      </div>
       <div class="card">
         <h3>Appearance</h3>
         <div class="field"><span class="flabel">Theme</span><div class="seg" data-k="theme"><button data-v="dark">Dark</button><button data-v="light">Light</button><button data-v="auto">Auto</button></div></div>
@@ -770,7 +893,7 @@ body.dragging #dropall{display:grid}
       </div>
       <div class="card">
         <h3>Starting page</h3>
-        <div class="field"><span class="flabel">Open the app on</span><div class="seg" id="set-start"><button data-v="last">Last page used</button><button data-v="how">How it works</button><button data-v="layer">Synesthesize</button><button data-v="free">Free Rain</button></div></div>
+        <div class="field"><span class="flabel">Open the app on</span><div class="seg" id="set-start"><button data-v="last">Last page used</button><button data-v="how">How it works</button><button data-v="layer">Synesthesize</button><button data-v="free">Free Rain</button><button data-v="roller">Roller</button></div></div>
       </div>
       <div class="card">
         <h3>Install</h3>
@@ -882,6 +1005,10 @@ body.dragging #dropall{display:grid}
 
 <div id="toast" role="status" aria-live="polite"><span id="toast-t"></span><button id="toast-b" hidden></button></div>
 
+<!-- the Roller's floating bar and its menus (drawn by /roller.js from /roller-menu.js) -->
+<div id="rl-bar" role="toolbar" aria-label="Enhancers" hidden></div>
+<div id="rl-drop" role="menu" aria-label="Enhancer menu" hidden></div>
+
 <script id="cfg" type="application/json">{{CONFIG}}</script>
 <script>
 (function(){
@@ -902,7 +1029,7 @@ body.dragging #dropall{display:grid}
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
   var GRAMMAR = CATS.filter(function(c){ return c.layer === 'grammar'; }), LOOKABLE = CONTENT.concat(GRAMMAR);
-  function blank(){ return {colors:{}, body:DEF.body, heading:DEF.heading, size:DEF.size, mode:DEF.mode, theme:DEF.theme, palette:'default', hl:'md', look:{}, off:{}, wordbank:{on:true, words:[]}, passages:[], profiles:{}, profile:'core'}; }
+  function blank(){ return {colors:{}, body:DEF.body, heading:DEF.heading, size:DEF.size, mode:DEF.mode, theme:DEF.theme, palette:'default', hl:'md', look:{}, off:{}, wordbank:{on:true, words:[]}, passages:[], profiles:{}, profile:'core', fontsOff:[]}; }
   function blankProfile(label){ return {label: label, colors:{}, look:{}, off:{}, wordbank:{words:[]}}; }
   function cleanWord(w){
     if (!w || typeof w.word !== 'string' || !w.word.trim()) return null;
@@ -976,6 +1103,11 @@ body.dragging #dropall{display:grid}
       s.profiles[k] = o;
     });
     if (typeof src.profile === 'string' && (src.profile === 'core' || s.profiles[src.profile])) s.profile = src.profile;
+    // fonts dimmed in Settings, Fonts: the Roller leaves them out (at least one stays lit)
+    if (Array.isArray(src.fontsOff)){
+      var off = src.fontsOff.filter(function(k, i, a){ return FONTS[k] && a.indexOf(k) === i; });
+      if (off.length < Object.keys(FONTS).length) s.fontsOff = off;
+    }
   }
   var st = load();
   // the core settings with the active specialty laid over them: what every drawing reads
@@ -1454,8 +1586,10 @@ body.dragging #dropall{display:grid}
   }
 
   // ================= tabs =================
-  var TABS = ['how', 'layer', 'free', 'editor', 'saved', 'settings'], cur = null;
+  var TABS = ['how', 'layer', 'free', 'editor', 'roller', 'settings'], cur = null;
   function setTab(t, keepScroll){
+    var toSaved = t === 'saved';   // Saved lives in Settings now: old links and a remembered tab go there
+    if (toSaved) t = 'settings';
     if (TABS.indexOf(t) < 0) t = 'how';
     cur = t;
     TABS.forEach(function(x){
@@ -1470,13 +1604,17 @@ body.dragging #dropall{display:grid}
     if (location.hash !== '#' + t) history.replaceState(history.state, '', '#' + t);
     if (!keepScroll) window.scrollTo(0, 0);
     if (t === 'how') initShow();
-    if (t === 'saved') renderSaved();
     if (t === 'layer') renderRecent();
-    if (t === 'settings') usage();
+    if (t === 'settings'){ usage(); renderSaved(); }
     if (t === 'free') frPaint();
     if (t === 'editor') initEditor();
+    if (window.synRoller) synRoller.tab(t);
     rainSync();
     measureTabs();
+    if (toSaved) setTimeout(function(){
+      var top = $('saved-card').getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(root).getPropertyValue('--tabh')) || 0) - 12;
+      window.scrollTo(0, Math.max(0, top));
+    }, 30);
   }
   document.querySelectorAll('.tab,.vtab').forEach(function(b){ b.onclick = function(){ setTab(b.getAttribute('data-tab')); }; });
   // phones: the + after the name shows or hides the side strip (filled while it's out); it slides the same
@@ -1510,8 +1648,9 @@ body.dragging #dropall{display:grid}
   });
   document.addEventListener('click', function(e){
     var g = e.target.closest('[data-go]'); if (!g) return;
-    if (g.getAttribute('data-sv')) svTab = g.getAttribute('data-sv');
-    setTab(g.getAttribute('data-go'));
+    var sv = g.getAttribute('data-sv');
+    if (sv) svTab = sv;
+    setTab(sv ? 'saved' : g.getAttribute('data-go'));   // a Saved list is a card in Settings
   });
   // how much the pinned bars cover (0 while they scroll away), for things that pin themselves under them
   function measureTabs(){ var tb = $('tabbar'); root.style.setProperty('--tabh', (getComputedStyle(tb).position === 'sticky' ? tb.offsetHeight : 0) + 'px'); }
@@ -1745,11 +1884,12 @@ body.dragging #dropall{display:grid}
   document.addEventListener('drop', function(e){
     if (!hasFiles(e)) return;
     e.preventDefault(); depth = 0; document.body.classList.remove('dragging'); drop.classList.remove('over');
+    if (cur === 'roller' && window.synRoller){ synRoller.file(e.dataTransfer.files[0]); return; }   // the Roller takes its own files
     take(e.dataTransfer.files[0]);
   });
   document.addEventListener('paste', function(e){
     var fl = e.clipboardData && e.clipboardData.files && e.clipboardData.files[0];
-    if (fl && !e.target.closest('#fr, input, textarea')){ e.preventDefault(); take(fl); }
+    if (fl && cur !== 'roller' && !e.target.closest('#fr, input, textarea')){ e.preventDefault(); take(fl); }
   });
   if ('launchQueue' in window) launchQueue.setConsumer(function(p){
     if (p.files && p.files[0]) p.files[0].getFile().then(take);
@@ -1909,7 +2049,7 @@ body.dragging #dropall{display:grid}
     if (lb.open){ lb.close(); return; }
     if ($('result').classList.contains('on')){ hideResult(); renderRecent(); return; }
     if (roOpen()){ hideRoller(); return; }
-    var t = location.hash.slice(1); if (TABS.indexOf(t) >= 0 && t !== cur) setTab(t);
+    var t = location.hash.slice(1); if ((TABS.indexOf(t) >= 0 && t !== cur) || t === 'saved') setTab(t);
   });
 
   // ================= Free Rain =================
@@ -2872,7 +3012,7 @@ body.dragging #dropall{display:grid}
   $('sv-view').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b){ svView = b.getAttribute('data-v'); lsSet('synapp.svview', svView); renderSaved(); } });
   $('sv-q').oninput = function(){ renderSaved(); };
   function renderSaved(){
-    if (cur !== 'saved') return;
+    if (cur !== 'settings') return;
     allDocs().then(function(all){
       var n = {saved: 0, recent: 0, deleted: 0};
       all.forEach(function(r){ n[r.status] = (n[r.status] || 0) + 1; });
@@ -2917,7 +3057,7 @@ body.dragging #dropall{display:grid}
       }
     });
   }
-  docsListeners.push(function(){ if (cur === 'saved') renderSaved(); if (cur === 'layer') renderRecent(); if (cur === 'settings') usage(); });
+  docsListeners.push(function(){ if (cur === 'layer') renderRecent(); if (cur === 'settings'){ renderSaved(); usage(); } });
 
   // ================= Settings =================
   function syncSettings(){
@@ -2996,7 +3136,7 @@ body.dragging #dropall{display:grid}
   purgeDeleted();
   var startPref = lsGet('synapp.start') || 'last';
   var first = location.hash.slice(1);
-  if (TABS.indexOf(first) < 0) first = startPref === 'last' ? (lsGet('synapp.tab') || 'how') : startPref;
+  if (TABS.indexOf(first) < 0 && first !== 'saved') first = startPref === 'last' ? (lsGet('synapp.tab') || 'how') : startPref;
   setTab(first);
   // messages, file names and other text set later get colored as they appear
   if (window.MutationObserver) obs = new MutationObserver(function(recs){
@@ -3010,8 +3150,14 @@ body.dragging #dropall{display:grid}
   if (obs) obs.observe(wrap, {childList: true, characterData: true, subtree: true});
   setUi(uiOn);
   // for developer mode (/dev.js): the app's toast and which tab is open
-  window.synApp = {toast: toast, tab: function(){ return cur; }, setTab: setTab, style: styleForServer, pushStyle: pushStyle};
+  window.synApp = {toast: toast, tab: function(){ return cur; }, setTab: setTab, style: styleForServer, pushStyle: pushStyle,
+    // for the Roller (/roller.js)
+    ask: ask, el: el, fonts: FONTS, useFont: useFont, lsGet: lsGet, lsSet: lsSet, calm: calmNow,
+    st: function(){ return st; }, save: function(){ save(); }, rainbow: function(){ return RAINBOW.filter(cat).map(function(n){ return col(cat(n), theme()); }); },
+    onColor: onColor, maxBytes: cfg.maxBytes, mb: mb};
 })();
 </script>
+<script src="/roller-menu.js?v={{MENUJS}}"></script>
+<script src="/roller.js?v={{ROLLERJS}}"></script>
 </body>
 </html>

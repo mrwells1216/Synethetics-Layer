@@ -31,7 +31,8 @@ APP_PAGE = Path(__file__).resolve().parent / "templates" / "app.html"
 STATIC = Path(__file__).resolve().parent / "static"  # icons, drawn by tools/make_icons.py
 ICONS = {"favicon.ico": "favicon-32.png", **{p: p for p in (
     "icon.svg", "favicon.svg", "favicon-32.png", "icon-192.png", "icon-512.png",
-    "icon-maskable-512.png", "apple-touch-icon.png", "showcase.json", "dev.js")},
+    "icon-maskable-512.png", "apple-touch-icon.png", "showcase.json", "dev.js",
+    "roller-menu.js", "roller.js")},
     # sample files to try in Synesthesize (tools/build_samples.py)
     "market-wrap.pdf": "samples/market-wrap.pdf", "market-wrap.docx": "samples/market-wrap.docx"}
 CTYPES = {".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json", ".pdf": "application/pdf",
@@ -101,6 +102,7 @@ def app_page(lens, max_bytes: int, hosted: bool) -> str:
         "dev": {"store": ("blob" if fixmod.blob_ready() else "none") if hosted else "local"},
     }
     page = APP_PAGE.read_text(encoding="utf-8").replace("{{DEVJS}}", _version(STATIC / "dev.js"))
+    page = page.replace("{{MENUJS}}", _version(STATIC / "roller-menu.js")).replace("{{ROLLERJS}}", _version(STATIC / "roller.js"))
     return page.replace("{{CONFIG}}", json.dumps(cfg).replace("</", "<\\/"))
 
 

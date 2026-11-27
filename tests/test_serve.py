@@ -27,6 +27,24 @@ def test_upload_page(server):
     assert "Synesthetic Layer" in html and ".pdf" in html
 
 
+def test_roller_tab_and_its_scripts(server):
+    import re
+
+    html = urllib.request.urlopen(server + "/", timeout=10).read().decode()
+    # Roller took Saved's place in the menu; Saved is a card in Settings
+    assert 'id="t-roller"' in html and 'id="v-roller"' in html and 'data-tab="roller"' in html
+    assert 'id="t-saved"' not in html and 'data-tab="saved"' not in html
+    assert 'id="saved-card"' in html and 'id="sv-list"' in html and 'id="font-list"' in html
+    for name in ("roller-menu.js", "roller.js"):
+        m = re.search(r'src="/' + re.escape(name) + r'\?v=(\w+)"', html)
+        assert m and m.group(1), name   # versioned, so a change reaches browsers
+        r = urllib.request.urlopen(f"{server}/{name}", timeout=10)
+        assert r.status == 200 and "javascript" in r.headers["Content-Type"]
+    menu = urllib.request.urlopen(server + "/roller-menu.js", timeout=10).read().decode()
+    ids = re.findall(r"\{id: '(\w+)'", menu)
+    assert ids == ["amp", "font", "hl", "space", "caps", "up", "down", "multi"]   # the 8 blocks, in order
+
+
 def test_convert_markdown(server):
     r = post(server, "note.md", b"# Title\n\nPay $1,250 by Aug 14, 2026.\n")
     html = r.read().decode()

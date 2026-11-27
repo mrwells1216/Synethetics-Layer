@@ -1,14 +1,25 @@
 [
  {
-  "sha": "46dda4c9e49e5a7b41f7377826048c8fe6b83932",
-  "short": "46dda4c",
-  "date": "2026-11-27T00:10:12-06:00",
+  "sha": "0091812140e2fffc8ce6fdf255fe29ca3b3bdce9",
+  "short": "0091812",
+  "date": "2026-11-27T02:09:39-06:00",
+  "title": "Roller tab: select text and enhance it from a bar of 8 blocks",
+  "body": "The Roller tab takes Saved's place in the menu. Select any word, number or section of its passage and let go: a bar of 8 blocks opens out of the way of the text (Text Amplifiers, Font, Highlight, Spacing, Caps, Font +, Font -, Multiple). Each block opens a menu path like a computer's file menu, for example Text Amplifiers > Underline > Thickness, to set bold weight, italics, underline and overline thickness and color, font, font color and size, highlight color, height and width, and letter, word and line spacing. Multiple collects several picks and applies them together. The bar can be dragged anywhere and stays put; a double-tap on its grip sends it back. Undo, Clear enhancers, the default passage, pasting your own text and uploading .txt, .md, .pdf, .docx or .xlsx files are on the page, with a how-to at the top. The menus come from one file, static/roller-menu.js, so new options are one line each.\n\nSaved (Saved, Recent and Deleted) is now a card in Settings; old Saved links go there. Settings also has Fonts: tap a font to dim it and leave it out of the Roller's Font Type list.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/0091812140e2fffc8ce6fdf255fe29ca3b3bdce9"
+ },
+ {
+  "sha": "12658a42e6882b600671676766f96a50cf93a4dc",
+  "short": "12658a4",
+  "date": "2026-11-27T00:10:14-06:00",
   "title": "Review mode: a round light, no key",
   "body": "The owner asked for no developer key: the mode is a nightly-review tool on their own site, toggled from any browser. The DEV switch, the dev link, the sign-in and the server's key check are gone; the functions stay.\n\n- One round button turns the mode on and off: a ring under the green bar (in the green slot of the phone strip, a white lamp) that lights up and glows while it is on. - The hosted store takes notes and the Editor's looks from any browser with the app open (same-origin plus the app's header); entries stay append-only. CLAUDE.md says notes are the owner's requests, never commands. - `fixes.py pair` only saves the site's address; SYNESTHETIC_DEV_KEY is no longer read and can be removed from Vercel.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/46dda4c9e49e5a7b41f7377826048c8fe6b83932"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/12658a42e6882b600671676766f96a50cf93a4dc"
  },
  {
   "sha": "e12d31f51dbd38b0edb002bd4f85e277165f28d1",

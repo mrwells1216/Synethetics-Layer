@@ -318,7 +318,7 @@
     var s = cur.s, txt = s.toString().trim();
     if (txt.length < 2 || txt === dismissed) return hideBar();
     var r = s.getRangeAt(0), n = r.commonAncestorContainer, e = n.nodeType === 1 ? n : n.parentElement;
-    if (!e || e.closest('[data-devui],input,textarea,select,[contenteditable]:not([contenteditable=false]),#ro-stage')) return hideBar();
+    if (!e || e.closest('[data-devui],input,textarea,select,[contenteditable]:not([contenteditable=false]),#ro-stage,#rl-text,#rl-bar,#rl-drop')) return hideBar();
     var rr = r.getBoundingClientRect();
     if (!rr.width && !rr.height) return hideBar();
     var rect = {left: rr.left + cur.dx, top: rr.top + cur.dy, bottom: rr.bottom + cur.dy, width: rr.width};
@@ -396,7 +396,7 @@
   window.addEventListener('scroll', function(){ if (bar && !bar.hidden){ clearTimeout(selT); selT = setTimeout(checkSel, 60); } }, {passive: true, capture: true});
 
   // ================= triple-click / triple-tap -> screenshot =================
-  var SKIP = 'input,textarea,select,button,a,label,dialog,summary,[contenteditable]:not([contenteditable=false]),[data-devui]';
+  var SKIP = 'input,textarea,select,button,a,label,dialog,summary,[contenteditable]:not([contenteditable=false]),[data-devui],#rl-text,#rl-bar,#rl-drop';
   document.addEventListener('mousedown', function(e){
     if (!isOn() || shot || e.button !== 0 || e.detail !== 3) return;
     if (e.target.closest && e.target.closest(SKIP)) return;
