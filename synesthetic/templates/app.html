@@ -456,6 +456,32 @@ body.dragging #dropall{display:grid}
 .rl-steps b{color:var(--fg)}
 .rl-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0 10px}
 .rl-page{margin-top:4px}
+select.tb{width:auto;max-width:14em;padding:7px 30px 7px 11px;border-radius:10px;background-position:right 10px center}
+.rl-roll{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+#rl-layers-card{margin-top:14px}
+.ly-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.ly-row:last-child{border-bottom:0}
+.ly-row .ly-t{font-size:1.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 0}
+.ly-row small{grid-column:1/-1;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.ly-row small i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;border:1px solid var(--line)}
+.ly-row .acts{display:flex;gap:6px}
+.ly-row .acts .pill{padding:6px 11px;font-size:13px}
+.ly-kind{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--raised);color:var(--fg)}
+.rl-done{all:unset;box-sizing:border-box;flex:none;width:46px;display:grid;place-items:center;align-content:center;gap:1px;border-radius:11px;cursor:pointer;background:var(--c-link);color:var(--on-link);font-weight:900}
+.rl-done i{font-style:normal;font-size:19px;line-height:1}
+.rl-done small{font-size:9px;font-weight:800}
+.rl-done:focus-visible{outline:2px solid var(--fg);outline-offset:1px}
+@keyframes popin{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+.rl-done{animation:popin .25s var(--ease)}
+.pr-item{border-bottom:1px solid var(--line);padding:6px 0}
+.pr-item:last-child{border-bottom:0}
+.pr-item summary{cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;list-style:none}
+.pr-item summary::-webkit-details-marker{display:none}
+.pr-item summary b{font-size:15px}
+.pr-item summary small{color:var(--muted);font-size:13px}
+.pr-item summary .acts{margin-left:auto;display:flex;gap:6px}
+.pr-item summary .acts .pill{padding:5px 10px;font-size:13px}
+.pr-item.hid summary b{opacity:.45}
 .rl-text{padding:22px 24px;line-height:1.75;overflow-wrap:anywhere;font-size:1.04em;-webkit-user-select:text;user-select:text}
 .rl-text p{margin:0 0 .9em}
 .rl-text p:last-child{margin-bottom:0}
@@ -694,6 +720,7 @@ body.dragging #dropall{display:grid}
           <label class="sw-row" id="o-keep" hidden><input id="keep" type="checkbox" role="switch"><span>Keep the original layout<small>On: the colors go on top of your PDF, Word or Excel file. Off: the text is pulled out into a new colored page.</small></span></label>
           <label class="sw-row" id="o-pdf" hidden><input id="pdfletters" type="checkbox" role="switch"><span>Change the letters<small>On: matched words are redrawn in your colors, fonts, ALL CAPS and sizes, right where they were. Off: light highlight notes on top, which any PDF app can hide.</small></span></label>
           <label class="sw-row" id="o-roll" hidden><input id="useroll" type="checkbox" role="switch"><span>Choose what to color (Roller)<small>Opens your file so you can select the parts to color, like rolling paint on. Everything else stays as it is.</small></span></label>
+          <label class="field" id="o-preset" hidden><span class="flabel">Roll with</span><select id="ly-preset" data-presets aria-label="Preset roller for this file"></select></label>
           <p class="hint" id="o-nolayout" hidden>This kind of file has no layout of its own, so it becomes a colored page.</p>
           <label class="sw-row" id="o-grammar" hidden><input id="grammar" type="checkbox" role="switch"><span>Grammar layer<small>Tints nouns, bolds verbs, italicizes adjectives and underlines adverbs. Busier page.</small></span></label>
           <label class="sw-row" id="o-fast" hidden><input id="fast" type="checkbox" role="switch"><span>Fast PDF<small>Skips table detection. Use it if a big PDF is slow.</small></span></label>
@@ -726,6 +753,7 @@ body.dragging #dropall{display:grid}
       <button class="tb" data-cmd="clear" aria-label="Clear formatting">Clear format</button>
       <button class="tb" id="fr-space-btn" aria-expanded="false" aria-controls="fr-space">Spacing</button>
       <span class="tsep roll-only"></span>
+      <select class="tb roll-only fr-preset" id="fr-preset" data-presets aria-label="Roll with"></select>
       <button class="tb roll roll-only" id="fr-roll">Color selection</button>
       <button class="tb roll-only" id="fr-unroll">Remove color</button>
     </div>
@@ -841,6 +869,11 @@ body.dragging #dropall{display:grid}
         <li><b>Undo</b> takes back the last change. Put in <b>your own text</b> by pasting it or uploading a file.</li>
       </ol>
     </details>
+    <div class="rl-tools" role="toolbar" aria-label="Roller mode">
+      <div class="seg" id="rl-mode" role="group" aria-label="What selecting does"><button data-v="enhance" aria-pressed="true">Enhance</button><button data-v="roll">Roll a preset</button></div>
+      <span class="rl-roll" hidden><select class="tb" id="rl-preset" data-presets aria-label="Preset roller to roll"></select>
+        <button class="tb roll" id="rl-roll-all">Roll whole passage</button></span>
+    </div>
     <div class="rl-tools" role="toolbar" aria-label="Roller tools">
       <button class="tb" id="rl-undo" aria-label="Undo the last change">Undo</button>
       <button class="tb" id="rl-clear">Clear enhancers</button>
@@ -856,6 +889,12 @@ body.dragging #dropall{display:grid}
     </div>
     <div class="fr-page rl-page"><div id="rl-text" class="rl-text" data-plain aria-label="Passage to enhance"></div></div>
     <div class="msg" id="rl-msg" role="status" aria-live="polite"></div>
+    <div class="card" id="rl-layers-card">
+      <h3>Layers</h3>
+      <p class="hint" id="rl-layers-hint">Each section you finish with the green &#10003; becomes a layer: the text and its enhancers. When the passage looks right, Configure Roller saves the layers as a preset roller you can roll over any text.</p>
+      <div id="rl-layers" data-plain></div>
+      <div class="actions"><button class="pill" id="rl-config" aria-disabled="true">Configure Roller</button><button class="pill" id="rl-layers-clear" hidden>Start a new set of layers</button></div>
+    </div>
   </section>
 
   <!-- ============ Settings ============ -->
@@ -875,6 +914,11 @@ body.dragging #dropall{display:grid}
           <div class="line" id="sv-note"></div>
         </div>
         <div id="sv-list"></div>
+      </div>
+      <div class="card wide" id="presets-card">
+        <h3>Preset rollers</h3>
+        <p class="hint">Rollers you saved with Configure Roller. Open one to see its layers. A hidden roller stays here but is left out of the Roll with lists.</p>
+        <div id="preset-list" data-plain></div>
       </div>
       <div class="card wide" id="fonts-card">
         <h3>Fonts</h3>
@@ -1029,7 +1073,7 @@ body.dragging #dropall{display:grid}
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
   var GRAMMAR = CATS.filter(function(c){ return c.layer === 'grammar'; }), LOOKABLE = CONTENT.concat(GRAMMAR);
-  function blank(){ return {colors:{}, body:DEF.body, heading:DEF.heading, size:DEF.size, mode:DEF.mode, theme:DEF.theme, palette:'default', hl:'md', look:{}, off:{}, wordbank:{on:true, words:[]}, passages:[], profiles:{}, profile:'core', fontsOff:[]}; }
+  function blank(){ return {colors:{}, body:DEF.body, heading:DEF.heading, size:DEF.size, mode:DEF.mode, theme:DEF.theme, palette:'default', hl:'md', look:{}, off:{}, wordbank:{on:true, words:[]}, passages:[], profiles:{}, profile:'core', fontsOff:[], rollers:[]}; }
   function blankProfile(label){ return {label: label, colors:{}, look:{}, off:{}, wordbank:{words:[]}}; }
   function cleanWord(w){
     if (!w || typeof w.word !== 'string' || !w.word.trim()) return null;
@@ -1040,6 +1084,40 @@ body.dragging #dropall{display:grid}
     if (typeof w.size === 'number' && w.size >= .8 && w.size <= 2.5) e.size = Math.round(w.size * 100) / 100;
     ['caps','bold','italic','underline','off'].forEach(function(k){ if (w[k] === true) e[k] = true; });
     return e;
+  }
+  // one Roller look: every enhancer the bar can set, checked the same way render.py clean_rich checks it
+  var HEX = /^#[0-9a-f]{6}$/i;
+  function num(v, lo, hi){ return typeof v === 'number' && isFinite(v) && v >= lo && v <= hi ? Math.round(v * 1000) / 1000 : undefined; }
+  function cleanLine(v){
+    if (!v || typeof v !== 'object') return undefined;
+    var o = {}, w = num(v.w, 1, 6); if (w) o.w = w; if (HEX.test(v.color || '')) o.color = v.color.toLowerCase();
+    return o;
+  }
+  function cleanRich(l){
+    if (!l || typeof l !== 'object') return {};
+    var o = {}, w = num(l.weight, 100, 900);
+    if (w) o.weight = Math.round(w / 100) * 100;
+    ['italic', 'caps'].forEach(function(k){ if (l[k] === true) o[k] = true; });
+    if (FONTS[l.font]) o.font = l.font;
+    if (HEX.test(l.color || '')) o.color = l.color.toLowerCase();
+    var sz = num(l.size, 10, 64); if (sz) o.size = sz;
+    ['underline', 'overline'].forEach(function(k){ var x = cleanLine(l[k]); if (x) o[k] = x; });
+    if (l.hl && typeof l.hl === 'object'){
+      var h = {}; if (HEX.test(l.hl.color || '')) h.color = l.hl.color.toLowerCase();
+      var hh = num(l.hl.h, 20, 100); if (hh) h.h = hh;
+      var hw = num(l.hl.w, 0, .6); if (hw !== undefined) h.w = hw;
+      if (Object.keys(h).length) o.hl = h;
+    }
+    var ls = num(l.ls, -.05, .3), ws = num(l.ws, 0, 1), lh = num(l.lh, 1, 3);
+    if (ls !== undefined) o.ls = ls; if (ws !== undefined) o.ws = ws; if (lh !== undefined) o.lh = lh;
+    return o;
+  }
+  function cleanLayer(x){
+    if (!x || typeof x !== 'object' || typeof x.text !== 'string' || !x.text.trim()) return null;
+    var look = cleanRich(x.look); if (!Object.keys(look).length) return null;
+    var o = {id: typeof x.id === 'string' && x.id ? x.id.slice(0, 40) : newId(), text: x.text.trim().slice(0, 120), match: 'word', look: look};
+    if (x.match === 'kind' && cat(x.cat) && cat(x.cat).layer !== 'meaning'){ o.match = 'kind'; o.cat = x.cat; }
+    return o;
   }
   function load(){
     var s = blank();
@@ -1103,6 +1181,13 @@ body.dragging #dropall{display:grid}
       s.profiles[k] = o;
     });
     if (typeof src.profile === 'string' && (src.profile === 'core' || s.profiles[src.profile])) s.profile = src.profile;
+    // preset rollers from the Roller tab: named sets of layers (a text and its enhancers)
+    if (Array.isArray(src.rollers)) s.rollers = src.rollers.map(function(p){
+      if (!p || typeof p !== 'object' || !Array.isArray(p.layers)) return null;
+      var layers = p.layers.map(cleanLayer).filter(Boolean).slice(0, 200);
+      if (!layers.length) return null;
+      return {id: typeof p.id === 'string' && p.id ? p.id.slice(0, 40) : newId(), name: String(p.name || 'Roller').slice(0, 40), hidden: p.hidden === true, layers: layers};
+    }).filter(Boolean).slice(0, 24);
     // fonts dimmed in Settings, Fonts: the Roller leaves them out (at least one stays lit)
     if (Array.isArray(src.fontsOff)){
       var off = src.fontsOff.filter(function(k, i, a){ return FONTS[k] && a.indexOf(k) === i; });
@@ -1900,7 +1985,11 @@ body.dragging #dropall{display:grid}
     return {colors: EF.colors, body: st.body, heading: st.heading, size: st.size, mode: s.mode, theme: s.theme, palette: s.palette, hl: st.hl,
             look: EF.look, off: EF.off, pdf: $('pdfletters').checked ? 'restyle' : 'notes', wordbank: {on: st.wordbank.on, words: EF.words.filter(function(w){ return !w.off; })}};
   }
-  function headers(name){ return {'X-File-Name': encodeURIComponent(name), 'X-Style': encodeURIComponent(JSON.stringify(styleForServer()))}; }
+  function headers(name){
+    var s = styleForServer(), pid = $('ly-preset').value;   // a preset roller picked for this file rolls over all of it
+    if (pid && window.synRoller) s = synRoller.styleWith(s, pid);
+    return {'X-File-Name': encodeURIComponent(name), 'X-Style': encodeURIComponent(JSON.stringify(s))};
+  }
   // send one document; `out` is the status line under the button that started it
   async function send(name, body, grammar, fast, out, keepIt, only){
     function tell(t, err){ out.className = 'msg' + (err ? ' err' : ''); out.textContent = t; }
@@ -2105,7 +2194,7 @@ body.dragging #dropall{display:grid}
   // Roller: only what you roll over is colored; the colors stay in the text.
   function frPaint(){
     if (frMode === 'auto') keepSel(fr, function(){ fr.querySelectorAll('span[data-fr]').forEach(unwrap); colorText(fr, null, 'data-fr'); });
-    setHL('fr-', frMode === 'roll' ? matchesIn(fr, liveSel) : {});
+    setHL('fr-', frMode === 'roll' && !$('fr-preset').value ? matchesIn(fr, liveSel) : {});
     frStats();
   }
   function frStats(){
@@ -2148,20 +2237,25 @@ body.dragging #dropall{display:grid}
     var r = selIn(fr);
     if (r && toOff(fr, r).join(',') === lastRoll) r = null;
     liveSel = r ? r.cloneRange() : null;
-    setHL('fr-', matchesIn(fr, liveSel));
+    setHL('fr-', $('fr-preset').value ? {} : matchesIn(fr, liveSel));   // a preset shows when you let go
     if (liveSel && !frDown) commitT = setTimeout(commitRoll, 650);   // keyboard and phone handles
   });
   var lastRoll = '';   // the selection last rolled, so putting it back afterwards doesn't roll it again
   function commitRoll(range){
     var r = range || liveSel; if (!r || r.collapsed) return;
     lastRoll = toOff(fr, r).join(',');
-    var made = 0;
-    keepSel(fr, function(){ made = colorText(fr, [r], 'data-fr'); });
+    var made = 0, pid = $('fr-preset').value;
+    // a preset roller picked: its layers go on what you rolled over; otherwise the category colors do
+    keepSel(fr, function(){ made = pid && window.synRoller ? synRoller.roll(fr, toOff(fr, r), pid) : colorText(fr, [r], 'data-fr'); });
     liveSel = null; frPaint();
     if (made){ note.dirty = true; frStatus(); saveDraft(); }
+    else if (pid) toast('Nothing in that part matches this roller');
   }
   function unroll(r){
-    keepSel(fr, function(){ fr.querySelectorAll('span[data-fr]').forEach(function(sp){ if (r.intersectsNode(sp)) unwrap(sp); }); });
+    keepSel(fr, function(){
+      fr.querySelectorAll('span[data-fr]').forEach(function(sp){ if (r.intersectsNode(sp)) unwrap(sp); });
+      fr.querySelectorAll('span.rx').forEach(function(sp){ if (r.intersectsNode(sp)) unwrap(sp); });
+    });
     liveSel = null; frPaint(); note.dirty = true; frStatus(); saveDraft();
   }
   $('fr-roll').onclick = function(){ var r = selIn(fr); if (r) commitRoll(r.cloneRange()); else toast('Select some text first'); };
@@ -3154,7 +3248,10 @@ body.dragging #dropall{display:grid}
     // for the Roller (/roller.js)
     ask: ask, el: el, fonts: FONTS, useFont: useFont, lsGet: lsGet, lsSet: lsSet, calm: calmNow,
     st: function(){ return st; }, save: function(){ save(); }, rainbow: function(){ return RAINBOW.filter(cat).map(function(n){ return col(cat(n), theme()); }); },
-    onColor: onColor, maxBytes: cfg.maxBytes, mb: mb};
+    onColor: onColor, maxBytes: cfg.maxBytes, mb: mb, cleanLayer: cleanLayer, cleanRich: cleanRich, newId: newId,
+    // what the detector finds in a text (the same categories every page gets), and their names
+    detect: function(t){ return spans(t).filter(function(s){ return !/^wb-/.test(s.cat); }); },
+    catLabel: function(n){ var c = cat(n); return c ? c.label : n; }};
 })();
 </script>
 <script src="/roller-menu.js?v={{MENUJS}}"></script>

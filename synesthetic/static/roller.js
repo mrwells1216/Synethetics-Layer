@@ -43,6 +43,7 @@
   }
 
   // ---------- selections, as character offsets in the passage ----------
+  // (most of these take a root: the Roller's passage by default, or Free Rain's page when a preset rolls there)
   function offIn(node, o){ var r = document.createRange(); r.selectNodeContents(box); r.setEnd(node, o); return r.toString().length; }
   function current(){
     var s = getSelection();
@@ -52,14 +53,14 @@
     var a = offIn(r.startContainer, r.startOffset), b = offIn(r.endContainer, r.endOffset);
     return a < b ? [a, b] : null;
   }
-  function texts(){
-    var w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT), list = [], t;
+  function texts(rt){
+    var w = document.createTreeWalker(rt || box, NodeFilter.SHOW_TEXT), list = [], t;
     while ((t = w.nextNode())) list.push(t);
     return list;
   }
-  function rangeOf(o){
+  function rangeOf(o, rt){
     var r = document.createRange(), pos = 0, started = false, last = null;
-    var list = texts();
+    var list = texts(rt);
     for (var i = 0; i < list.length; i++){
       var t = list[i], n = t.nodeValue.length; last = t;
       if (!started && pos + n > o[0]){ r.setStart(t, o[0] - pos); started = true; }
@@ -123,9 +124,9 @@
   }
 
   // the spans that cover the selection, splitting text and spans at its edges
-  function targets(o){
+  function targets(o, rt){
     var pos = 0, cut = [];
-    texts().forEach(function(t){
+    texts(rt).forEach(function(t){
       var n = t.nodeValue.length, s = Math.max(o[0], pos) - pos, e = Math.min(o[1], pos + n) - pos;
       if (e > s) cut.push([t, s, e]);
       pos += n;
@@ -150,22 +151,25 @@
     var s = el('span', 'rx'); p.insertBefore(s, t); s.appendChild(t);
     return s;
   }
-  function tidy(){   // drop spans with no look left, join neighbors that look the same
-    box.querySelectorAll('span.rx').forEach(function(s){
+  function tidy(rt){   // drop spans with no look left, join neighbors that look the same
+    rt = rt || box;
+    rt.querySelectorAll('span.rx').forEach(function(s){
       if (!s.getAttribute('data-look')){ var p = s.parentNode; while (s.firstChild) p.insertBefore(s.firstChild, s); p.removeChild(s); }
     });
-    box.querySelectorAll('span.rx').forEach(function(s){
+    rt.querySelectorAll('span.rx').forEach(function(s){
       var n = s.nextSibling;
       while (n && n.nodeType === 1 && n.classList.contains('rx') && n.getAttribute('data-look') === s.getAttribute('data-look')){
         while (n.firstChild) s.appendChild(n.firstChild);
         var gone = n; n = n.nextSibling; gone.parentNode.removeChild(gone);
       }
     });
-    box.normalize();
+    rt.normalize();
   }
-  function paras(o){
-    var r = rangeOf(o); if (!r) return [];
-    return [].filter.call(box.children, function(p){ return r.intersectsNode(p); });
+  var BLOCKS = 'p,li,h1,h2,h3,h4,blockquote,div';
+  function paras(o, rt){   // the innermost blocks (paragraphs, list items) the offsets touch
+    rt = rt || box;
+    var r = rangeOf(o, rt); if (!r) return [];
+    return [].filter.call(rt.querySelectorAll(BLOCKS), function(p){ return !p.querySelector(BLOCKS) && r.intersectsNode(p); });
   }
   // the look at the start of the selection, for showing what is set now
   function lookAt(o){
@@ -207,10 +211,11 @@
     if (!sel){ A.toast('Select some text first'); return; }
     snapshot(key);
     change(c); reselect(); refreshDrop();
+    if (!changed){ changed = true; drawBar(); }   // the green check appears: done with this section
   }
 
   // ---------- Multiple: pick several, then apply them together ----------
-  var multi = false, staged = [];
+  var multi = false, staged = [], changed = false;
   function stage(c, label, blockId){
     if (c.mode === 'bump'){
       var same = staged.filter(function(x){ return x.c.mode === 'bump' && x.c.path === c.path; })[0];
@@ -226,7 +231,7 @@
     if (!staged.length || !sel) return;
     snapshot();
     staged.forEach(function(x){ change(x.c); });
-    var n = staged.length; staged = [];
+    var n = staged.length; staged = []; changed = true;
     reselect(); closeDrop(); drawBar();
     A.toast(n + (n === 1 ? ' enhancer' : ' enhancers') + ' applied');
   }
@@ -258,6 +263,13 @@
       x.onclick = function(){ blockTap(b); };
       bar.appendChild(x);
     });
+    if (changed){
+      var done = el('button', 'rl-done'); done.type = 'button';
+      done.setAttribute('aria-label', 'Done with this section: keep it as a layer'); done.title = 'Done with this section: keep it as a layer';
+      done.append(el('i', null, '✓'), el('small', null, 'Done'));
+      done.onclick = commitLayer;
+      bar.appendChild(done);
+    }
   }
   function blockTap(b){
     if (b.multi){
@@ -529,7 +541,11 @@
     var o = current();
     if (!o){ if (inBox && s.isCollapsed){ sel = null; hideAll(); } return; }
     if (sel && o[0] === sel[0] && o[1] === sel[1] && !bar.hidden) return;
-    sel = o; showBar();
+    if (mode === 'roll'){ sel = null; hideAll(); rollHere(o); return; }   // rolling: the preset goes on what you selected
+    var fresh2 = !sel || o[0] !== sel[0] || o[1] !== sel[1];
+    sel = o;
+    if (fresh2 && changed){ changed = false; if (!bar.hidden) drawBar(); }
+    showBar();
   }
   box.addEventListener('pointerdown', function(){ down = true; });
   document.addEventListener('pointerup', function(){ if (!down) return; down = false; setTimeout(check, 20); });
@@ -552,7 +568,7 @@
 
   // ---------- tools: undo, clear, default passage, your own text ----------
   function msg(t, err){ var m = $('rl-msg'); m.className = 'msg' + (err ? ' err' : ''); m.textContent = t; }
-  function fresh(text){ snapshot(); setText(text); sel = null; hideAll(); }
+  function fresh(text){ snapshot(); setText(text); sel = null; changed = false; hideAll(); }
   $('rl-undo').onclick = doUndo;
   $('rl-clear').onclick = function(){
     if (!box.querySelector('span.rx,[data-lh]')){ A.toast('No enhancers to clear'); return; }
@@ -620,12 +636,255 @@
     });
   }
 
+  // ================= layers, preset rollers and rolling =================
+  // A layer is a text and the enhancers it got: {id, text, match: 'word' | 'kind', cat, look}.
+  // 'word' catches the same word or phrase anywhere (any case, whole words, like the Word Bank);
+  // 'kind' catches everything the detector puts in that category (every number, every date...).
+  var layers = [];
+  try { layers = (JSON.parse(A.lsGet('synapp.rlayers') || '[]') || []).map(A.cleanLayer).filter(Boolean); } catch (e){ layers = []; }
+  function keepLayers(){ A.lsSet('synapp.rlayers', JSON.stringify(layers)); drawLayers(); }
+  function richOf(o){   // the look on the selection, as a layer keeps it: its first enhanced part, and the line spacing
+    var r = rangeOf(o), l = {};
+    if (r){
+      var first = [].filter.call(box.querySelectorAll('span.rx'), function(s){ return r.intersectsNode(s); })[0];
+      if (first) l = lookOf(first);
+    }
+    var p = paras(o)[0]; if (p && p.getAttribute('data-lh')) l.lh = +p.getAttribute('data-lh');
+    return A.cleanRich(l);
+  }
+  function kindOf(text){   // the category the whole text belongs to, if the detector sees it as one thing
+    var t = text.trim(), sp = A.detect(t);
+    var whole = sp.filter(function(s){ return s.start <= 1 && s.end >= t.length - 1; })[0];
+    return whole ? whole.cat : null;
+  }
+  function commitLayer(){
+    if (!sel) return;
+    var text = selText().replace(/\s+/g, ' ').trim(), look = richOf(sel);
+    if (!text){ return; }
+    if (!Object.keys(look).length){ A.toast('This part has no enhancers yet'); return; }
+    var k = kindOf(text), short = text.length > 40 ? text.slice(0, 38) + '…' : text;
+    var buttons = [{label: 'Just “' + short + '”', value: 'word'}];
+    if (k) buttons.push({label: 'Everything like it: ' + A.catLabel(k), value: 'kind'});
+    var pick = buttons.length > 1 ? A.ask('What should this layer catch?', 'When the roller rolls over other text, this look goes on the same words, or on everything of the same kind.', buttons) : Promise.resolve('word');
+    pick.then(function(v){
+      if (!v) return;
+      var lay = A.cleanLayer({id: A.newId(), text: text, match: v, cat: k, look: look});
+      if (!lay){ A.toast('Could not keep that layer'); return; }
+      // the same text (or the same kind) again replaces its earlier layer
+      layers = layers.filter(function(x){ return !(x.match === lay.match && (lay.match === 'kind' ? x.cat === lay.cat : x.text.toLowerCase() === lay.text.toLowerCase())); });
+      layers.push(lay); keepLayers();
+      changed = false; sel = null; hideAll(); getSelection().removeAllRanges();
+      A.toast('Layer kept: ' + (v === 'kind' ? 'all ' + A.catLabel(k).toLowerCase() : '“' + short + '”') + '. Select the next part.');
+    });
+  }
+
+  // a look in words, with its colors as dots
+  var WEIGHTS = {100: 'Hairline', 200: 'Thin', 300: 'Thin', 400: 'Regular', 500: 'Medium', 600: 'Bold', 700: 'Bold', 800: 'Heavy', 900: 'Heavy'};
+  var LINES = {1: 'thin', 2: 'regular', 3: 'bold', 5: 'heavy'};
+  function describe(l){
+    var out = el('small');
+    function part(t, color){ var s = el('span', null, t); if (color){ var d = el('i'); d.style.background = color; s.insertBefore(d, s.firstChild); s.insertBefore(document.createTextNode(' '), d.nextSibling); } out.appendChild(s); }
+    if (l.weight) part(WEIGHTS[l.weight] || l.weight);
+    if (l.italic) part('Italic');
+    if (l.caps) part('CAPS');
+    if (l.font && A.fonts[l.font]) part(A.fonts[l.font].label);
+    if (l.color) part('Font color', l.color);
+    if (l.size) part(l.size + 'px');
+    if (l.underline) part('Underline ' + (LINES[l.underline.w] || ''), l.underline.color);
+    if (l.overline) part('Overline ' + (LINES[l.overline.w] || ''), l.overline.color);
+    if (l.hl) part('Highlight' + (l.hl.h && l.hl.h !== 100 ? ' ' + l.hl.h + '% tall' : '') + (l.hl.w ? ' +' + l.hl.w + 'em wide' : ''), l.hl.color || '#f2c14e');
+    if (l.ls != null) part('Letters ' + (l.ls > 0 ? '+' : '') + l.ls + 'em');
+    if (l.ws != null) part('Words +' + l.ws + 'em');
+    if (l.lh != null) part('Lines ' + l.lh);
+    return out;
+  }
+  function sample(lay){
+    var s = el('span', 'rx', lay.text); s.setAttribute('style', styleOf(lay.look)); return s;
+  }
+  function layerRow(lay, acts){
+    var row = el('div', 'ly-row'), t = el('div', 'ly-t');
+    t.appendChild(sample(lay));
+    if (lay.match === 'kind'){ t.appendChild(document.createTextNode(' ')); t.appendChild(el('span', 'ly-kind', 'all ' + A.catLabel(lay.cat).toLowerCase())); }
+    var a = el('div', 'acts');
+    acts.forEach(function(x){ var b = el('button', 'pill' + (x.danger ? ' danger' : ''), x.label); b.type = 'button'; b.onclick = x.fn; a.appendChild(b); });
+    row.append(t, a, describe(lay.look));
+    return row;
+  }
+  function drawLayers(){
+    var box2 = $('rl-layers'); box2.textContent = '';
+    layers.forEach(function(lay, i){
+      box2.appendChild(layerRow(lay, [
+        {label: 'Show', fn: function(){ showLayer(lay); }},
+        {label: 'Remove', danger: true, fn: function(){ layers.splice(i, 1); keepLayers(); }}
+      ]));
+    });
+    $('rl-config').setAttribute('aria-disabled', layers.length ? 'false' : 'true');
+    $('rl-layers-clear').hidden = !layers.length;
+  }
+  function showLayer(lay){   // select where the layer's text is in the passage, so it can be changed again
+    var hit = matches(box, null, lay)[0];
+    if (!hit){ A.toast('That text is not in this passage'); return; }
+    var r = rangeOf(hit); if (!r) return;
+    r.startContainer.parentElement.scrollIntoView({block: 'center'});
+    var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    sel = hit; changed = true; mode !== 'enhance' && setMode('enhance'); bar.hidden = true; showBar(); drawBar();
+  }
+  $('rl-layers-clear').onclick = function(){
+    A.ask('Start a new set of layers?', 'The layers listed here are cleared. Saved preset rollers stay, and so does the passage.', [{label: 'Start new', value: 'y'}])
+      .then(function(v){ if (v){ layers = []; keepLayers(); } });
+  };
+  $('rl-config').onclick = function(){
+    if (!layers.length){ A.toast('Finish a section with the green check first'); return; }
+    var st = A.st(); st.rollers = st.rollers || [];
+    A.ask('Configure Roller', 'Name this roller. It keeps all ' + layers.length + (layers.length === 1 ? ' layer' : ' layers') + ' and rolls them over any text.', [{label: 'Save roller', value: 'ok'}], {input: ''})
+      .then(function(name){
+        if (name == null) return;
+        name = (name || 'My roller').slice(0, 40);
+        var same = st.rollers.filter(function(p){ return p.name.toLowerCase() === name.toLowerCase(); })[0];
+        var go = same ? A.ask('Replace "' + same.name + '"?', 'A roller with this name exists. Its layers are replaced with these.', [{label: 'Replace', value: 'y'}]) : Promise.resolve('y');
+        return go.then(function(v){
+          if (!v) return;
+          var p = {id: same ? same.id : A.newId(), name: name, hidden: false, layers: JSON.parse(JSON.stringify(layers))};
+          if (same) st.rollers[st.rollers.indexOf(same)] = p; else st.rollers.push(p);
+          if (st.rollers.length > 24){ A.toast('Up to 24 rollers: delete one in Settings first'); st.rollers.pop(); return; }
+          A.save(); presetsChanged(); $('rl-preset').value = p.id;
+          A.toast('Saved roller "' + name + '". Roll it here, in Free Rain or on a file.');
+        });
+      });
+  };
+
+  // ---------- rolling: where a preset's layers land ----------
+  function escRe(x){ return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function blockTexts(rt){   // each block's text and where it starts, so matches never run across paragraphs
+    var out = [], pos = 0, cur = null;
+    texts(rt).forEach(function(t){
+      var b = t.parentElement.closest(BLOCKS) || rt;
+      if (!rt.contains(b)) b = rt;
+      if (!cur || cur.el !== b){ cur = {el: b, start: pos, text: ''}; out.push(cur); }
+      cur.text += t.nodeValue; pos += t.nodeValue.length;
+    });
+    return out;
+  }
+  function matches(rt, o, lay){
+    var found = [];
+    blockTexts(rt).forEach(function(b){
+      if (lay.match === 'kind'){
+        A.detect(b.text).forEach(function(s){ if (s.cat === lay.cat) found.push([b.start + s.start, b.start + s.end]); });
+      } else {
+        var re; try { re = new RegExp('(?<![\\p{L}\\p{N}_])' + escRe(lay.text).replace(/\s+/g, '\\s+') + '(?![\\p{L}\\p{N}_])', 'giu'); } catch (e){ re = new RegExp(escRe(lay.text), 'gi'); }
+        var m; while ((m = re.exec(b.text)) !== null){ if (!m[0].length){ re.lastIndex++; continue; } found.push([b.start + m.index, b.start + m.index + m[0].length]); }
+      }
+    });
+    return o ? found.filter(function(f){ return f[0] < o[1] && f[1] > o[0]; }).map(function(f){ return [Math.max(f[0], o[0]), Math.min(f[1], o[1])]; }) : found;
+  }
+  function applyLook(rt, o, look){   // lay a whole look over what is there (each of its parts wins)
+    var l2 = JSON.parse(JSON.stringify(look)), lh = l2.lh; delete l2.lh;
+    if (lh != null) paras(o, rt).forEach(function(p){ p.style.lineHeight = lh; p.setAttribute('data-lh', lh); });
+    if (!Object.keys(l2).length) return;
+    targets(o, rt).forEach(function(s){ writeLook(s, Object.assign(lookOf(s), l2)); });
+    tidy(rt);
+  }
+  function presetById(id){ return (A.st().rollers || []).filter(function(p){ return p.id === id; })[0] || null; }
+  function roll(rt, o, id){   // returns how many places took a layer
+    var p = presetById(id); if (!p) return 0;
+    var n = 0;
+    p.layers.forEach(function(lay){ matches(rt, o, lay).forEach(function(m){ applyLook(rt, m, lay.look); n++; }); });
+    return n;
+  }
+  function rollHere(o){
+    var id = $('rl-preset').value, p = presetById(id);
+    if (!p){ A.toast('Save a roller first: finish layers, then Configure Roller'); return; }
+    snapshot();
+    var n = roll(box, o, id);
+    getSelection().removeAllRanges();
+    A.toast(n ? 'Rolled "' + p.name + '": ' + n + (n === 1 ? ' place' : ' places') : 'Nothing in that part matches "' + p.name + '"');
+  }
+  $('rl-roll-all').onclick = function(){ rollHere(null); };
+  var mode = 'enhance';
+  function setMode(m){
+    mode = m;
+    $('rl-mode').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-v') === m ? 'true' : 'false'); });
+    document.querySelector('.rl-roll').hidden = m !== 'roll';
+    if (m === 'roll'){ hideAll(); sel = null; if (!visiblePresets().length) A.toast('No rollers yet: make layers, then Configure Roller'); }
+  }
+  $('rl-mode').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b) setMode(b.getAttribute('data-v')); });
+
+  // ---------- the Roll with lists (Roller, Free Rain, Synesthesize) and Settings, Preset rollers ----------
+  function visiblePresets(){ return (A.st().rollers || []).filter(function(p){ return !p.hidden; }); }
+  function fillPickers(){
+    document.querySelectorAll('select[data-presets]').forEach(function(s){
+      var keep = s.value, plain = s.id === 'rl-preset' ? null : (s.id === 'fr-preset' ? 'Colors' : 'No preset roller');
+      s.textContent = '';
+      if (plain != null){ var o0 = el('option', null, plain); o0.value = ''; s.appendChild(o0); }
+      visiblePresets().forEach(function(p){ var o = el('option', null, p.name); o.value = p.id; s.appendChild(o); });
+      if ([].some.call(s.options, function(o){ return o.value === keep; })) s.value = keep;
+    });
+    var o = $('o-preset'); if (o) o.hidden = !visiblePresets().length;
+  }
+  function presetsChanged(){ fillPickers(); drawPresets(); }
+  function drawPresets(){
+    var list = $('preset-list'); if (!list) return;
+    var st = A.st(), all = st.rollers || [];
+    list.textContent = '';
+    if (!all.length){ list.appendChild(el('p', 'empty', 'No preset rollers yet. On the Roller tab, enhance a few parts of the passage, finish each with the green check, then tap Configure Roller.')); return; }
+    all.forEach(function(p){
+      var d = el('details', 'pr-item' + (p.hidden ? ' hid' : '')), sm = el('summary');
+      sm.append(el('b', null, p.name), el('small', null, p.layers.length + (p.layers.length === 1 ? ' layer' : ' layers') + (p.hidden ? ', hidden' : '')));
+      var acts = el('span', 'acts');
+      function btn(t, fn, cls){ var b = el('button', 'pill' + (cls ? ' ' + cls : ''), t); b.type = 'button'; b.onclick = function(e){ e.preventDefault(); fn(); }; acts.appendChild(b); }
+      btn(p.hidden ? 'Show' : 'Hide', function(){ p.hidden = !p.hidden; A.save(); presetsChanged(); });
+      btn('Delete', function(){
+        A.ask('Delete "' + p.name + '"?', 'This roller and its ' + p.layers.length + (p.layers.length === 1 ? ' layer are' : ' layers are') + ' removed. Text it already rolled over keeps its looks.', [{label: 'Delete', value: 'y', danger: true}])
+          .then(function(v){ if (v){ st.rollers.splice(st.rollers.indexOf(p), 1); A.save(); presetsChanged(); } });
+      }, 'danger');
+      sm.appendChild(acts); d.appendChild(sm);
+      p.layers.forEach(function(lay){ d.appendChild(layerRow(lay, [])); });
+      list.appendChild(d);
+    });
+  }
+  // a preset rolled over a whole file in Synesthesize: its layers join the style the server gets
+  function styleWith(style, id){
+    var p = presetById(id); if (!p) return style;
+    var s = JSON.parse(JSON.stringify(style));
+    s.wordbank = s.wordbank || {on: true, words: []}; s.wordbank.on = true; s.look = s.look || {}; s.colors = s.colors || {};
+    var words = [];
+    p.layers.forEach(function(lay){
+      var l = lay.look, flat = {};
+      if (l.color) flat.color = l.color;
+      if (l.hl && (l.hl.color || !l.color)) flat.bg = l.hl.color || '#f2c14e';
+      if (l.font) flat.font = l.font;
+      if (l.size) flat.size = Math.max(.8, Math.min(2.5, Math.round(l.size / 17 * 100) / 100));
+      if (l.caps) flat.caps = true;
+      if (l.weight >= 600) flat.bold = true;
+      if (l.italic) flat.italic = true;
+      if (l.underline) flat.underline = true;
+      flat.rich = l;   // the whole look, for what can draw it
+      if (lay.match === 'word') words.push(Object.assign({word: lay.text}, flat));
+      else {
+        var k = Object.assign({}, s.look[lay.cat] || {});
+        if (l.caps) k['case'] = 'upper';
+        if (l.weight) { k.bold = l.weight >= 600; k.thin = l.weight <= 300; }
+        if (l.italic) k.italic = true;
+        if (l.underline){ k.underline = 'solid'; if (l.underline.color) k.ul = l.underline.color; }
+        if (l.size) k.scale = Math.max(.8, Math.min(2, Math.round(l.size / 17 * 100) / 100));
+        k.rich = l;
+        s.look[lay.cat] = k;
+        var c = l.color || (l.hl && l.hl.color);
+        if (c) s.colors[lay.cat] = {dark: c, light: c};
+        if (s.off) delete s.off[lay.cat];
+      }
+    });
+    s.wordbank.words = words.concat(s.wordbank.words || []).slice(0, 200);
+    return s;
+  }
+
   // ---------- the app tells the Roller which tab is open ----------
   window.synRoller = {
-    tab: function(t){ if (t !== 'roller') hideAll(); if (t === 'settings') drawFonts(); },
-    file: file
+    tab: function(t){ if (t !== 'roller') hideAll(); if (t === 'settings'){ drawFonts(); drawPresets(); } fillPickers(); },
+    file: file, roll: function(rt, o, id){ return roll(rt, o, id); }, styleWith: styleWith
   };
   setText(DEFAULT);
   $('rl-undo').disabled = true;
-  if (A.tab() === 'settings') drawFonts();
+  drawLayers(); fillPickers();
+  if (A.tab() === 'settings'){ drawFonts(); drawPresets(); }
 })();

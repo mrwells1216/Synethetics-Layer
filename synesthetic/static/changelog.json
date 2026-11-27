@@ -1,14 +1,25 @@
 [
  {
-  "sha": "0091812140e2fffc8ce6fdf255fe29ca3b3bdce9",
-  "short": "0091812",
+  "sha": "21b5393d502062858dbd290f3dada2f1b06db580",
+  "short": "21b5393",
+  "date": "2026-11-27T02:16:02-06:00",
+  "title": "Preset rollers: keep layers with the green check, roll them over any text",
+  "body": "On the Roller tab, after the first change to a selection a green check appears at the end of the bar. Tapping it keeps that section as a layer: its text and its enhancers. It asks whether the layer catches just that word or phrase, or, when the text is a number, date, quote and so on, everything of that kind. Layers are listed under the passage. Configure Roller names the set and saves it as a preset roller, kept with the settings (synced and in Export).\n\nRoll a preset: on the Roller tab switch to Roll a preset and select any part, or roll the whole passage; in Free Rain's Roller mode pick it under Roll with; in Synesthesize pick it under Roll with and the file is colored with it. Settings has a Preset rollers card listing each roller's layers, with Hide and Delete.",
+  "tags": [
+   "Added"
+  ],
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/21b5393d502062858dbd290f3dada2f1b06db580"
+ },
+ {
+  "sha": "cd1e722f186fcb7833f637e38425ddc8f2fe5a5f",
+  "short": "cd1e722",
   "date": "2026-11-27T02:09:39-06:00",
   "title": "Roller tab: select text and enhance it from a bar of 8 blocks",
   "body": "The Roller tab takes Saved's place in the menu. Select any word, number or section of its passage and let go: a bar of 8 blocks opens out of the way of the text (Text Amplifiers, Font, Highlight, Spacing, Caps, Font +, Font -, Multiple). Each block opens a menu path like a computer's file menu, for example Text Amplifiers > Underline > Thickness, to set bold weight, italics, underline and overline thickness and color, font, font color and size, highlight color, height and width, and letter, word and line spacing. Multiple collects several picks and applies them together. The bar can be dragged anywhere and stays put; a double-tap on its grip sends it back. Undo, Clear enhancers, the default passage, pasting your own text and uploading .txt, .md, .pdf, .docx or .xlsx files are on the page, with a how-to at the top. The menus come from one file, static/roller-menu.js, so new options are one line each.\n\nSaved (Saved, Recent and Deleted) is now a card in Settings; old Saved links go there. Settings also has Fonts: tap a font to dim it and leave it out of the Roller's Font Type list.",
   "tags": [
    "Added"
   ],
-  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/0091812140e2fffc8ce6fdf255fe29ca3b3bdce9"
+  "url": "https://github.com/mrwells1216/Synethetics-Layer/commit/cd1e722f186fcb7833f637e38425ddc8f2fe5a5f"
  },
  {
   "sha": "12658a42e6882b600671676766f96a50cf93a4dc",

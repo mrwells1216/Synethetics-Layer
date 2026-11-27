@@ -35,6 +35,10 @@ def test_roller_tab_and_its_scripts(server):
     assert 'id="t-roller"' in html and 'id="v-roller"' in html and 'data-tab="roller"' in html
     assert 'id="t-saved"' not in html and 'data-tab="saved"' not in html
     assert 'id="saved-card"' in html and 'id="sv-list"' in html and 'id="font-list"' in html
+    # preset rollers: made on the Roller tab, listed in Settings, offered in Free Rain and Synesthesize
+    assert 'id="rl-config"' in html and 'id="preset-list"' in html
+    for picker in ('id="rl-preset"', 'id="fr-preset"', 'id="ly-preset"'):
+        assert picker in html
     for name in ("roller-menu.js", "roller.js"):
         m = re.search(r'src="/' + re.escape(name) + r'\?v=(\w+)"', html)
         assert m and m.group(1), name   # versioned, so a change reaches browsers
